@@ -424,14 +424,29 @@ function AudioControls({
   isPlaying,
   currentTime,
   duration,
+  volume,
+  isMuted,
   onPlayPause,
   onSeek,
+  onVolumeChange,
+  onToggleMute,
   compact = false,
 }) {
   return (
     <div style={{ display: "grid", gap: compact ? 8 : 12 }}>
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-        <Button variant="primary" onClick={onPlayPause} style={{ padding: compact ? "9px 14px" : undefined }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
+        <Button
+          variant="primary"
+          onClick={onPlayPause}
+          style={{ padding: compact ? "9px 14px" : undefined }}
+        >
           {isPlaying ? "Pause" : "Play"}
         </Button>
 
@@ -449,6 +464,37 @@ function AudioControls({
         onChange={(e) => onSeek(Number(e.target.value))}
         style={{ width: "100%" }}
       />
+
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
+        <Button
+          variant="secondary"
+          onClick={onToggleMute}
+          style={{ padding: compact ? "8px 12px" : "10px 14px", fontSize: compact ? 14 : 15 }}
+        >
+          {isMuted || volume === 0 ? "🔇 Muted" : "🔊 Volume"}
+        </Button>
+
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={isMuted ? 0 : volume}
+          onChange={(e) => onVolumeChange(Number(e.target.value))}
+          style={{ width: compact ? "120px" : "180px" }}
+        />
+
+        <div style={{ minWidth: 42, color: "rgba(255,255,255,0.72)", fontSize: compact ? 13 : 14 }}>
+          {Math.round((isMuted ? 0 : volume) * 100)}%
+        </div>
+      </div>
     </div>
   );
 }
@@ -460,8 +506,13 @@ function PlayerModal({
   isPlaying,
   currentTime,
   duration,
+  volume,
+  isMuted,
   onPlayPause,
   onSeek,
+  onVolumeChange,
+  onToggleMute,
+  isMobile,
 }) {
   if (!song) return null;
 
@@ -517,7 +568,7 @@ function PlayerModal({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "280px 1fr",
+            gridTemplateColumns: isMobile ? "1fr" : "280px 1fr",
             gap: 22,
           }}
         >
@@ -551,8 +602,12 @@ function PlayerModal({
                   isPlaying={isPlaying}
                   currentTime={currentTime}
                   duration={duration}
+                  volume={volume}
+                  isMuted={isMuted}
                   onPlayPause={onPlayPause}
                   onSeek={onSeek}
+                  onVolumeChange={onVolumeChange}
+                  onToggleMute={onToggleMute}
                 />
               ) : (
                 <div style={{ color: "rgba(255,255,255,0.7)" }}>No audio uploaded yet.</div>
@@ -597,8 +652,12 @@ function MiniPlayer({
   isPlaying,
   currentTime,
   duration,
+  volume,
+  isMuted,
   onPlayPause,
   onSeek,
+  onVolumeChange,
+  onToggleMute,
 }) {
   if (!song) return null;
 
@@ -620,9 +679,9 @@ function MiniPlayer({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "58px 1fr auto",
+          gridTemplateColumns: "58px 1fr",
           gap: 12,
-          alignItems: "center",
+          alignItems: "start",
         }}
       >
         <div
@@ -647,30 +706,47 @@ function MiniPlayer({
           )}
         </div>
 
-        <div>
-          <div style={{ fontWeight: 700 }}>{song.title}</div>
-          <div style={{ color: "rgba(255,255,255,0.68)", fontSize: 14 }}>{song.artist}</div>
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 10,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <div style={{ fontWeight: 700 }}>{song.title}</div>
+              <div style={{ color: "rgba(255,255,255,0.68)", fontSize: 14 }}>{song.artist}</div>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Button variant="secondary" onClick={onExpand} style={{ padding: "9px 12px", fontSize: 14 }}>
+                Expand
+              </Button>
+              <Button variant="secondary" onClick={onClose} style={{ padding: "9px 12px", fontSize: 14 }}>
+                Close
+              </Button>
+            </div>
+          </div>
+
           {song.audioUrl ? (
-            <div style={{ marginTop: 8 }}>
+            <div style={{ marginTop: 10 }}>
               <AudioControls
                 isPlaying={isPlaying}
                 currentTime={currentTime}
                 duration={duration}
+                volume={volume}
+                isMuted={isMuted}
                 onPlayPause={onPlayPause}
                 onSeek={onSeek}
+                onVolumeChange={onVolumeChange}
+                onToggleMute={onToggleMute}
                 compact
               />
             </div>
           ) : null}
-        </div>
-
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Button variant="secondary" onClick={onExpand} style={{ padding: "9px 12px", fontSize: 14 }}>
-            Expand
-          </Button>
-          <Button variant="secondary" onClick={onClose} style={{ padding: "9px 12px", fontSize: 14 }}>
-            Close
-          </Button>
         </div>
       </div>
     </div>
@@ -733,6 +809,14 @@ function App() {
   const [playerDuration, setPlayerDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [previousVolume, setPreviousVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth : 1200
+  );
+
+  const isMobile = windowWidth < 900;
 
   const audioRef = useRef(null);
 
@@ -800,6 +884,12 @@ function App() {
   }, [adminLoggedIn]);
 
   useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const songId = params.get("song");
     if (!songId) return;
@@ -852,6 +942,14 @@ function App() {
       audio.removeEventListener("ended", handleEnded);
     };
   }, []);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.volume = isMuted ? 0 : volume;
+    audio.muted = isMuted;
+  }, [volume, isMuted]);
 
   const publicSongs = useMemo(
     () =>
@@ -924,7 +1022,7 @@ function App() {
       setLoginError("");
       setAdminPassword("");
     } else {
-      setLoginError("Wrong password. Demo password is djbuang");
+      setLoginError("Wrong password.");
     }
   };
 
@@ -1156,6 +1254,26 @@ function App() {
     setPlayerCurrentTime(time);
   };
 
+  const handleVolumeChange = (newVolume) => {
+    const safeVolume = Math.max(0, Math.min(1, newVolume));
+    setVolume(safeVolume);
+    setIsMuted(safeVolume === 0);
+    if (safeVolume > 0) {
+      setPreviousVolume(safeVolume);
+    }
+  };
+
+  const handleToggleMute = () => {
+    if (isMuted || volume === 0) {
+      const restoreVolume = previousVolume > 0 ? previousVolume : 1;
+      setVolume(restoreVolume);
+      setIsMuted(false);
+    } else {
+      setPreviousVolume(volume);
+      setIsMuted(true);
+    }
+  };
+
   const downloadTextFile = (filename, content) => {
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -1194,7 +1312,7 @@ function App() {
           "radial-gradient(circle at top left, rgba(58,31,102,0.42), transparent 28%), radial-gradient(circle at top right, rgba(93,40,126,0.22), transparent 20%), linear-gradient(180deg, #050a18 0%, #07112a 55%, #081226 100%)",
         fontFamily:
           'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        paddingBottom: playerSong && playerMinimized ? 140 : 0,
+        paddingBottom: playerSong && playerMinimized ? 180 : 0,
       }}
     >
       <audio ref={audioRef} preload="metadata" style={{ display: "none" }} />
@@ -1281,8 +1399,11 @@ function App() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "minmax(0, 1.85fr) minmax(300px, 0.9fr)",
+                gridTemplateColumns: isMobile
+                  ? "1fr"
+                  : "minmax(0, 1.85fr) minmax(300px, 0.9fr)",
                 gap: 22,
+                alignItems: "start",
               }}
             >
               <Panel
@@ -1307,7 +1428,7 @@ function App() {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "1fr 220px",
+                      gridTemplateColumns: isMobile ? "1fr" : "1fr 220px",
                       gap: 12,
                     }}
                   >
@@ -1317,10 +1438,18 @@ function App() {
                       onChange={(e) => setSearch(e.target.value)}
                     />
                     <Select value={filterMode} onChange={(e) => setFilterMode(e.target.value)}>
-                      <option value="all" style={{ color: "black" }}>All songs</option>
-                      <option value="featured" style={{ color: "black" }}>Featured</option>
-                      <option value="newest" style={{ color: "black" }}>Newest</option>
-                      <option value="most-liked" style={{ color: "black" }}>Most liked</option>
+                      <option value="all" style={{ color: "black" }}>
+                        All songs
+                      </option>
+                      <option value="featured" style={{ color: "black" }}>
+                        Featured
+                      </option>
+                      <option value="newest" style={{ color: "black" }}>
+                        Newest
+                      </option>
+                      <option value="most-liked" style={{ color: "black" }}>
+                        Most liked
+                      </option>
                     </Select>
                   </div>
 
@@ -1614,8 +1743,12 @@ function App() {
                   value={newSong.visibility}
                   onChange={(e) => setNewSong((p) => ({ ...p, visibility: e.target.value }))}
                 >
-                  <option value="public" style={{ color: "black" }}>Main website / Public</option>
-                  <option value="private" style={{ color: "black" }}>Private collection</option>
+                  <option value="public" style={{ color: "black" }}>
+                    Main website / Public
+                  </option>
+                  <option value="private" style={{ color: "black" }}>
+                    Private collection
+                  </option>
                 </Select>
 
                 <div>
@@ -1850,8 +1983,13 @@ function App() {
           isPlaying={isPlaying}
           currentTime={playerCurrentTime}
           duration={playerDuration}
+          volume={volume}
+          isMuted={isMuted}
           onPlayPause={handlePlayPause}
           onSeek={handleSeek}
+          onVolumeChange={handleVolumeChange}
+          onToggleMute={handleToggleMute}
+          isMobile={isMobile}
         />
       ) : null}
 
@@ -1863,8 +2001,12 @@ function App() {
           isPlaying={isPlaying}
           currentTime={playerCurrentTime}
           duration={playerDuration}
+          volume={volume}
+          isMuted={isMuted}
           onPlayPause={handlePlayPause}
           onSeek={handleSeek}
+          onVolumeChange={handleVolumeChange}
+          onToggleMute={handleToggleMute}
         />
       ) : null}
     </div>
