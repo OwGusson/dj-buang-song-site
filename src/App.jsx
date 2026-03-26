@@ -839,7 +839,30 @@ async function deleteSongFromCloudflare(songId) {
 
   return data;
 }
+async function loginAdmin(password) {
+  const response = await fetch("/api/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ password }),
+  });
 
+  const text = await response.text();
+  let data = {};
+
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error("Login endpoint returned invalid response");
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || "Wrong password.");
+  }
+
+  return data;
+}
 function App() {
 const [songs, setSongs] = useState(() => {
   clearOldDemoDataOnce();
@@ -1101,17 +1124,19 @@ useEffect(() => {
     localStorage.setItem(likedKey, "true");
   };
 
-  const handleAdminLogin = (e) => {
-    e.preventDefault();
-    if (adminPassword === "djbuang") {
-      setAdminLoggedIn(true);
-      setView("admin");
-      setLoginError("");
-      setAdminPassword("");
-    } else {
-      setLoginError("Wrong password.");
-    }
-  };
+  const handleAdminLogin = async (e) => {
+  e.preventDefault();
+
+  try {
+    await loginAdmin(adminPassword);
+    setAdminLoggedIn(true);
+    setView("admin");
+    setLoginError("");
+    setAdminPassword("");
+  } catch (error) {
+    setLoginError(error.message || "Wrong password.");
+  }
+};
 
   const handleLogout = () => {
     setAdminLoggedIn(false);
