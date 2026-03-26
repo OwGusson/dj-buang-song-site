@@ -8,7 +8,7 @@ const STORAGE_KEYS = {
   resetVersion: "djbuang_reset_version",
 };
 
-const PAYPAL_URL = "https://paypal.me/owgusson";
+const PAYPAL_URL = "https://www.paypal.com/donate/?hosted_button_id=DWL7PTXG7BQ9A";
 
 const DEFAULT_SONGS = [];
 const DEFAULT_REQUESTS = [];
