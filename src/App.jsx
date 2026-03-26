@@ -776,7 +776,9 @@ async function uploadFileToCloudflare(file) {
   }
 
   return data.fileUrl;
-}async function fetchSongsFromCloudflare() {
+}
+
+async function fetchSongsFromCloudflare() {
   const response = await fetch("/api/songs");
   const text = await response.text();
 
@@ -839,6 +841,7 @@ async function deleteSongFromCloudflare(songId) {
 
   return data;
 }
+
 async function loginAdmin(password) {
   const response = await fetch("/api/login", {
     method: "POST",
@@ -862,36 +865,13 @@ async function loginAdmin(password) {
   }
 
   return data;
-}async function importFromSuno(url) {
-  const response = await fetch("/api/import-suno", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ url }),
-  });
-
-  const text = await response.text();
-  let data = {};
-
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    throw new Error("Suno import endpoint returned invalid response");
-  }
-
-  if (!response.ok) {
-    throw new Error(data.error || "Failed to import from Suno");
-  }
-
-  return data.imported;
 }
+
 function App() {
-const [songs, setSongs] = useState(() => {
-  
-  clearOldDemoDataOnce();
-  return [];
-});
+  const [songs, setSongs] = useState(() => {
+    clearOldDemoDataOnce();
+    return [];
+  });
 
   const [requests, setRequests] = useState(() =>
     getStored(STORAGE_KEYS.requests, DEFAULT_REQUESTS)
@@ -918,8 +898,6 @@ const [songs, setSongs] = useState(() => {
   const [playerDuration, setPlayerDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [sunoUrl, setSunoUrl] = useState("");
-  const [isImportingSuno, setIsImportingSuno] = useState(false);
   const [volume, setVolume] = useState(1);
   const [previousVolume, setPreviousVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
@@ -928,7 +906,6 @@ const [songs, setSongs] = useState(() => {
   );
 
   const isMobile = windowWidth < 900;
-
   const audioRef = useRef(null);
 
   const [newSong, setNewSong] = useState({
@@ -959,32 +936,34 @@ const [songs, setSongs] = useState(() => {
     from: "",
     message: "",
   });
-useEffect(() => {
-  let cancelled = false;
 
-  async function loadSongs() {
-    try {
-      const cloudSongs = await fetchSongsFromCloudflare();
+  useEffect(() => {
+    let cancelled = false;
 
-      if (!cancelled) {
-        setSongs(cloudSongs.map(normalizeSong));
-      }
-    } catch (error) {
-      console.warn("Could not load songs from Cloudflare, falling back to local cache:", error);
+    async function loadSongs() {
+      try {
+        const cloudSongs = await fetchSongsFromCloudflare();
 
-      if (!cancelled) {
-        const localSongs = getStored(STORAGE_KEYS.songs, DEFAULT_SONGS).map(normalizeSong);
-        setSongs(localSongs);
+        if (!cancelled) {
+          setSongs(cloudSongs.map(normalizeSong));
+        }
+      } catch (error) {
+        console.warn("Could not load songs from Cloudflare, falling back to local cache:", error);
+
+        if (!cancelled) {
+          const localSongs = getStored(STORAGE_KEYS.songs, DEFAULT_SONGS).map(normalizeSong);
+          setSongs(localSongs);
+        }
       }
     }
-  }
 
-  loadSongs();
+    loadSongs();
 
-  return () => {
-    cancelled = true;
-  };
-}, []);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     try {
       const safeSongs = songs.map((song) => ({
@@ -1112,8 +1091,6 @@ useEffect(() => {
       list = list.filter((song) => song.featured);
     } else if (filterMode === "most-liked") {
       list.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-    } else if (filterMode === "newest") {
-      list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } else {
       list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
@@ -1151,51 +1128,24 @@ useEffect(() => {
   };
 
   const handleAdminLogin = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    await loginAdmin(adminPassword);
-    setAdminLoggedIn(true);
-    setView("admin");
-    setLoginError("");
-    setAdminPassword("");
-  } catch (error) {
-    setLoginError(error.message || "Wrong password.");
-  }
-};
+    try {
+      await loginAdmin(adminPassword);
+      setAdminLoggedIn(true);
+      setView("admin");
+      setLoginError("");
+      setAdminPassword("");
+    } catch (error) {
+      setLoginError(error.message || "Wrong password.");
+    }
+  };
 
   const handleLogout = () => {
     setAdminLoggedIn(false);
     setView("home");
   };
-const handleImportFromSuno = async () => {
-  if (!sunoUrl.trim()) {
-    alert("Please paste a Suno URL first.");
-    return;
-  }
 
-  try {
-    setIsImportingSuno(true);
-
-    const imported = await importFromSuno(sunoUrl.trim());
-
-    setNewSong((prev) => ({
-      ...prev,
-      title: imported.title || prev.title,
-      artist: imported.artist || prev.artist || "DJ-Buang",
-      genre: imported.genre || prev.genre,
-      coverUrl: imported.coverUrl || prev.coverUrl,
-      audioUrl: imported.audioUrl || prev.audioUrl,
-      lyrics: imported.lyrics || prev.lyrics,
-    }));
-
-    alert("Suno import complete. Please review the fields before uploading.");
-  } catch (error) {
-    alert(error.message || "Could not import from Suno");
-  } finally {
-    setIsImportingSuno(false);
-  }
-};
   const handleAddSong = async (e) => {
     e.preventDefault();
     if (!newSong.title.trim()) return;
@@ -1230,7 +1180,8 @@ const handleImportFromSuno = async () => {
       });
 
       await saveSongToCloudflare(item);
-setSongs((prev) => [item, ...prev]);
+      setSongs((prev) => [item, ...prev]);
+
       setNewSong({
         title: "",
         artist: "DJ-Buang",
@@ -1276,7 +1227,6 @@ setSongs((prev) => [item, ...prev]);
       alert(error.message || "Failed to delete song");
     }
   };
-
 
   const handleRequestSubmit = (e) => {
     e.preventDefault();
@@ -1892,50 +1842,7 @@ setSongs((prev) => [item, ...prev]);
                   gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
                   gap: 16,
                 }}
-              ><div style={{ gridColumn: "1 / -1" }}>
-  <div
-    style={{
-      padding: 16,
-      borderRadius: 18,
-      background: "rgba(10,15,28,0.52)",
-      border: "1px solid rgba(255,255,255,0.08)",
-      display: "grid",
-      gap: 12,
-    }}
-  >
-    <div>
-      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>
-        Import from Suno
-      </div>
-      <div style={{ color: "rgba(255,255,255,0.68)", fontSize: 14 }}>
-        Paste a public Suno song URL to try auto-filling title, cover, and lyrics.
-      </div>
-    </div>
-
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: isMobile ? "1fr" : "1fr auto",
-        gap: 12,
-      }}
-    >
-      <Input
-        placeholder="https://suno.com/song/..."
-        value={sunoUrl}
-        onChange={(e) => setSunoUrl(e.target.value)}
-      />
-
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={handleImportFromSuno}
-        disabled={isImportingSuno}
-      >
-        {isImportingSuno ? "Importing..." : "Import from Suno"}
-      </Button>
-    </div>
-  </div>
-</div>
+              >
                 <Input
                   label="Song title"
                   value={newSong.title}
