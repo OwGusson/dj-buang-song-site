@@ -776,13 +776,75 @@ async function uploadFileToCloudflare(file) {
   }
 
   return data.fileUrl;
+}async function fetchSongsFromCloudflare() {
+  const response = await fetch("/api/songs");
+  const text = await response.text();
+
+  let data = [];
+  try {
+    data = text ? JSON.parse(text) : [];
+  } catch {
+    throw new Error("Songs endpoint returned invalid response");
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to load songs");
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
+async function saveSongToCloudflare(song) {
+  const response = await fetch("/api/songs", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(song),
+  });
+
+  const text = await response.text();
+  let data = {};
+
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error("Songs save endpoint returned invalid response");
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to save song");
+  }
+
+  return data;
+}
+
+async function deleteSongFromCloudflare(songId) {
+  const response = await fetch(`/api/songs?id=${encodeURIComponent(songId)}`, {
+    method: "DELETE",
+  });
+
+  const text = await response.text();
+  let data = {};
+
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error("Songs delete endpoint returned invalid response");
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to delete song");
+  }
+
+  return data;
 }
 
 function App() {
-  const [songs, setSongs] = useState(() => {
-    clearOldDemoDataOnce();
-    return getStored(STORAGE_KEYS.songs, DEFAULT_SONGS).map(normalizeSong);
-  });
+const [songs, setSongs] = useState(() => {
+  clearOldDemoDataOnce();
+  return [];
+});
 
   const [requests, setRequests] = useState(() =>
     getStored(STORAGE_KEYS.requests, DEFAULT_REQUESTS)
@@ -848,7 +910,32 @@ function App() {
     from: "",
     message: "",
   });
+useEffect(() => {
+  let cancelled = false;
 
+  async function loadSongs() {
+    try {
+      const cloudSongs = await fetchSongsFromCloudflare();
+
+      if (!cancelled) {
+        setSongs(cloudSongs.map(normalizeSong));
+      }
+    } catch (error) {
+      console.warn("Could not load songs from Cloudflare, falling back to local cache:", error);
+
+      if (!cancelled) {
+        const localSongs = getStored(STORAGE_KEYS.songs, DEFAULT_SONGS).map(normalizeSong);
+        setSongs(localSongs);
+      }
+    }
+  }
+
+  loadSongs();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
   useEffect(() => {
     try {
       const safeSongs = songs.map((song) => ({
@@ -1064,7 +1151,8 @@ function App() {
         status: "published",
       });
 
-      setSongs((prev) => [item, ...prev]);
+      await saveSongToCloudflare(item);
+setSongs((prev) => [item, ...prev]);
       setNewSong({
         title: "",
         artist: "DJ-Buang",
@@ -1088,8 +1176,28 @@ function App() {
     }
   };
 
-  const handleDeleteSong = (id) => {
+  const handleDeleteSong = async (id) => {
+  try {
+    await deleteSongFromCloudflare(id);
     setSongs((prev) => prev.filter((song) => song.id !== id));
+
+    if (playerSong?.id === id) {
+      const audio = audioRef.current;
+      if (audio) {
+        audio.pause();
+        audio.removeAttribute("src");
+        audio.load();
+      }
+      setPlayerSong(null);
+      setPlayerMinimized(false);
+      setPlayerCurrentTime(0);
+      setPlayerDuration(0);
+      setIsPlaying(false);
+    }
+  } catch (error) {
+    alert(error.message || "Failed to delete song");
+  }
+};
     if (playerSong?.id === id) {
       const audio = audioRef.current;
       if (audio) {
