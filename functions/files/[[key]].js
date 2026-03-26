@@ -1,5 +1,6 @@
 export const onRequestGet = async (context) => {
-  const key = context.params.key;
+  const rawKey = context.params.key;
+  const key = decodeURIComponent(rawKey);
   const range = context.request.headers.get("range");
 
   const object = await context.env.FILES.get(key, {
