@@ -1177,41 +1177,28 @@ setSongs((prev) => [item, ...prev]);
   };
 
   const handleDeleteSong = async (id) => {
-  try {
-    await deleteSongFromCloudflare(id);
-    setSongs((prev) => prev.filter((song) => song.id !== id));
+    try {
+      await deleteSongFromCloudflare(id);
+      setSongs((prev) => prev.filter((song) => song.id !== id));
 
-    if (playerSong?.id === id) {
-      const audio = audioRef.current;
-      if (audio) {
-        audio.pause();
-        audio.removeAttribute("src");
-        audio.load();
+      if (playerSong?.id === id) {
+        const audio = audioRef.current;
+        if (audio) {
+          audio.pause();
+          audio.removeAttribute("src");
+          audio.load();
+        }
+        setPlayerSong(null);
+        setPlayerMinimized(false);
+        setPlayerCurrentTime(0);
+        setPlayerDuration(0);
+        setIsPlaying(false);
       }
-      setPlayerSong(null);
-      setPlayerMinimized(false);
-      setPlayerCurrentTime(0);
-      setPlayerDuration(0);
-      setIsPlaying(false);
-    }
-  } catch (error) {
-    alert(error.message || "Failed to delete song");
-  }
-};
-    if (playerSong?.id === id) {
-      const audio = audioRef.current;
-      if (audio) {
-        audio.pause();
-        audio.removeAttribute("src");
-        audio.load();
-      }
-      setPlayerSong(null);
-      setPlayerMinimized(false);
-      setPlayerCurrentTime(0);
-      setPlayerDuration(0);
-      setIsPlaying(false);
+    } catch (error) {
+      alert(error.message || "Failed to delete song");
     }
   };
+
 
   const handleRequestSubmit = (e) => {
     e.preventDefault();
