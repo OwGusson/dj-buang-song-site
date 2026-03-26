@@ -168,9 +168,10 @@ function Button({ children, variant = "secondary", ...props }) {
         padding: "12px 18px",
         borderRadius: 16,
         fontWeight: 600,
-        cursor: "pointer",
+        cursor: props.disabled ? "not-allowed" : "pointer",
         fontSize: 16,
         transition: "0.2s ease",
+        opacity: props.disabled ? 0.7 : 1,
         ...variants[variant],
         ...props.style,
       }}
@@ -297,46 +298,6 @@ function StatPill({ label, value }) {
     >
       <div style={{ fontSize: 13, opacity: 0.74 }}>{label}</div>
       <div style={{ marginTop: 6, fontSize: 28, fontWeight: 800 }}>{value}</div>
-    </div>
-  );
-}
-
-function FileInput({ label, accept, onFileLoaded, helperText }) {
-  const handleChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      onFileLoaded(reader.result || "");
-    };
-    reader.readAsDataURL(file);
-  };
-
-  return (
-    <div>
-      <div style={{ marginBottom: 8, fontSize: 14, color: "rgba(255,255,255,0.82)" }}>
-        {label}
-      </div>
-      <input
-        type="file"
-        accept={accept}
-        onChange={handleChange}
-        style={{
-          width: "100%",
-          padding: "12px 14px",
-          borderRadius: 16,
-          border: "1px solid rgba(255,255,255,0.10)",
-          background: "rgba(10,15,28,0.65)",
-          color: "white",
-          boxSizing: "border-box",
-        }}
-      />
-      {helperText ? (
-        <div style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.58)" }}>
-          {helperText}
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -696,10 +657,33 @@ function MiniPlayer({ song, onExpand, onClose }) {
   );
 }
 
+async function uploadFileToCloudflare(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  const text = await response.text();
+  let data = {};
+
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error("Upload endpoint returned invalid response");
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || "Upload failed");
+  }
+
+  return data.fileUrl;
+}
+
 function App() {
-  const [songs, setSongs] = useState(() =>
-    getStored(STORAGE_KEYS.songs, DEFAULT_SONGS).map(normalizeSong)
-  );
+  const [songs, setSongs] = useState(() => DEFAULT_SONGS.map(normalizeSong));
   const [requests, setRequests] = useState(() =>
     getStored(STORAGE_KEYS.requests, DEFAULT_REQUESTS)
   );
@@ -724,6 +708,7 @@ function App() {
   const [filterMode, setFilterMode] = useState("all");
   const [playerSong, setPlayerSong] = useState(null);
   const [playerMinimized, setPlayerMinimized] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [newSong, setNewSong] = useState({
     title: "",
@@ -734,6 +719,11 @@ function App() {
     lyrics: "",
     featured: false,
     visibility: "public",
+  });
+
+  const [newSongFiles, setNewSongFiles] = useState({
+    coverFile: null,
+    audioFile: null,
   });
 
   const [requestForm, setRequestForm] = useState({
@@ -750,7 +740,26 @@ function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.songs, JSON.stringify(songs.map(normalizeSong)));
+    try {
+      const safeSongs = songs.map((song) => ({
+        id: song.id,
+        title: song.title,
+        artist: song.artist,
+        genre: song.genre,
+        coverUrl: song.coverUrl,
+        audioUrl: song.audioUrl,
+        lyrics: song.lyrics,
+        likes: song.likes,
+        featured: song.featured,
+        visibility: song.visibility,
+        status: song.status,
+        createdAt: song.createdAt,
+      }));
+
+      localStorage.setItem(STORAGE_KEYS.songs, JSON.stringify(safeSongs));
+    } catch (error) {
+      console.warn("Skipping local song cache:", error);
+    }
   }, [songs]);
 
   useEffect(() => {
@@ -859,36 +868,61 @@ function App() {
     setView("home");
   };
 
-  const handleAddSong = (e) => {
+  const handleAddSong = async (e) => {
     e.preventDefault();
     if (!newSong.title.trim()) return;
 
-    const item = normalizeSong({
-      id: `song-${Date.now()}`,
-      title: newSong.title.trim(),
-      artist: newSong.artist.trim() || "DJ-Buang",
-      genre: newSong.genre.trim(),
-      coverUrl: newSong.coverUrl,
-      audioUrl: newSong.audioUrl,
-      lyrics: newSong.lyrics.trim(),
-      likes: 0,
-      featured: !!newSong.featured,
-      visibility: newSong.visibility,
-      createdAt: new Date().toISOString(),
-      status: "published",
-    });
+    try {
+      setIsUploading(true);
 
-    setSongs((prev) => [item, ...prev]);
-    setNewSong({
-      title: "",
-      artist: "DJ-Buang",
-      genre: "",
-      coverUrl: "",
-      audioUrl: "",
-      lyrics: "",
-      featured: false,
-      visibility: "public",
-    });
+      let uploadedCoverUrl = newSong.coverUrl;
+      let uploadedAudioUrl = newSong.audioUrl;
+
+      if (newSongFiles.coverFile) {
+        uploadedCoverUrl = await uploadFileToCloudflare(newSongFiles.coverFile);
+      }
+
+      if (newSongFiles.audioFile) {
+        uploadedAudioUrl = await uploadFileToCloudflare(newSongFiles.audioFile);
+      }
+
+      const item = normalizeSong({
+        id: `song-${Date.now()}`,
+        title: newSong.title.trim(),
+        artist: newSong.artist.trim() || "DJ-Buang",
+        genre: newSong.genre.trim(),
+        coverUrl: uploadedCoverUrl,
+        audioUrl: uploadedAudioUrl,
+        lyrics: newSong.lyrics.trim(),
+        likes: 0,
+        featured: !!newSong.featured,
+        visibility: newSong.visibility,
+        createdAt: new Date().toISOString(),
+        status: "published",
+      });
+
+      setSongs((prev) => [item, ...prev]);
+      setNewSong({
+        title: "",
+        artist: "DJ-Buang",
+        genre: "",
+        coverUrl: "",
+        audioUrl: "",
+        lyrics: "",
+        featured: false,
+        visibility: "public",
+      });
+      setNewSongFiles({
+        coverFile: null,
+        audioFile: null,
+      });
+
+      alert("Song uploaded!");
+    } catch (error) {
+      alert(error.message || "Upload failed");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleDeleteSong = (id) => {
@@ -1444,19 +1478,61 @@ function App() {
                   <option value="private" style={{ color: "black" }}>Private collection</option>
                 </Select>
 
-                <FileInput
-                  label="Upload cover image"
-                  accept="image/*"
-                  onFileLoaded={(value) => setNewSong((p) => ({ ...p, coverUrl: value }))}
-                  helperText="Image will be saved into local browser storage."
-                />
+                <div>
+                  <div style={{ marginBottom: 8, fontSize: 14, color: "rgba(255,255,255,0.82)" }}>
+                    Upload cover image
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) =>
+                      setNewSongFiles((prev) => ({
+                        ...prev,
+                        coverFile: e.target.files?.[0] || null,
+                      }))
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      borderRadius: 16,
+                      border: "1px solid rgba(255,255,255,0.10)",
+                      background: "rgba(10,15,28,0.65)",
+                      color: "white",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <div style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.58)" }}>
+                    Image will upload to Cloudflare storage.
+                  </div>
+                </div>
 
-                <FileInput
-                  label="Upload MP3 song"
-                  accept="audio/*"
-                  onFileLoaded={(value) => setNewSong((p) => ({ ...p, audioUrl: value }))}
-                  helperText="Large MP3 files may be too big for browser localStorage."
-                />
+                <div>
+                  <div style={{ marginBottom: 8, fontSize: 14, color: "rgba(255,255,255,0.82)" }}>
+                    Upload MP3 song
+                  </div>
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    onChange={(e) =>
+                      setNewSongFiles((prev) => ({
+                        ...prev,
+                        audioFile: e.target.files?.[0] || null,
+                      }))
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      borderRadius: 16,
+                      border: "1px solid rgba(255,255,255,0.10)",
+                      background: "rgba(10,15,28,0.65)",
+                      color: "white",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <div style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.58)" }}>
+                    MP3 will upload to Cloudflare storage.
+                  </div>
+                </div>
 
                 <label
                   style={{
@@ -1490,8 +1566,8 @@ function App() {
                 </div>
 
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <Button type="submit" variant="primary">
-                    Upload Song
+                  <Button type="submit" variant="primary" disabled={isUploading}>
+                    {isUploading ? "Uploading..." : "Upload Song"}
                   </Button>
                 </div>
               </form>
