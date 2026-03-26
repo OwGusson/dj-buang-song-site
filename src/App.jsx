@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 const STORAGE_KEYS = {
   songs: "djbuang_songs",
@@ -6,86 +6,13 @@ const STORAGE_KEYS = {
   messages: "djbuang_messages",
   donations: "djbuang_donations",
   admin: "djbuang_admin_logged_in",
+  resetVersion: "djbuang_reset_version",
 };
 
-const DEFAULT_SONGS = [
-  {
-    id: "song-1",
-    title: "Pogi Anthem",
-    artist: "DJ-Buang",
-    genre: "Party Anthem",
-    coverUrl: "",
-    audioUrl: "",
-    lyrics: "Sample lyrics for Pogi Anthem.",
-    likes: 12,
-    featured: true,
-    visibility: "public",
-    createdAt: "2026-03-25T17:49:39.000Z",
-    status: "published",
-  },
-  {
-    id: "song-2",
-    title: "Midnight Lobby",
-    artist: "DJ-Buang",
-    genre: "EDM / Pop",
-    coverUrl: "",
-    audioUrl: "",
-    lyrics: "Sample lyrics for Midnight Lobby.",
-    likes: 7,
-    featured: true,
-    visibility: "public",
-    createdAt: "2026-03-26T17:49:39.000Z",
-    status: "published",
-  },
-  {
-    id: "song-3",
-    title: "No MA'AM Nights",
-    artist: "DJ-Buang",
-    genre: "Club / Meme",
-    coverUrl: "",
-    audioUrl: "",
-    lyrics: "Sample lyrics for No MA'AM Nights.",
-    likes: 5,
-    featured: false,
-    visibility: "public",
-    createdAt: "2026-03-24T17:49:39.000Z",
-    status: "published",
-  },
-];
-
-const DEFAULT_REQUESTS = [
-  {
-    id: "req-1",
-    name: "Mae",
-    title: "Epic Lobby Song",
-    details: "Something huge and dramatic for the stream intro.",
-    email: "",
-    notify: false,
-    status: "pending",
-    createdAt: new Date().toISOString(),
-  },
-];
-
-const DEFAULT_MESSAGES = [
-  {
-    id: "msg-1",
-    from: "Anonymous Fan",
-    message: "Love the latest tracks. More DIA songs please!",
-    status: "read",
-    createdAt: new Date().toISOString(),
-  },
-];
-
-const DEFAULT_DONATIONS = [
-  {
-    id: "don-1",
-    name: "Supporter One",
-    amount: 10,
-    note: "Love the songs!",
-    status: "new",
-    createdAt: new Date().toISOString(),
-  },
-];
+const DEFAULT_SONGS = [];
+const DEFAULT_REQUESTS = [];
+const DEFAULT_MESSAGES = [];
+const DEFAULT_DONATIONS = [];
 
 function getStored(key, fallback) {
   try {
@@ -93,6 +20,30 @@ function getStored(key, fallback) {
     return raw ? JSON.parse(raw) : fallback;
   } catch {
     return fallback;
+  }
+}
+
+function clearOldDemoDataOnce() {
+  try {
+    const currentVersion = "reset-v2";
+    const alreadyReset = localStorage.getItem(STORAGE_KEYS.resetVersion);
+
+    if (alreadyReset === currentVersion) return;
+
+    localStorage.removeItem(STORAGE_KEYS.songs);
+    localStorage.removeItem(STORAGE_KEYS.requests);
+    localStorage.removeItem(STORAGE_KEYS.messages);
+    localStorage.removeItem(STORAGE_KEYS.donations);
+
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith("liked_")) {
+        localStorage.removeItem(key);
+      }
+    });
+
+    localStorage.setItem(STORAGE_KEYS.resetVersion, currentVersion);
+  } catch (error) {
+    console.warn("Could not clear old demo data:", error);
   }
 }
 
@@ -462,7 +413,16 @@ function SongRow({
   );
 }
 
-function PlayerModal({ song, onClose, onMinimize }) {
+function PlayerModal({
+  song,
+  onClose,
+  onMinimize,
+  audioRef,
+  playerCurrentTime,
+  setPlayerCurrentTime,
+  setPlayerWasPlaying,
+  shouldAutoplay,
+}) {
   if (!song) return null;
 
   return (
@@ -547,7 +507,23 @@ function PlayerModal({ song, onClose, onMinimize }) {
 
             <div style={{ marginTop: 16 }}>
               {song.audioUrl ? (
-                <audio controls style={{ width: "100%" }}>
+                <audio
+                  ref={audioRef}
+                  controls
+                  autoPlay={shouldAutoplay}
+                  style={{ width: "100%" }}
+                  onTimeUpdate={(e) => setPlayerCurrentTime(e.target.currentTime)}
+                  onPlay={() => setPlayerWasPlaying(true)}
+                  onPause={() => setPlayerWasPlaying(false)}
+                  onLoadedMetadata={(e) => {
+                    if (playerCurrentTime > 0) {
+                      e.target.currentTime = playerCurrentTime;
+                    }
+                    if (shouldAutoplay) {
+                      e.target.play().catch(() => {});
+                    }
+                  }}
+                >
                   <source src={song.audioUrl} />
                 </audio>
               ) : (
@@ -586,7 +562,16 @@ function PlayerModal({ song, onClose, onMinimize }) {
   );
 }
 
-function MiniPlayer({ song, onExpand, onClose }) {
+function MiniPlayer({
+  song,
+  onExpand,
+  onClose,
+  audioRef,
+  playerCurrentTime,
+  setPlayerCurrentTime,
+  setPlayerWasPlaying,
+  shouldAutoplay,
+}) {
   if (!song) return null;
 
   return (
@@ -638,7 +623,23 @@ function MiniPlayer({ song, onExpand, onClose }) {
           <div style={{ fontWeight: 700 }}>{song.title}</div>
           <div style={{ color: "rgba(255,255,255,0.68)", fontSize: 14 }}>{song.artist}</div>
           {song.audioUrl ? (
-            <audio controls style={{ width: "100%", marginTop: 8, height: 34 }}>
+            <audio
+              ref={audioRef}
+              controls
+              autoPlay={shouldAutoplay}
+              style={{ width: "100%", marginTop: 8, height: 34 }}
+              onTimeUpdate={(e) => setPlayerCurrentTime(e.target.currentTime)}
+              onPlay={() => setPlayerWasPlaying(true)}
+              onPause={() => setPlayerWasPlaying(false)}
+              onLoadedMetadata={(e) => {
+                if (playerCurrentTime > 0) {
+                  e.target.currentTime = playerCurrentTime;
+                }
+                if (shouldAutoplay) {
+                  e.target.play().catch(() => {});
+                }
+              }}
+            >
               <source src={song.audioUrl} />
             </audio>
           ) : null}
@@ -683,7 +684,11 @@ async function uploadFileToCloudflare(file) {
 }
 
 function App() {
-  const [songs, setSongs] = useState(() => DEFAULT_SONGS.map(normalizeSong));
+  const [songs, setSongs] = useState(() => {
+    clearOldDemoDataOnce();
+    return getStored(STORAGE_KEYS.songs, DEFAULT_SONGS).map(normalizeSong);
+  });
+
   const [requests, setRequests] = useState(() =>
     getStored(STORAGE_KEYS.requests, DEFAULT_REQUESTS)
   );
@@ -708,7 +713,12 @@ function App() {
   const [filterMode, setFilterMode] = useState("all");
   const [playerSong, setPlayerSong] = useState(null);
   const [playerMinimized, setPlayerMinimized] = useState(false);
+  const [playerCurrentTime, setPlayerCurrentTime] = useState(0);
+  const [playerWasPlaying, setPlayerWasPlaying] = useState(false);
+  const [shouldAutoplay, setShouldAutoplay] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  const audioRef = useRef(null);
 
   const [newSong, setNewSong] = useState({
     title: "",
@@ -739,6 +749,12 @@ function App() {
     message: "",
   });
 
+  const [donationForm, setDonationForm] = useState({
+    name: "",
+    amount: "",
+    note: "",
+  });
+
   useEffect(() => {
     try {
       const safeSongs = songs.map((song) => ({
@@ -755,7 +771,6 @@ function App() {
         status: song.status,
         createdAt: song.createdAt,
       }));
-
       localStorage.setItem(STORAGE_KEYS.songs, JSON.stringify(safeSongs));
     } catch (error) {
       console.warn("Skipping local song cache:", error);
@@ -788,6 +803,8 @@ function App() {
       setView("home");
       setPlayerSong(foundSong);
       setPlayerMinimized(false);
+      setPlayerCurrentTime(0);
+      setShouldAutoplay(false);
     }
   }, [songs]);
 
@@ -930,6 +947,9 @@ function App() {
     if (playerSong?.id === id) {
       setPlayerSong(null);
       setPlayerMinimized(false);
+      setPlayerCurrentTime(0);
+      setPlayerWasPlaying(false);
+      setShouldAutoplay(false);
     }
   };
 
@@ -976,6 +996,34 @@ function App() {
     alert("Private message sent!");
   };
 
+  const handleDonationSubmit = (e) => {
+    e.preventDefault();
+    if (!donationForm.name.trim() || !donationForm.amount) return;
+
+    const amount = Number(donationForm.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert("Please enter a valid donation amount.");
+      return;
+    }
+
+    const item = {
+      id: `don-${Date.now()}`,
+      name: donationForm.name.trim(),
+      amount,
+      note: donationForm.note.trim(),
+      status: "new",
+      createdAt: new Date().toISOString(),
+    };
+
+    setDonations((prev) => [item, ...prev]);
+    setDonationForm({
+      name: "",
+      amount: "",
+      note: "",
+    });
+    alert("Thank you for the donation support!");
+  };
+
   const toggleRequestStatus = (id) => {
     setRequests((prev) =>
       prev.map((item) =>
@@ -1013,6 +1061,11 @@ function App() {
   };
 
   const openSongPlayer = (song) => {
+    if (playerSong?.id !== song.id) {
+      setPlayerCurrentTime(0);
+      setPlayerWasPlaying(false);
+      setShouldAutoplay(false);
+    }
     setPlayerSong(song);
     setPlayerMinimized(false);
   };
@@ -1020,13 +1073,26 @@ function App() {
   const closePlayer = () => {
     setPlayerSong(null);
     setPlayerMinimized(false);
+    setPlayerCurrentTime(0);
+    setPlayerWasPlaying(false);
+    setShouldAutoplay(false);
   };
 
   const minimizePlayer = () => {
+    if (audioRef.current) {
+      setPlayerCurrentTime(audioRef.current.currentTime || 0);
+      setPlayerWasPlaying(!audioRef.current.paused);
+      setShouldAutoplay(!audioRef.current.paused);
+    }
     setPlayerMinimized(true);
   };
 
   const expandPlayer = () => {
+    if (audioRef.current) {
+      setPlayerCurrentTime(audioRef.current.currentTime || 0);
+      setPlayerWasPlaying(!audioRef.current.paused);
+      setShouldAutoplay(!audioRef.current.paused);
+    }
     setPlayerMinimized(false);
   };
 
@@ -1112,21 +1178,25 @@ function App() {
 
                   <p
                     style={{
-                      maxWidth: 760,
+                      maxWidth: 820,
                       margin: "18px 0 0",
                       fontSize: 18,
                       lineHeight: 1.45,
                       color: "rgba(255,255,255,0.76)",
                     }}
                   >
-                    I’m DJ-Buang — making community songs, stream anthems, fun collaborations,
-                    and custom tracks for people who enjoy music and being part of something
-                    creative together. I’m not doing this for the money — I just enjoy making
-                    songs for the community.
+                    I’m DJ-BUANG, also known as OwGusson — cooking up songs for the Date In Asia
+                    community, for friends, and sometimes for private requests too. I’m not doing
+                    this to get rich, just because I genuinely love making music and adding a little
+                    extra fun to people’s lives. But if you ever feel like throwing a small donation
+                    my way, I’d really appreciate it — every bit goes back into the tools and
+                    subscriptions that keep this whole thing running.
                   </p>
 
                   <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
-                    <Button variant="secondary">♡ Support / Donate</Button>
+                    <Button variant="secondary" onClick={() => setView("donate")}>
+                      ♡ Support / Donate
+                    </Button>
                     <Button variant="secondary" onClick={() => setView("request")}>
                       🗒 Song Request
                     </Button>
@@ -1206,7 +1276,7 @@ function App() {
                       ))
                     ) : (
                       <div style={{ color: "rgba(255,255,255,0.70)" }}>
-                        No songs found.
+                        No songs found yet.
                       </div>
                     )}
                   </div>
@@ -1216,48 +1286,54 @@ function App() {
               <div style={{ display: "grid", gap: 22, alignContent: "start" }}>
                 <Panel
                   title="♡ Top 3 Most Liked Songs"
-                  subtitle="Clean and simple without repeating too much extra info in the banner."
+                  subtitle="The crowd favorites as they build up."
                 >
                   <div style={{ display: "grid", gap: 12 }}>
-                    {topLikedSongs.map((song, i) => (
-                      <div
-                        key={song.id}
-                        onClick={() => openSongPlayer(song)}
-                        style={{
-                          padding: 16,
-                          borderRadius: 18,
-                          background: "rgba(10,15,28,0.52)",
-                          border: "1px solid rgba(255,255,255,0.08)",
-                          cursor: "pointer",
-                        }}
-                      >
+                    {topLikedSongs.length > 0 ? (
+                      topLikedSongs.map((song, i) => (
                         <div
+                          key={song.id}
+                          onClick={() => openSongPlayer(song)}
                           style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: 12,
-                            alignItems: "center",
+                            padding: 16,
+                            borderRadius: 18,
+                            background: "rgba(10,15,28,0.52)",
+                            border: "1px solid rgba(255,255,255,0.08)",
+                            cursor: "pointer",
                           }}
                         >
-                          <div>
-                            <div style={{ color: "rgba(255,255,255,0.56)", marginBottom: 6 }}>
-                              #{i + 1}
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 12,
+                              alignItems: "center",
+                            }}
+                          >
+                            <div>
+                              <div style={{ color: "rgba(255,255,255,0.56)", marginBottom: 6 }}>
+                                #{i + 1}
+                              </div>
+                              <div style={{ fontSize: 20, fontWeight: 700 }}>{song.title}</div>
+                              <div style={{ color: "rgba(255,255,255,0.70)", marginTop: 4 }}>
+                                {song.genre}
+                              </div>
                             </div>
-                            <div style={{ fontSize: 20, fontWeight: 700 }}>{song.title}</div>
-                            <div style={{ color: "rgba(255,255,255,0.70)", marginTop: 4 }}>
-                              {song.genre}
-                            </div>
+                            <Badge>{song.likes} likes</Badge>
                           </div>
-                          <Badge>{song.likes} likes</Badge>
                         </div>
+                      ))
+                    ) : (
+                      <div style={{ color: "rgba(255,255,255,0.7)" }}>
+                        No likes yet — first listeners get the bragging rights.
                       </div>
-                    ))}
+                    )}
                   </div>
                 </Panel>
 
                 <Panel
                   title="◉ Connect"
-                  subtitle="Requests and private messages now open in their own clean window."
+                  subtitle="Song requests, private messages, and support are open."
                 >
                   <div style={{ display: "grid", gap: 12 }}>
                     <Button variant="primary" onClick={() => setView("request")}>
@@ -1266,11 +1342,62 @@ function App() {
                     <Button variant="secondary" onClick={() => setView("message")}>
                       💬 Open Private Message Form
                     </Button>
+                    <Button variant="secondary" onClick={() => setView("donate")}>
+                      ♡ Open Donation Form
+                    </Button>
                   </div>
                 </Panel>
               </div>
             </div>
           </div>
+        )}
+
+        {view === "donate" && (
+          <Panel
+            title="Support / Donate"
+            subtitle="Every bit goes back into the tools and subscriptions that keep DJ-BUANG running."
+          >
+            <form onSubmit={handleDonationSubmit} style={{ display: "grid", gap: 16, maxWidth: 760 }}>
+              <Input
+                label="Your name"
+                value={donationForm.name}
+                onChange={(e) =>
+                  setDonationForm((prev) => ({ ...prev, name: e.target.value }))
+                }
+                placeholder="Your name"
+              />
+
+              <Input
+                label="Amount"
+                type="number"
+                min="1"
+                step="1"
+                value={donationForm.amount}
+                onChange={(e) =>
+                  setDonationForm((prev) => ({ ...prev, amount: e.target.value }))
+                }
+                placeholder="10"
+              />
+
+              <TextArea
+                label="Message / note"
+                value={donationForm.note}
+                onChange={(e) =>
+                  setDonationForm((prev) => ({ ...prev, note: e.target.value }))
+                }
+                placeholder="Optional message..."
+              />
+
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <Button type="submit" variant="primary">
+                  Send Support
+                </Button>
+                <Button type="button" variant="secondary" onClick={() => setView("home")}>
+                  Back Home
+                </Button>
+              </div>
+            </form>
+          </Panel>
         )}
 
         {view === "request" && (
@@ -1575,22 +1702,26 @@ function App() {
 
             <Panel title="Song Library" subtitle="Compact view of your uploaded songs, including private ones.">
               <div style={{ display: "grid", gap: 12 }}>
-                {adminSongs.map((song) => (
-                  <SongRow
-                    key={song.id}
-                    song={song}
-                    isAdmin
-                    onOpenPlayer={openSongPlayer}
-                    onDownloadSong={downloadSong}
-                    onDownloadLyrics={downloadLyrics}
-                    onDelete={handleDeleteSong}
-                    onCopyLink={copySongLink}
-                  />
-                ))}
+                {adminSongs.length > 0 ? (
+                  adminSongs.map((song) => (
+                    <SongRow
+                      key={song.id}
+                      song={song}
+                      isAdmin
+                      onOpenPlayer={openSongPlayer}
+                      onDownloadSong={downloadSong}
+                      onDownloadLyrics={downloadLyrics}
+                      onDelete={handleDeleteSong}
+                      onCopyLink={copySongLink}
+                    />
+                  ))
+                ) : (
+                  <div style={{ color: "rgba(255,255,255,0.72)" }}>No songs uploaded yet.</div>
+                )}
               </div>
             </Panel>
 
-            <Panel title="Donations" subtitle="Testing donation list for now.">
+            <Panel title="Donations" subtitle="Support that has come in through the site.">
               <div style={{ display: "grid", gap: 14 }}>
                 {donations.length === 0 ? (
                   <div style={{ color: "rgba(255,255,255,0.72)" }}>No donations yet.</div>
@@ -1752,6 +1883,11 @@ function App() {
           song={playerSong}
           onClose={closePlayer}
           onMinimize={minimizePlayer}
+          audioRef={audioRef}
+          playerCurrentTime={playerCurrentTime}
+          setPlayerCurrentTime={setPlayerCurrentTime}
+          setPlayerWasPlaying={setPlayerWasPlaying}
+          shouldAutoplay={shouldAutoplay}
         />
       ) : null}
 
@@ -1760,6 +1896,11 @@ function App() {
           song={playerSong}
           onExpand={expandPlayer}
           onClose={closePlayer}
+          audioRef={audioRef}
+          playerCurrentTime={playerCurrentTime}
+          setPlayerCurrentTime={setPlayerCurrentTime}
+          setPlayerWasPlaying={setPlayerWasPlaying}
+          shouldAutoplay={shouldAutoplay}
         />
       ) : null}
     </div>
