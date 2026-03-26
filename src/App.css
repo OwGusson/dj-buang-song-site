@@ -1,184 +1,916 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
+import React, { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Music,
+  Heart,
+  Upload,
+  MessageSquare,
+  ClipboardList,
+  CheckCircle2,
+  Search,
+  Filter,
+  Send,
+  Shield,
+  Clock3,
+  Lock,
+  Sparkles,
+  User,
+  LogIn,
+  Download,
+  FileText,
+  X,
+  Disc3,
+  HandCoins,
+  Link as LinkIcon,
+  Globe,
+  EyeOff,
+} from "lucide-react";
 
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+const initialSongs = [
+  {
+    id: 1,
+    title: "Midnight in Manila",
+    artist: "DJ-Buang",
+    genre: "EDM Pop",
+    likes: 42,
+    added: "2026-03-20",
+    featured: true,
+    visibility: "public",
+    sharePath: "/song/midnight-in-manila",
+    cover:
+      "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=900&q=80",
+    audioMp3: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    lyrics: `City lights and ocean air
+Midnight calling everywhere
+From Manila to the stream
+We turn the late night into dream`,
+  },
+  {
+    id: 2,
+    title: "Iceland x Philippines",
+    artist: "DJ-Buang",
+    genre: "Epic Pop",
+    likes: 58,
+    added: "2026-03-18",
+    featured: true,
+    visibility: "public",
+    sharePath: "/song/iceland-x-philippines",
+    cover:
+      "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=900&q=80",
+    audioMp3: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+    lyrics: `Two islands, one heartbeat
+Cold air, warm streets
+Northern lights and tropical skies
+One song where the worlds collide`,
+  },
+];
+
+function slugify(text) {
+  return text.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
-.hero {
-  position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Failed to read file."));
+    reader.readAsDataURL(file);
+  });
 }
 
-#center {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
+function getTopLikedSongs(songs, count = 3) {
+  return [...songs]
+    .filter((song) => song.visibility === "public")
+    .sort((a, b) => b.likes - a.likes)
+    .slice(0, count);
 }
 
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
+function filterAndSortSongs(songs, search, sortMode) {
+  const term = search.trim().toLowerCase();
+  let result = songs.filter(
+    (song) =>
+      song.visibility === "public" &&
+      (song.title.toLowerCase().includes(term) ||
+        song.genre.toLowerCase().includes(term) ||
+        song.artist.toLowerCase().includes(term))
+  );
 
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
+  if (sortMode === "most-liked") {
+    result = [...result].sort((a, b) => b.likes - a.likes);
+  } else if (sortMode === "latest") {
+    result = [...result].sort((a, b) => new Date(b.added) - new Date(a.added));
+  } else {
+    result = [...result].sort(
+      (a, b) => Number(b.featured) - Number(a.featured) || b.likes - a.likes
+    );
+  }
+
+  return result;
+}
+
+function buildUploadedSong(uploadForm) {
+  const baseSlug = slugify(uploadForm.title || "untitled-song");
+  return {
+    id: Date.now(),
+    title: uploadForm.title,
+    artist: "DJ-Buang",
+    genre: uploadForm.genre || "Custom",
+    likes: 0,
+    added: new Date().toISOString().slice(0, 10),
+    featured: false,
+    visibility: uploadForm.visibility || "public",
+    sharePath:
+      uploadForm.visibility === "private"
+        ? `/private/${baseSlug}-${Date.now().toString().slice(-5)}`
+        : `/song/${baseSlug}`,
+    cover: uploadForm.coverPreview,
+    audioMp3: uploadForm.audioPreview,
+    lyrics: uploadForm.lyrics || "Lyrics coming soon.",
+  };
+}
+
+function downloadTextFile(filename, content) {
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function cx(...classes) {
+  return classes.filter(Boolean).join(" ");
+}
+
+function Button({
+  children,
+  className = "",
+  variant = "default",
+  size = "default",
+  asChild = false,
+  ...props
+}) {
+  const base =
+    "inline-flex items-center justify-center border border-white/10 transition-colors disabled:opacity-50";
+  const variants = {
+    default: "bg-white text-black hover:bg-white/90",
+    secondary: "bg-white/10 text-white hover:bg-white/20",
+    ghost: "bg-transparent text-white hover:bg-white/10",
+  };
+  const sizes = {
+    default: "h-10 px-4 py-2",
+    sm: "h-9 px-3 py-2 text-sm",
+    lg: "h-11 px-5 py-2",
+    icon: "h-10 w-10",
+  };
+
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children, {
+      ...props,
+      className: cx(base, variants[variant], sizes[size], className, children.props.className),
+    });
+  }
+
+  return (
+    <button {...props} className={cx(base, variants[variant], sizes[size], className)}>
+      {children}
+    </button>
+  );
+}
+
+function Card({ children, className = "" }) {
+  return <div className={cx("border border-white/10", className)}>{children}</div>;
+}
+
+function CardHeader({ children, className = "" }) {
+  return <div className={className}>{children}</div>;
+}
+
+function CardTitle({ children, className = "" }) {
+  return <h3 className={cx("font-semibold", className)}>{children}</h3>;
+}
+
+function CardDescription({ children, className = "" }) {
+  return <p className={className}>{children}</p>;
+}
+
+function CardContent({ children, className = "" }) {
+  return <div className={className}>{children}</div>;
+}
+
+function Input({ className = "", ...props }) {
+  return (
+    <input
+      {...props}
+      className={cx(
+        "w-full border px-3 py-2 outline-none",
+        className
+      )}
+    />
+  );
+}
+
+function Textarea({ className = "", ...props }) {
+  return (
+    <textarea
+      {...props}
+      className={cx(
+        "w-full border px-3 py-2 outline-none",
+        className
+      )}
+    />
+  );
+}
+
+function Badge({ children, className = "" }) {
+  return <span className={cx("inline-flex items-center px-2 py-1 text-xs", className)}>{children}</span>;
+}
+
+function Separator({ className = "" }) {
+  return <div className={cx("h-px w-full", className)} />;
+}
+
+function OverlayModal({ title, description, children, onClose }) {
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 18, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 12, scale: 0.98 }}
+          transition={{ duration: 0.2 }}
+          className="max-h-[92vh] w-full overflow-y-auto rounded-t-[28px] border border-white/10 bg-[#0a0b12] p-4 text-white shadow-2xl sm:max-w-xl sm:rounded-[30px] sm:p-6"
+        >
+          <div className="mb-4 flex items-start justify-between gap-4 sm:mb-5">
+            <div className="min-w-0">
+              <h3 className="text-xl font-black tracking-tight sm:text-2xl">{title}</h3>
+              <p className="mt-2 text-sm text-white/60">{description}</p>
+            </div>
+            <Button variant="secondary" size="icon" className="shrink-0 rounded-2xl" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          {children}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, hint }) {
+  return (
+    <Card className="rounded-3xl border-white/10 bg-white/5 text-white shadow-lg">
+      <CardContent className="flex items-center justify-between p-4 sm:p-5">
+        <div className="min-w-0 pr-3">
+          <p className="text-xs text-white/55 sm:text-sm">{label}</p>
+          <p className="mt-1 truncate text-lg font-bold sm:text-2xl">{value}</p>
+          <p className="mt-1 text-[11px] text-white/45 sm:text-xs">{hint}</p>
+        </div>
+        <div className="shrink-0 rounded-2xl bg-white/10 p-2.5 sm:p-3">
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SongRow({ song, onLike, onOpen }) {
+  return (
+    <motion.div
+      layout
+      className="overflow-hidden rounded-[22px] border border-white/10 bg-black/20 sm:rounded-[24px]"
+    >
+      <div className="grid gap-4 p-4 sm:p-5 md:grid-cols-[150px_1fr]">
+        <div className="overflow-hidden rounded-[18px] border border-white/10 bg-white/5 sm:rounded-[20px]">
+          <img src={song.cover} alt={song.title} className="h-52 w-full object-cover md:h-full" />
+        </div>
+
+        <div className="flex flex-col justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className="text-left text-lg font-semibold transition hover:text-fuchsia-200 sm:text-xl"
+                onClick={() => onOpen(song)}
+              >
+                {song.title}
+              </button>
+              {song.featured && <Badge className="rounded-full bg-white/10 text-white">Featured</Badge>}
+              {song.visibility === "private" ? (
+                <Badge className="rounded-full bg-white/10 text-white">
+                  <EyeOff className="mr-1 h-3.5 w-3.5" />
+                  Private
+                </Badge>
+              ) : null}
+            </div>
+            <p className="mt-1 text-sm text-white/55">
+              {song.artist} • {song.genre} • Added {song.added}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+            <Badge className="rounded-full bg-white/10 text-white">{song.likes} 👍</Badge>
+            <Button variant="secondary" size="sm" className="rounded-2xl" onClick={() => onLike(song.id)}>
+              <Heart className="mr-2 h-4 w-4" />
+              Thumbs Up
+            </Button>
+            <Button variant="secondary" size="sm" className="rounded-2xl" asChild>
+              <a href={song.audioMp3} download={`${song.title}.mp3`}>
+                <Download className="mr-2 h-4 w-4" />
+                MP3
+              </a>
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="rounded-2xl"
+              onClick={() => downloadTextFile(`${song.title}.txt`, song.lyrics)}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Lyrics
+            </Button>
+            <Button variant="secondary" size="sm" className="rounded-2xl" onClick={() => onOpen(song)}>
+              <Music className="mr-2 h-4 w-4" />
+              Open
+            </Button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+export default function App() {
+  const [currentPlaying, setCurrentPlaying] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [songs, setSongs] = useState(initialSongs);
+  const [requests, setRequests] = useState([]);
+  const [messages, setMessages] = useState(initialMessages);
+  const [donations] = useState(initialDonations);
+  const [search, setSearch] = useState("");
+  const [sortMode, setSortMode] = useState("featured");
+  const [requestForm, setRequestForm] = useState({ name: "", song: "", note: "" });
+  const [messageForm, setMessageForm] = useState({ name: "", subject: "", message: "" });
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [loginForm, setLoginForm] = useState({ username: "admin", password: "" });
+  const [activeModal, setActiveModal] = useState(null);
+  const [selectedSong, setSelectedSong] = useState(null);
+  const [flashMessage, setFlashMessage] = useState("");
+  const [uploadForm, setUploadForm] = useState({
+    title: "",
+    genre: "",
+    visibility: "public",
+    coverFile: null,
+    coverPreview: "",
+    audioFile: null,
+    audioPreview: "",
+    lyrics: "",
+  });
+
+  const topLikedSongs = useMemo(() => getTopLikedSongs(songs, 3), [songs]);
+  const filteredSongs = useMemo(() => filterAndSortSongs(songs, search, sortMode), [songs, search, sortMode]);
+  const privateSongs = useMemo(() => songs.filter((song) => song.visibility === "private"), [songs]);
+
+  const likeSong = (id) => {
+    setSongs((current) => current.map((song) => (song.id === id ? { ...song, likes: song.likes + 1 } : song)));
+  };
+
+  const submitRequest = () => {
+    if (!requestForm.name || !requestForm.song) return;
+    setRequests((current) => [
+      {
+        id: Date.now(),
+        name: requestForm.name,
+        song: requestForm.song,
+        note: requestForm.note,
+        status: "pending",
+        createdAt: new Date().toLocaleString(),
+      },
+      ...current,
+    ]);
+    setRequestForm({ name: "", song: "", note: "" });
+    setActiveModal(null);
+  };
+
+  const submitMessage = () => {
+    if (!messageForm.name || !messageForm.message) return;
+    setMessages((current) => [
+      {
+        id: Date.now(),
+        from: messageForm.name,
+        subject: messageForm.subject || "Private message",
+        message: messageForm.message,
+        isNew: true,
+        time: new Date().toLocaleString(),
+      },
+      ...current,
+    ]);
+    setMessageForm({ name: "", subject: "", message: "" });
+    setActiveModal(null);
+  };
+
+  const addUploadedSong = () => {
+    if (!uploadForm.title || !uploadForm.coverPreview || !uploadForm.audioPreview) return;
+    const newSong = buildUploadedSong(uploadForm);
+    setSongs((current) => [newSong, ...current]);
+    setUploadForm({
+      title: "",
+      genre: "",
+      visibility: "public",
+      coverFile: null,
+      coverPreview: "",
+      audioFile: null,
+      audioPreview: "",
+      lyrics: "",
+    });
+    setFlashMessage(newSong.visibility === "private" ? "Private song created with share link." : "Public song uploaded to website.");
+    setTimeout(() => setFlashMessage(""), 2500);
+  };
+
+  const handleCoverUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const preview = await fileToDataUrl(file);
+    setUploadForm((current) => ({
+      ...current,
+      coverFile: file,
+      coverPreview: preview,
+    }));
+  };
+
+  const handleAudioUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const preview = await fileToDataUrl(file);
+    setUploadForm((current) => ({
+      ...current,
+      audioFile: file,
+      audioPreview: preview,
+    }));
+  };
+
+  const openSong = (song) => {
+    setSelectedSong(song);
+    setCurrentPlaying(song);
+    setIsPlaying(true);
+  };
+
+  const copyShareLink = async (song) => {
+    const link = `https://dj-buang.example${song.sharePath}`;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(link);
+      }
+      setFlashMessage(`Copied: ${link}`);
+      setTimeout(() => setFlashMessage(""), 2500);
+    } catch {
+      setFlashMessage(link);
+      setTimeout(() => setFlashMessage(""), 2500);
     }
+  };
+
+  if (showAdmin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-black text-white">
+        <div className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-8 lg:px-8">
+          <div className="mb-5 flex flex-col gap-3 rounded-[24px] border border-white/10 bg-white/5 px-4 py-4 backdrop-blur-md sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:rounded-[28px] sm:px-6">
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-white/10 p-3">
+                <Shield className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm text-white/45">Secure area</p>
+                <h1 className="text-lg font-bold sm:text-xl">DJ-Buang Admin</h1>
+              </div>
+            </div>
+            <Button variant="secondary" className="w-full rounded-2xl sm:w-auto" onClick={() => setShowAdmin(false)}>
+              Back to Website
+            </Button>
+          </div>
+
+          {flashMessage ? (
+            <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/75">
+              {flashMessage}
+            </div>
+          ) : null}
+
+          <div className="space-y-6">
+            <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <StatCard icon={ClipboardList} label="Requests" value={requests.length} hint={`${requests.filter((r) => r.status === "pending").length} pending`} />
+              <StatCard icon={CheckCircle2} label="Done requests" value={requests.filter((r) => r.status === "done").length} hint="Completed items" />
+              <StatCard icon={MessageSquare} label="New messages" value={messages.filter((m) => m.isNew).length} hint="Unread inbox" />
+              <StatCard icon={Heart} label="Top liked song" value={topLikedSongs[0]?.title || "—"} hint={`${topLikedSongs[0]?.likes || 0} likes`} />
+              <StatCard icon={HandCoins} label="Supporters" value={donations.length} hint="Donation count" />
+            </div>
+
+            <div className="grid gap-5 sm:gap-6 xl:grid-cols-2">
+              <Card className="rounded-[24px] border-white/10 bg-white/5 text-white sm:rounded-[28px]">
+                <CardHeader className="p-5 sm:p-6">
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                    <Upload className="h-5 w-5" />
+                    Upload Panel
+                  </CardTitle>
+                  <CardDescription className="text-white/55">
+                    Upload cover art, MP3, and lyrics. Choose whether the song goes live on the website or stays private with a share link.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 p-5 pt-0 sm:p-6 sm:pt-0">
+                  <Input
+                    value={uploadForm.title}
+                    onChange={(e) => setUploadForm((s) => ({ ...s, title: e.target.value }))}
+                    placeholder="Song title"
+                    className="rounded-2xl border-white/10 bg-black/20 text-white placeholder:text-white/35"
+                  />
+                  <Input
+                    value={uploadForm.genre}
+                    onChange={(e) => setUploadForm((s) => ({ ...s, genre: e.target.value }))}
+                    placeholder="Genre"
+                    className="rounded-2xl border-white/10 bg-black/20 text-white placeholder:text-white/35"
+                  />
+
+                  <select
+                    value={uploadForm.visibility}
+                    onChange={(e) => setUploadForm((s) => ({ ...s, visibility: e.target.value }))}
+                    className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white outline-none"
+                  >
+                    <option value="public">Public on website</option>
+                    <option value="private">Private share only</option>
+                  </select>
+
+                  <div className="space-y-2">
+                    <label className="text-sm text-white/60">Cover art</label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCoverUpload}
+                      className="rounded-2xl border-white/10 bg-black/20 text-white file:mr-3 file:rounded-xl file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-white"
+                    />
+                    {uploadForm.coverPreview ? (
+                      <img
+                        src={uploadForm.coverPreview}
+                        alt="Cover preview"
+                        className="h-24 w-24 rounded-2xl border border-white/10 object-cover"
+                      />
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm text-white/60">MP3 file</label>
+                    <Input
+                      type="file"
+                      accept="audio/mpeg,.mp3"
+                      onChange={handleAudioUpload}
+                      className="rounded-2xl border-white/10 bg-black/20 text-white file:mr-3 file:rounded-xl file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-white"
+                    />
+                    {uploadForm.audioFile ? <p className="text-xs text-white/55">Selected: {uploadForm.audioFile.name}</p> : null}
+                  </div>
+
+                  <Textarea
+                    value={uploadForm.lyrics}
+                    onChange={(e) => setUploadForm((s) => ({ ...s, lyrics: e.target.value }))}
+                    placeholder="Paste lyrics here — these will be shown and downloadable as .txt"
+                    className="min-h-[140px] rounded-2xl border-white/10 bg-black/20 text-white placeholder:text-white/35"
+                  />
+                  <Button className="w-full rounded-2xl sm:w-auto" onClick={addUploadedSong}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Song
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-[24px] border-white/10 bg-white/5 text-white sm:rounded-[28px]">
+                <CardHeader className="p-5 sm:p-6">
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                    <EyeOff className="h-5 w-5" />
+                    Private Songs
+                  </CardTitle>
+                  <CardDescription className="text-white/55">
+                    These do not appear on the public homepage. Share the private link directly with the person you want.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 p-5 pt-0 sm:p-6 sm:pt-0">
+                  {privateSongs.length === 0 ? (
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/55">
+                      No private songs yet.
+                    </div>
+                  ) : (
+                    privateSongs.map((song) => (
+                      <div key={song.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                          <div className="min-w-0">
+                            <p className="font-medium">{song.title}</p>
+                            <p className="text-sm text-white/55">{song.genre}</p>
+                            <p className="mt-1 truncate text-xs text-white/45">{song.sharePath}</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Button variant="secondary" size="sm" className="rounded-2xl" onClick={() => copyShareLink(song)}>
+                              <LinkIcon className="mr-2 h-4 w-4" />
+                              Copy Link
+                            </Button>
+                            <Button variant="secondary" size="sm" className="rounded-2xl" onClick={() => openSong(song)}>
+                              <Music className="mr-2 h-4 w-4" />
+                              Preview
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
+  return (
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(120,119,198,0.16),transparent_30%),linear-gradient(180deg,#09090b_0%,#0f172a_45%,#111827_100%)] pb-28 text-white sm:pb-32">
+      <div className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-8 lg:px-8">
+        {flashMessage ? (
+          <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/75">
+            {flashMessage}
+          </div>
+        ) : null}
 
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
-}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/30 shadow-2xl backdrop-blur-md sm:rounded-[32px]"
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.18),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.15),transparent_35%)]" />
+          <div className="relative p-4 sm:p-8 lg:p-10">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+              <div className="max-w-3xl">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <Badge className="rounded-full border-0 bg-white/10 px-3 py-1.5 text-white sm:px-4">DJ-Buang Official</Badge>
+                  <Badge className="rounded-full border-0 bg-fuchsia-500/20 px-3 py-1.5 text-fuchsia-200 sm:px-4">
+                    <Sparkles className="mr-1 h-3.5 w-3.5" />
+                    Mobile ready
+                  </Badge>
+                </div>
+                <h1 className="mt-4 text-3xl font-black tracking-tight sm:mt-5 sm:text-5xl lg:text-6xl">
+                  DJ-Buang Song Website
+                </h1>
+                <p className="mt-4 max-w-2xl text-sm text-white/75 sm:text-lg">
+                  I’m DJ-Buang — making community songs, stream anthems, fun collaborations, and custom tracks for people who enjoy music and being part of something creative together. I’m not doing this for the money — I just enjoy making songs for the community. But if you’d like to support the project and help keep new tracks coming, you’re very welcome to donate to the cause.
+                </p>
 
-#docs {
-  border-right: 1px solid var(--border);
+                <div className="mt-6 grid gap-3 sm:mt-7 sm:flex sm:flex-wrap">
+                  <Button size="lg" variant="secondary" className="w-full rounded-2xl sm:w-auto" asChild>
+                    <a href="https://paypal.me/owgusson" target="_blank" rel="noreferrer">
+                      <Heart className="mr-2 h-4 w-4" />
+                      Support / Donate
+                    </a>
+                  </Button>
+                  <Button size="lg" variant="secondary" className="w-full rounded-2xl sm:w-auto" onClick={() => setActiveModal("request")}>
+                    <ClipboardList className="mr-2 h-4 w-4" />
+                    Song Request
+                  </Button>
+                  <Button size="lg" variant="secondary" className="w-full rounded-2xl sm:w-auto" onClick={() => setActiveModal("message")}>
+                    <Send className="mr-2 h-4 w-4" />
+                    Private Message
+                  </Button>
+                </div>
+              </div>
 
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
+              <div className="self-start sm:self-auto">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full border border-white/10 bg-white/5 px-3 text-white/55 hover:bg-white/10 hover:text-white"
+                  onClick={() => setShowAdmin(true)}
+                >
+                  <Lock className="mr-2 h-3.5 w-3.5" />
+                  Admin
+                </Button>
+              </div>
+            </div>
+          </div>
+        </motion.section>
 
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
+        <div className="mt-6 grid gap-6 sm:mt-10 sm:gap-10 xl:grid-cols-[1.35fr_0.65fr]">
+          <section className="space-y-5 sm:space-y-6">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-white/45 sm:text-sm">Library</p>
+              <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Songs</h2>
+              <p className="mt-2 text-sm text-white/60">Mobile-friendly browsing with player preview, MP3 downloads, and lyrics downloads.</p>
+            </div>
 
-  .logo {
-    height: 18px;
-  }
+            <Card className="rounded-[24px] border-white/10 bg-white/5 text-white sm:rounded-[28px]">
+              <CardContent className="p-4 sm:p-5">
+                <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                    <Input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search songs, genre, or artist"
+                      className="rounded-2xl border-white/10 bg-black/20 pl-10 text-white placeholder:text-white/35"
+                    />
+                  </div>
 
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
+                  <select
+                    value={sortMode}
+                    onChange={(e) => setSortMode(e.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white outline-none"
+                  >
+                    <option value="featured">Featured</option>
+                    <option value="most-liked">Most liked</option>
+                    <option value="latest">Latest</option>
+                  </select>
+                </div>
 
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
+                <div className="mt-4 grid gap-4 sm:mt-5">
+                  {filteredSongs.map((song) => (
+                    <SongRow key={song.id} song={song} onLike={likeSong} onOpen={openSong} />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </section>
 
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
+          <section className="space-y-5 sm:space-y-6">
+            <Card className="rounded-[24px] border-white/10 bg-white/5 text-white sm:rounded-[28px]">
+              <CardHeader className="p-5 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <Heart className="h-5 w-5" />
+                  Top 3 Most Liked Songs
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 p-5 pt-0 sm:p-6 sm:pt-0">
+                {topLikedSongs.map((song, index) => (
+                  <div key={song.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <div className="min-w-0">
+                      <p className="text-sm text-white/45">#{index + 1}</p>
+                      <p className="truncate font-semibold">{song.title}</p>
+                      <p className="text-sm text-white/55">{song.genre}</p>
+                    </div>
+                    <Badge className="shrink-0 rounded-full bg-white/10 text-white">{song.likes} likes</Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </section>
+        </div>
+      </div>
 
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
+      {activeModal === "request" ? (
+        <OverlayModal title="Song Request" description="Send your request in a separate clean window." onClose={() => setActiveModal(null)}>
+          <div className="space-y-3">
+            <Input
+              value={requestForm.name}
+              onChange={(e) => setRequestForm((s) => ({ ...s, name: e.target.value }))}
+              placeholder="Your name"
+              className="rounded-2xl border-white/10 bg-black/20 text-white placeholder:text-white/35"
+            />
+            <Input
+              value={requestForm.song}
+              onChange={(e) => setRequestForm((s) => ({ ...s, song: e.target.value }))}
+              placeholder="Song request"
+              className="rounded-2xl border-white/10 bg-black/20 text-white placeholder:text-white/35"
+            />
+            <Textarea
+              value={requestForm.note}
+              onChange={(e) => setRequestForm((s) => ({ ...s, note: e.target.value }))}
+              placeholder="Extra details"
+              className="min-h-[120px] rounded-2xl border-white/10 bg-black/20 text-white placeholder:text-white/35"
+            />
+            <Button className="w-full rounded-2xl" onClick={submitRequest}>
+              <ClipboardList className="mr-2 h-4 w-4" />
+              Send Request
+            </Button>
+          </div>
+        </OverlayModal>
+      ) : null}
 
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
-}
+      {activeModal === "message" ? (
+        <OverlayModal title="Private Message" description="Messages go straight to your private inbox." onClose={() => setActiveModal(null)}>
+          <div className="space-y-3">
+            <Input
+              value={messageForm.name}
+              onChange={(e) => setMessageForm((s) => ({ ...s, name: e.target.value }))}
+              placeholder="Your name"
+              className="rounded-2xl border-white/10 bg-black/20 text-white placeholder:text-white/35"
+            />
+            <Input
+              value={messageForm.subject}
+              onChange={(e) => setMessageForm((s) => ({ ...s, subject: e.target.value }))}
+              placeholder="Subject"
+              className="rounded-2xl border-white/10 bg-black/20 text-white placeholder:text-white/35"
+            />
+            <Textarea
+              value={messageForm.message}
+              onChange={(e) => setMessageForm((s) => ({ ...s, message: e.target.value }))}
+              placeholder="Write your message here"
+              className="min-h-[120px] rounded-2xl border-white/10 bg-black/20 text-white placeholder:text-white/35"
+            />
+            <Button className="w-full rounded-2xl" onClick={submitMessage}>
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Send Private Message
+            </Button>
+          </div>
+        </OverlayModal>
+      ) : null}
 
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
+      {selectedSong ? (
+        <OverlayModal title={selectedSong.title} description={`${selectedSong.artist} • ${selectedSong.genre}`} onClose={() => setSelectedSong(null)}>
+          <div className="space-y-4 sm:space-y-5">
+            <div className="overflow-hidden rounded-[20px] border border-white/10 bg-white/5 sm:rounded-[24px]">
+              <img src={selectedSong.cover} alt={selectedSong.title} className="h-56 w-full object-cover sm:h-72" />
+            </div>
 
-.ticks {
-  position: relative;
-  width: 100%;
+            <div className="rounded-[20px] border border-white/10 bg-black/20 p-4 sm:rounded-[24px]">
+              <p className="mb-3 text-sm font-medium text-white/70">Listen before downloading</p>
+              <audio controls autoPlay className="w-full" onPlay={() => { setCurrentPlaying(selectedSong); setIsPlaying(true); }}>
+                <source src={selectedSong.audioMp3} type="audio/mpeg" />
+              </audio>
+            </div>
 
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
-  }
+            <div className="grid gap-3 sm:flex sm:flex-wrap">
+              <Button variant="secondary" className="w-full rounded-2xl sm:w-auto" asChild>
+                <a href={selectedSong.audioMp3} download={`${selectedSong.title}.mp3`}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download MP3
+                </a>
+              </Button>
+              <Button variant="secondary" className="w-full rounded-2xl sm:w-auto" onClick={() => downloadTextFile(`${selectedSong.title}.txt`, selectedSong.lyrics)}>
+                <FileText className="mr-2 h-4 w-4" />
+                Download Lyrics
+              </Button>
+            </div>
 
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
-  }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
-  }
+            <div className="rounded-[20px] border border-white/10 bg-black/20 p-4 sm:rounded-[24px]">
+              <p className="mb-3 text-sm font-medium text-white/70">Lyrics</p>
+              <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-7 text-white/85">
+                {selectedSong.lyrics}
+              </pre>
+            </div>
+          </div>
+        </OverlayModal>
+      ) : null}
+
+      {currentPlaying ? (
+        <motion.div
+          initial={{ y: 120, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-black/90 backdrop-blur-xl"
+        >
+          <div className="mx-auto max-w-7xl px-3 py-3 sm:px-6">
+            <div className="grid gap-3 md:grid-cols-[auto_1fr_auto] md:items-center">
+              <div className="flex min-w-0 items-center gap-3">
+                <img src={currentPlaying.cover} alt={currentPlaying.title} className="h-14 w-14 rounded-2xl border border-white/10 object-cover" />
+                <div className="min-w-0">
+                  <button type="button" className="block truncate text-left text-sm font-semibold text-white hover:text-fuchsia-200" onClick={() => setSelectedSong(currentPlaying)}>
+                    {currentPlaying.title}
+                  </button>
+                  <p className="truncate text-xs text-white/55">{currentPlaying.artist} • {currentPlaying.genre}</p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                <audio
+                  key={currentPlaying.id}
+                  src={currentPlaying.audioMp3}
+                  controls
+                  autoPlay={isPlaying}
+                  className="w-full"
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2">
+                <Button variant="secondary" size="sm" className="rounded-2xl" onClick={() => setSelectedSong(currentPlaying)}>
+                  <Music className="mr-2 h-4 w-4" />
+                  Open
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-2xl text-white/70 hover:text-white"
+                  onClick={() => {
+                    setCurrentPlaying(null);
+                    setIsPlaying(false);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      ) : null}
+    </div>
+  );
 }
