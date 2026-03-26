@@ -4,15 +4,15 @@ const STORAGE_KEYS = {
   songs: "djbuang_songs",
   requests: "djbuang_requests",
   messages: "djbuang_messages",
-  donations: "djbuang_donations",
   admin: "djbuang_admin_logged_in",
   resetVersion: "djbuang_reset_version",
 };
 
+const PAYPAL_URL = "https://paypal.me/owgusson";
+
 const DEFAULT_SONGS = [];
 const DEFAULT_REQUESTS = [];
 const DEFAULT_MESSAGES = [];
-const DEFAULT_DONATIONS = [];
 
 function getStored(key, fallback) {
   try {
@@ -25,7 +25,7 @@ function getStored(key, fallback) {
 
 function clearOldDemoDataOnce() {
   try {
-    const currentVersion = "reset-v2";
+    const currentVersion = "reset-v3";
     const alreadyReset = localStorage.getItem(STORAGE_KEYS.resetVersion);
 
     if (alreadyReset === currentVersion) return;
@@ -33,7 +33,7 @@ function clearOldDemoDataOnce() {
     localStorage.removeItem(STORAGE_KEYS.songs);
     localStorage.removeItem(STORAGE_KEYS.requests);
     localStorage.removeItem(STORAGE_KEYS.messages);
-    localStorage.removeItem(STORAGE_KEYS.donations);
+    localStorage.removeItem("djbuang_donations");
 
     Object.keys(localStorage).forEach((key) => {
       if (key.startsWith("liked_")) {
@@ -71,6 +71,13 @@ function formatDate(dateString) {
   } catch {
     return dateString;
   }
+}
+
+function formatTime(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
 function shellCardStyle(extra = {}) {
@@ -413,15 +420,48 @@ function SongRow({
   );
 }
 
+function AudioControls({
+  isPlaying,
+  currentTime,
+  duration,
+  onPlayPause,
+  onSeek,
+  compact = false,
+}) {
+  return (
+    <div style={{ display: "grid", gap: compact ? 8 : 12 }}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <Button variant="primary" onClick={onPlayPause} style={{ padding: compact ? "9px 14px" : undefined }}>
+          {isPlaying ? "Pause" : "Play"}
+        </Button>
+
+        <div style={{ color: "rgba(255,255,255,0.72)", fontSize: compact ? 13 : 14 }}>
+          {formatTime(currentTime)} / {formatTime(duration)}
+        </div>
+      </div>
+
+      <input
+        type="range"
+        min="0"
+        max={Number.isFinite(duration) && duration > 0 ? duration : 0}
+        step="0.1"
+        value={Math.min(currentTime, duration || 0)}
+        onChange={(e) => onSeek(Number(e.target.value))}
+        style={{ width: "100%" }}
+      />
+    </div>
+  );
+}
+
 function PlayerModal({
   song,
   onClose,
   onMinimize,
-  audioRef,
-  playerCurrentTime,
-  setPlayerCurrentTime,
-  setPlayerWasPlaying,
-  shouldAutoplay,
+  isPlaying,
+  currentTime,
+  duration,
+  onPlayPause,
+  onSeek,
 }) {
   if (!song) return null;
 
@@ -507,25 +547,13 @@ function PlayerModal({
 
             <div style={{ marginTop: 16 }}>
               {song.audioUrl ? (
-                <audio
-                  ref={audioRef}
-                  controls
-                  autoPlay={shouldAutoplay}
-                  style={{ width: "100%" }}
-                  onTimeUpdate={(e) => setPlayerCurrentTime(e.target.currentTime)}
-                  onPlay={() => setPlayerWasPlaying(true)}
-                  onPause={() => setPlayerWasPlaying(false)}
-                  onLoadedMetadata={(e) => {
-                    if (playerCurrentTime > 0) {
-                      e.target.currentTime = playerCurrentTime;
-                    }
-                    if (shouldAutoplay) {
-                      e.target.play().catch(() => {});
-                    }
-                  }}
-                >
-                  <source src={song.audioUrl} />
-                </audio>
+                <AudioControls
+                  isPlaying={isPlaying}
+                  currentTime={currentTime}
+                  duration={duration}
+                  onPlayPause={onPlayPause}
+                  onSeek={onSeek}
+                />
               ) : (
                 <div style={{ color: "rgba(255,255,255,0.7)" }}>No audio uploaded yet.</div>
               )}
@@ -566,11 +594,11 @@ function MiniPlayer({
   song,
   onExpand,
   onClose,
-  audioRef,
-  playerCurrentTime,
-  setPlayerCurrentTime,
-  setPlayerWasPlaying,
-  shouldAutoplay,
+  isPlaying,
+  currentTime,
+  duration,
+  onPlayPause,
+  onSeek,
 }) {
   if (!song) return null;
 
@@ -623,25 +651,16 @@ function MiniPlayer({
           <div style={{ fontWeight: 700 }}>{song.title}</div>
           <div style={{ color: "rgba(255,255,255,0.68)", fontSize: 14 }}>{song.artist}</div>
           {song.audioUrl ? (
-            <audio
-              ref={audioRef}
-              controls
-              autoPlay={shouldAutoplay}
-              style={{ width: "100%", marginTop: 8, height: 34 }}
-              onTimeUpdate={(e) => setPlayerCurrentTime(e.target.currentTime)}
-              onPlay={() => setPlayerWasPlaying(true)}
-              onPause={() => setPlayerWasPlaying(false)}
-              onLoadedMetadata={(e) => {
-                if (playerCurrentTime > 0) {
-                  e.target.currentTime = playerCurrentTime;
-                }
-                if (shouldAutoplay) {
-                  e.target.play().catch(() => {});
-                }
-              }}
-            >
-              <source src={song.audioUrl} />
-            </audio>
+            <div style={{ marginTop: 8 }}>
+              <AudioControls
+                isPlaying={isPlaying}
+                currentTime={currentTime}
+                duration={duration}
+                onPlayPause={onPlayPause}
+                onSeek={onSeek}
+                compact
+              />
+            </div>
           ) : null}
         </div>
 
@@ -695,9 +714,6 @@ function App() {
   const [messages, setMessages] = useState(() =>
     getStored(STORAGE_KEYS.messages, DEFAULT_MESSAGES)
   );
-  const [donations, setDonations] = useState(() =>
-    getStored(STORAGE_KEYS.donations, DEFAULT_DONATIONS)
-  );
   const [adminLoggedIn, setAdminLoggedIn] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEYS.admin) || "false");
@@ -714,8 +730,8 @@ function App() {
   const [playerSong, setPlayerSong] = useState(null);
   const [playerMinimized, setPlayerMinimized] = useState(false);
   const [playerCurrentTime, setPlayerCurrentTime] = useState(0);
-  const [playerWasPlaying, setPlayerWasPlaying] = useState(false);
-  const [shouldAutoplay, setShouldAutoplay] = useState(false);
+  const [playerDuration, setPlayerDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   const audioRef = useRef(null);
@@ -749,12 +765,6 @@ function App() {
     message: "",
   });
 
-  const [donationForm, setDonationForm] = useState({
-    name: "",
-    amount: "",
-    note: "",
-  });
-
   useEffect(() => {
     try {
       const safeSongs = songs.map((song) => ({
@@ -786,10 +796,6 @@ function App() {
   }, [messages]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.donations, JSON.stringify(donations));
-  }, [donations]);
-
-  useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.admin, JSON.stringify(adminLoggedIn));
   }, [adminLoggedIn]);
 
@@ -804,9 +810,48 @@ function App() {
       setPlayerSong(foundSong);
       setPlayerMinimized(false);
       setPlayerCurrentTime(0);
-      setShouldAutoplay(false);
     }
   }, [songs]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleTimeUpdate = () => {
+      setPlayerCurrentTime(audio.currentTime || 0);
+    };
+
+    const handleLoadedMetadata = () => {
+      setPlayerDuration(audio.duration || 0);
+    };
+
+    const handlePlay = () => {
+      setIsPlaying(true);
+    };
+
+    const handlePause = () => {
+      setIsPlaying(false);
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setPlayerCurrentTime(0);
+    };
+
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("play", handlePlay);
+    audio.addEventListener("pause", handlePause);
+    audio.addEventListener("ended", handleEnded);
+
+    return () => {
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("ended", handleEnded);
+    };
+  }, []);
 
   const publicSongs = useMemo(
     () =>
@@ -853,7 +898,10 @@ function App() {
   const pendingRequests = requests.filter((r) => r.status === "pending").length;
   const doneRequests = requests.filter((r) => r.status === "done").length;
   const newMessages = messages.filter((m) => m.status === "new").length;
-  const newDonations = donations.filter((d) => d.status === "new").length;
+
+  const openPayPalDonation = () => {
+    window.open(PAYPAL_URL, "_blank", "noopener,noreferrer");
+  };
 
   const handleLikeSong = (songId) => {
     const likedKey = `liked_${songId}`;
@@ -945,11 +993,17 @@ function App() {
   const handleDeleteSong = (id) => {
     setSongs((prev) => prev.filter((song) => song.id !== id));
     if (playerSong?.id === id) {
+      const audio = audioRef.current;
+      if (audio) {
+        audio.pause();
+        audio.removeAttribute("src");
+        audio.load();
+      }
       setPlayerSong(null);
       setPlayerMinimized(false);
       setPlayerCurrentTime(0);
-      setPlayerWasPlaying(false);
-      setShouldAutoplay(false);
+      setPlayerDuration(0);
+      setIsPlaying(false);
     }
   };
 
@@ -996,34 +1050,6 @@ function App() {
     alert("Private message sent!");
   };
 
-  const handleDonationSubmit = (e) => {
-    e.preventDefault();
-    if (!donationForm.name.trim() || !donationForm.amount) return;
-
-    const amount = Number(donationForm.amount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      alert("Please enter a valid donation amount.");
-      return;
-    }
-
-    const item = {
-      id: `don-${Date.now()}`,
-      name: donationForm.name.trim(),
-      amount,
-      note: donationForm.note.trim(),
-      status: "new",
-      createdAt: new Date().toISOString(),
-    };
-
-    setDonations((prev) => [item, ...prev]);
-    setDonationForm({
-      name: "",
-      amount: "",
-      note: "",
-    });
-    alert("Thank you for the donation support!");
-  };
-
   const toggleRequestStatus = (id) => {
     setRequests((prev) =>
       prev.map((item) =>
@@ -1044,12 +1070,6 @@ function App() {
     setMessages((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const markDonationSeen = (id) => {
-    setDonations((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, status: "seen" } : item))
-    );
-  };
-
   const copySongLink = async (songId) => {
     const url = `${window.location.origin}${window.location.pathname}?song=${songId}`;
     try {
@@ -1060,40 +1080,80 @@ function App() {
     }
   };
 
-  const openSongPlayer = (song) => {
-    if (playerSong?.id !== song.id) {
-      setPlayerCurrentTime(0);
-      setPlayerWasPlaying(false);
-      setShouldAutoplay(false);
-    }
+  const openSongPlayer = async (song) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const sameSong = playerSong?.id === song.id;
+
     setPlayerSong(song);
     setPlayerMinimized(false);
+
+    if (!song.audioUrl) return;
+
+    if (!sameSong) {
+      audio.pause();
+      audio.src = song.audioUrl;
+      audio.load();
+      setPlayerCurrentTime(0);
+      setPlayerDuration(0);
+
+      try {
+        await audio.play();
+      } catch (error) {
+        console.warn("Autoplay was blocked:", error);
+      }
+    }
   };
 
   const closePlayer = () => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+    }
+
     setPlayerSong(null);
     setPlayerMinimized(false);
     setPlayerCurrentTime(0);
-    setPlayerWasPlaying(false);
-    setShouldAutoplay(false);
+    setPlayerDuration(0);
+    setIsPlaying(false);
   };
 
   const minimizePlayer = () => {
-    if (audioRef.current) {
-      setPlayerCurrentTime(audioRef.current.currentTime || 0);
-      setPlayerWasPlaying(!audioRef.current.paused);
-      setShouldAutoplay(!audioRef.current.paused);
-    }
     setPlayerMinimized(true);
   };
 
   const expandPlayer = () => {
-    if (audioRef.current) {
-      setPlayerCurrentTime(audioRef.current.currentTime || 0);
-      setPlayerWasPlaying(!audioRef.current.paused);
-      setShouldAutoplay(!audioRef.current.paused);
-    }
     setPlayerMinimized(false);
+  };
+
+  const handlePlayPause = async () => {
+    const audio = audioRef.current;
+    if (!audio || !playerSong?.audioUrl) return;
+
+    if (!audio.src) {
+      audio.src = playerSong.audioUrl;
+      audio.load();
+    }
+
+    if (audio.paused) {
+      try {
+        await audio.play();
+      } catch (error) {
+        console.warn("Play failed:", error);
+      }
+    } else {
+      audio.pause();
+    }
+  };
+
+  const handleSeek = (time) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.currentTime = time;
+    setPlayerCurrentTime(time);
   };
 
   const downloadTextFile = (filename, content) => {
@@ -1134,9 +1194,11 @@ function App() {
           "radial-gradient(circle at top left, rgba(58,31,102,0.42), transparent 28%), radial-gradient(circle at top right, rgba(93,40,126,0.22), transparent 20%), linear-gradient(180deg, #050a18 0%, #07112a 55%, #081226 100%)",
         fontFamily:
           'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        paddingBottom: playerSong && playerMinimized ? 120 : 0,
+        paddingBottom: playerSong && playerMinimized ? 140 : 0,
       }}
     >
+      <audio ref={audioRef} preload="metadata" style={{ display: "none" }} />
+
       <div style={{ maxWidth: 1250, margin: "0 auto", padding: "22px 18px 50px" }}>
         {view === "home" && (
           <div style={{ display: "grid", gap: 22 }}>
@@ -1194,7 +1256,7 @@ function App() {
                   </p>
 
                   <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
-                    <Button variant="secondary" onClick={() => setView("donate")}>
+                    <Button variant="secondary" onClick={openPayPalDonation}>
                       ♡ Support / Donate
                     </Button>
                     <Button variant="secondary" onClick={() => setView("request")}>
@@ -1342,62 +1404,14 @@ function App() {
                     <Button variant="secondary" onClick={() => setView("message")}>
                       💬 Open Private Message Form
                     </Button>
-                    <Button variant="secondary" onClick={() => setView("donate")}>
-                      ♡ Open Donation Form
+                    <Button variant="secondary" onClick={openPayPalDonation}>
+                      ♡ Support on PayPal
                     </Button>
                   </div>
                 </Panel>
               </div>
             </div>
           </div>
-        )}
-
-        {view === "donate" && (
-          <Panel
-            title="Support / Donate"
-            subtitle="Every bit goes back into the tools and subscriptions that keep DJ-BUANG running."
-          >
-            <form onSubmit={handleDonationSubmit} style={{ display: "grid", gap: 16, maxWidth: 760 }}>
-              <Input
-                label="Your name"
-                value={donationForm.name}
-                onChange={(e) =>
-                  setDonationForm((prev) => ({ ...prev, name: e.target.value }))
-                }
-                placeholder="Your name"
-              />
-
-              <Input
-                label="Amount"
-                type="number"
-                min="1"
-                step="1"
-                value={donationForm.amount}
-                onChange={(e) =>
-                  setDonationForm((prev) => ({ ...prev, amount: e.target.value }))
-                }
-                placeholder="10"
-              />
-
-              <TextArea
-                label="Message / note"
-                value={donationForm.note}
-                onChange={(e) =>
-                  setDonationForm((prev) => ({ ...prev, note: e.target.value }))
-                }
-                placeholder="Optional message..."
-              />
-
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <Button type="submit" variant="primary">
-                  Send Support
-                </Button>
-                <Button type="button" variant="secondary" onClick={() => setView("home")}>
-                  Back Home
-                </Button>
-              </div>
-            </form>
-          </Panel>
         )}
 
         {view === "request" && (
@@ -1547,7 +1561,7 @@ function App() {
           <div style={{ display: "grid", gap: 22 }}>
             <Panel
               title="Admin Dashboard"
-              subtitle="Overview of requests, songs, donations, and messages."
+              subtitle="Overview of requests, songs, and messages."
               right={
                 <Button variant="secondary" onClick={handleLogout}>
                   Logout
@@ -1564,7 +1578,6 @@ function App() {
                 <StatPill label="Songs Uploaded" value={songs.length} />
                 <StatPill label="Pending Requests" value={pendingRequests} />
                 <StatPill label="Done Requests" value={doneRequests} />
-                <StatPill label="New Donations" value={newDonations} />
                 <StatPill label="New Messages" value={newMessages} />
               </div>
             </Panel>
@@ -1721,55 +1734,6 @@ function App() {
               </div>
             </Panel>
 
-            <Panel title="Donations" subtitle="Support that has come in through the site.">
-              <div style={{ display: "grid", gap: 14 }}>
-                {donations.length === 0 ? (
-                  <div style={{ color: "rgba(255,255,255,0.72)" }}>No donations yet.</div>
-                ) : (
-                  donations.map((don) => (
-                    <div
-                      key={don.id}
-                      style={{
-                        padding: 16,
-                        borderRadius: 18,
-                        background: "rgba(10,15,28,0.52)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 12,
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <div>
-                          <strong>{don.name}</strong>
-                          <div style={{ color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
-                            ${don.amount} • {formatDate(don.createdAt)}
-                          </div>
-                          {don.note ? (
-                            <div style={{ color: "rgba(255,255,255,0.72)", marginTop: 8 }}>
-                              {don.note}
-                            </div>
-                          ) : null}
-                        </div>
-                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                          <Badge>{don.status}</Badge>
-                          {don.status === "new" ? (
-                            <Button variant="success" onClick={() => markDonationSeen(don.id)}>
-                              Mark Seen
-                            </Button>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </Panel>
-
             <Panel title="Private Messages" subtitle="Messages sent from the site.">
               <div style={{ display: "grid", gap: 14 }}>
                 {messages.length === 0 ? (
@@ -1883,11 +1847,11 @@ function App() {
           song={playerSong}
           onClose={closePlayer}
           onMinimize={minimizePlayer}
-          audioRef={audioRef}
-          playerCurrentTime={playerCurrentTime}
-          setPlayerCurrentTime={setPlayerCurrentTime}
-          setPlayerWasPlaying={setPlayerWasPlaying}
-          shouldAutoplay={shouldAutoplay}
+          isPlaying={isPlaying}
+          currentTime={playerCurrentTime}
+          duration={playerDuration}
+          onPlayPause={handlePlayPause}
+          onSeek={handleSeek}
         />
       ) : null}
 
@@ -1896,11 +1860,11 @@ function App() {
           song={playerSong}
           onExpand={expandPlayer}
           onClose={closePlayer}
-          audioRef={audioRef}
-          playerCurrentTime={playerCurrentTime}
-          setPlayerCurrentTime={setPlayerCurrentTime}
-          setPlayerWasPlaying={setPlayerWasPlaying}
-          shouldAutoplay={shouldAutoplay}
+          isPlaying={isPlaying}
+          currentTime={playerCurrentTime}
+          duration={playerDuration}
+          onPlayPause={handlePlayPause}
+          onSeek={handleSeek}
         />
       ) : null}
     </div>
