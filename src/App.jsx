@@ -862,9 +862,33 @@ async function loginAdmin(password) {
   }
 
   return data;
+}async function importFromSuno(url) {
+  const response = await fetch("/api/import-suno", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ url }),
+  });
+
+  const text = await response.text();
+  let data = {};
+
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error("Suno import endpoint returned invalid response");
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to import from Suno");
+  }
+
+  return data.imported;
 }
 function App() {
 const [songs, setSongs] = useState(() => {
+  
   clearOldDemoDataOnce();
   return [];
 });
@@ -894,6 +918,8 @@ const [songs, setSongs] = useState(() => {
   const [playerDuration, setPlayerDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [sunoUrl, setSunoUrl] = useState("");
+  const [isImportingSuno, setIsImportingSuno] = useState(false);
   const [volume, setVolume] = useState(1);
   const [previousVolume, setPreviousVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
@@ -1142,7 +1168,34 @@ useEffect(() => {
     setAdminLoggedIn(false);
     setView("home");
   };
+const handleImportFromSuno = async () => {
+  if (!sunoUrl.trim()) {
+    alert("Please paste a Suno URL first.");
+    return;
+  }
 
+  try {
+    setIsImportingSuno(true);
+
+    const imported = await importFromSuno(sunoUrl.trim());
+
+    setNewSong((prev) => ({
+      ...prev,
+      title: imported.title || prev.title,
+      artist: imported.artist || prev.artist || "DJ-Buang",
+      genre: imported.genre || prev.genre,
+      coverUrl: imported.coverUrl || prev.coverUrl,
+      audioUrl: imported.audioUrl || prev.audioUrl,
+      lyrics: imported.lyrics || prev.lyrics,
+    }));
+
+    alert("Suno import complete. Please review the fields before uploading.");
+  } catch (error) {
+    alert(error.message || "Could not import from Suno");
+  } finally {
+    setIsImportingSuno(false);
+  }
+};
   const handleAddSong = async (e) => {
     e.preventDefault();
     if (!newSong.title.trim()) return;
@@ -1839,7 +1892,50 @@ setSongs((prev) => [item, ...prev]);
                   gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
                   gap: 16,
                 }}
-              >
+              ><div style={{ gridColumn: "1 / -1" }}>
+  <div
+    style={{
+      padding: 16,
+      borderRadius: 18,
+      background: "rgba(10,15,28,0.52)",
+      border: "1px solid rgba(255,255,255,0.08)",
+      display: "grid",
+      gap: 12,
+    }}
+  >
+    <div>
+      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>
+        Import from Suno
+      </div>
+      <div style={{ color: "rgba(255,255,255,0.68)", fontSize: 14 }}>
+        Paste a public Suno song URL to try auto-filling title, cover, and lyrics.
+      </div>
+    </div>
+
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "1fr auto",
+        gap: 12,
+      }}
+    >
+      <Input
+        placeholder="https://suno.com/song/..."
+        value={sunoUrl}
+        onChange={(e) => setSunoUrl(e.target.value)}
+      />
+
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={handleImportFromSuno}
+        disabled={isImportingSuno}
+      >
+        {isImportingSuno ? "Importing..." : "Import from Suno"}
+      </Button>
+    </div>
+  </div>
+</div>
                 <Input
                   label="Song title"
                   value={newSong.title}
