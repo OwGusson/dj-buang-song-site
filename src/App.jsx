@@ -1281,7 +1281,6 @@ function App() {
       )
     );
   };
-
   const markMessageRead = (id) => {
     setMessages((prev) =>
       prev.map((item) => (item.id === id ? { ...item, status: "read" } : item))
@@ -2076,12 +2075,21 @@ function App() {
                             </div>
                           ) : null}
                         </div>
-                        <Button
-                          variant={req.status === "done" ? "secondary" : "success"}
-                          onClick={() => toggleRequestStatus(req.id)}
-                        >
-                          {req.status === "done" ? "Mark Pending" : "Mark Done"}
-                        </Button>
+                        <div style={{ display: "grid", gap: 10 }}>
+                          <Button
+                           variant={req.status === "done" ? "secondary" : "success"}
+                           onClick={() => toggleRequestStatus(req.id)}
+                            >
+                             {req.status === "done" ? "Mark Pending" : "Mark Done"}
+                           </Button>
+
+                               <Button
+                                 variant="secondary"
+                                   onClick={() => deleteRequest(req.id)}
+                                  >
+                                  Delete
+                                 </Button>
+                                </div>
                       </div>
                       {req.details ? (
                         <p style={{ margin: "14px 0 0", lineHeight: 1.55 }}>{req.details}</p>
