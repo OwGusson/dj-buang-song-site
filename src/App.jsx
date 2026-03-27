@@ -1281,6 +1281,14 @@ function App() {
       )
     );
   };
+  const deleteRequest = (id) => {
+  const confirmed = window.confirm("Are you sure you want to delete this request?");
+  if (!confirmed) return;
+
+  const updated = requests.filter((req) => req.id !== id);
+  setRequests(updated);
+  localStorage.setItem(STORAGE_KEYS.requests, JSON.stringify(updated));
+};
   const markMessageRead = (id) => {
     setMessages((prev) =>
       prev.map((item) => (item.id === id ? { ...item, status: "read" } : item))
