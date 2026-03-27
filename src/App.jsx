@@ -1314,11 +1314,24 @@ function App() {
     }
   };
 const copyRequestReply = async (req) => {
-  const message = `Hi ${req.name || "there"}!
+  const message =
+    req.delivery === "private"
+      ? `Hi ${req.name || "there"}!
 
 Your song is ready 🎶
 
-Here is your song link:
+Here is your private song link:
+[PASTE PRIVATE SONG LINK HERE]
+
+Thanks for the request!
+- DJ-Buang`
+      : `Hi ${req.name || "there"}!
+
+Your song is ready 🎶
+
+It has been published on the DJ-Buang site.
+
+Here is the song link:
 [PASTE SONG LINK HERE]
 
 Thanks for the request!
