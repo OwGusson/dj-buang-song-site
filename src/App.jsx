@@ -90,7 +90,7 @@ function shellCardStyle(extra = {}) {
   };
 }
 
-function Button({ children, variant = "secondary", ...props }) {
+function Button({ children, variant = "secondary", type = "button", ...props }) {
   const variants = {
     primary: {
       background: "#f4f4f5",
@@ -121,6 +121,7 @@ function Button({ children, variant = "secondary", ...props }) {
 
   return (
     <button
+      type={type}
       {...props}
       style={{
         padding: "12px 18px",
@@ -1089,6 +1090,7 @@ function App() {
 
     if (filterMode === "featured") {
       list = list.filter((song) => song.featured);
+      list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } else if (filterMode === "most-liked") {
       list.sort((a, b) => (b.likes || 0) - (a.likes || 0));
     } else {
@@ -1281,14 +1283,14 @@ function App() {
       )
     );
   };
-  const deleteRequest = (id) => {
-  const confirmed = window.confirm("Are you sure you want to delete this request?");
-  if (!confirmed) return;
 
-  const updated = requests.filter((req) => req.id !== id);
-  setRequests(updated);
-  localStorage.setItem(STORAGE_KEYS.requests, JSON.stringify(updated));
-};
+  const deleteRequest = (id) => {
+    const confirmed = window.confirm("Are you sure you want to delete this request?");
+    if (!confirmed) return;
+
+    setRequests((prev) => prev.filter((req) => req.id !== id));
+  };
+
   const markMessageRead = (id) => {
     setMessages((prev) =>
       prev.map((item) => (item.id === id ? { ...item, status: "read" } : item))
@@ -2074,31 +2076,46 @@ function App() {
                           <div style={{ color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
                             by {req.name} • {formatDate(req.createdAt)}
                           </div>
-                          <div style={{ color: req.status === "done" ? "#86efac" : "#facc15", marginTop: 6, fontSize: 14, fontWeight: 700 }}>
-                             Status: {req.status === "done" ? "Done" : "Pending"}
+                          <div
+                            style={{
+                              color: req.status === "done" ? "#86efac" : "#facc15",
+                              marginTop: 6,
+                              fontSize: 14,
+                              fontWeight: 700,
+                            }}
+                          >
+                            Status: {req.status === "done" ? "Done" : "Pending"}
                           </div>
                           {req.email ? (
-                            <div style={{ color: "rgba(255,255,255,0.58)", marginTop: 4, fontSize: 14 }}>
+                            <div
+                              style={{
+                                color: "rgba(255,255,255,0.58)",
+                                marginTop: 4,
+                                fontSize: 14,
+                              }}
+                            >
                               {req.email} {req.notify ? "• wants notification" : ""}
                             </div>
                           ) : null}
                         </div>
+
                         <div style={{ display: "grid", gap: 10 }}>
                           <Button
-                           variant={req.status === "done" ? "secondary" : "success"}
-                           onClick={() => toggleRequestStatus(req.id)}
-                            >
-                             {req.status === "done" ? "Mark Pending" : "Mark Done"}
-                           </Button>
+                            variant={req.status === "done" ? "secondary" : "success"}
+                            onClick={() => toggleRequestStatus(req.id)}
+                          >
+                            {req.status === "done" ? "Mark Pending" : "Mark Done"}
+                          </Button>
 
-                               <Button
-                                 variant="secondary"
-                                   onClick={() => deleteRequest(req.id)}
-                                  >
-                                  Delete
-                                 </Button>
-                                </div>
+                          <Button
+                            variant="danger"
+                            onClick={() => deleteRequest(req.id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </div>
+
                       {req.details ? (
                         <p style={{ margin: "14px 0 0", lineHeight: 1.55 }}>{req.details}</p>
                       ) : null}
