@@ -2295,7 +2295,20 @@ Thanks for the request!
                           >
                             Delivery: {req.delivery === "private" ? "Private" : "Public"}
                           </div>
-
+<div
+  style={{
+    color: req.linkedSongId ? "#86efac" : "#f87171",
+    marginTop: 4,
+    fontSize: 14,
+    fontWeight: 600,
+  }}
+>
+  Linked song: {
+    req.linkedSongId
+      ? adminSongs.find(song => song.id === req.linkedSongId)?.title || "Unknown song"
+      : "No song attached yet"
+  }
+</div>
                           <div style={{ marginTop: 12, maxWidth: 320 }}>
                             <Select
                               label="Attach uploaded song"
