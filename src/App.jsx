@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-const [requestSongLinks, setRequestSongLinks] = useState({});
 const STORAGE_KEYS = {
   songs: "djbuang_songs",
   requests: "djbuang_requests",
@@ -906,6 +905,7 @@ function App() {
   const [windowWidth, setWindowWidth] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth : 1200
   );
+  const [requestSongLinks, setRequestSongLinks] = useState({});
 
   const isMobile = windowWidth < 900;
   const audioRef = useRef(null);
@@ -927,12 +927,12 @@ function App() {
   });
 
   const [requestForm, setRequestForm] = useState({
-  name: "",
-  title: "",
-  details: "",
-  email: "",
-  notify: false,
-  delivery: "public",
+    name: "",
+    title: "",
+    details: "",
+    email: "",
+    notify: false,
+    delivery: "public",
   });
 
   const [messageForm, setMessageForm] = useState({
@@ -1238,16 +1238,16 @@ function App() {
     if (!requestForm.name.trim() || !requestForm.title.trim()) return;
 
     const item = {
-  id: `req-${Date.now()}`,
-  name: requestForm.name.trim(),
-  title: requestForm.title.trim(),
-  details: requestForm.details.trim(),
-  email: requestForm.email.trim(),
-  notify: requestForm.notify,
-  delivery: requestForm.delivery || "public",
-  status: "pending",
-  createdAt: new Date().toISOString(),
-   };
+      id: `req-${Date.now()}`,
+      name: requestForm.name.trim(),
+      title: requestForm.title.trim(),
+      details: requestForm.details.trim(),
+      email: requestForm.email.trim(),
+      notify: requestForm.notify,
+      delivery: requestForm.delivery || "public",
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
 
     setRequests((prev) => [item, ...prev]);
     setRequestForm({
@@ -1314,19 +1314,20 @@ function App() {
       alert(url);
     }
   };
-const copyRequestReply = async (req) => {
-  const selectedSongId = requestSongLinks[req.id];
 
-  if (!selectedSongId) {
-    alert("Please select a song first for this request.");
-    return;
-  }
+  const copyRequestReply = async (req) => {
+    const selectedSongId = requestSongLinks[req.id];
 
-  const songUrl = `${window.location.origin}${window.location.pathname}?song=${selectedSongId}`;
+    if (!selectedSongId) {
+      alert("Please select a song first for this request.");
+      return;
+    }
 
-  const message =
-    req.delivery === "private"
-      ? `Hi ${req.name || "there"}!
+    const songUrl = `${window.location.origin}${window.location.pathname}?song=${selectedSongId}`;
+
+    const message =
+      req.delivery === "private"
+        ? `Hi ${req.name || "there"}!
 
 Your song is ready 🎶
 
@@ -1335,7 +1336,7 @@ ${songUrl}
 
 Thanks for the request!
 - DJ-Buang`
-      : `Hi ${req.name || "there"}!
+        : `Hi ${req.name || "there"}!
 
 Your song is ready 🎶
 
@@ -1347,13 +1348,14 @@ ${songUrl}
 Thanks for the request!
 - DJ-Buang`;
 
-  try {
-    await navigator.clipboard.writeText(message);
-    alert("Reply with song link copied!");
-  } catch {
-    alert(message);
-  }
-};
+    try {
+      await navigator.clipboard.writeText(message);
+      alert("Reply with song link copied!");
+    } catch {
+      alert(message);
+    }
+  };
+
   const openSongPlayer = async (song) => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -1751,20 +1753,22 @@ Thanks for the request!
                 }
                 placeholder="Names, mood, style, references..."
               />
-<Select
-  label="Do you want this song to be public on this site or sent to you privately?"
-  value={requestForm.delivery}
-  onChange={(e) =>
-    setRequestForm((prev) => ({ ...prev, delivery: e.target.value }))
-  }
->
-  <option value="public" style={{ color: "black" }}>
-    Public on the site
-  </option>
-  <option value="private" style={{ color: "black" }}>
-    Send to me privately
-  </option>
-</Select> 
+
+              <Select
+                label="Do you want this song to be public on this site or sent to you privately?"
+                value={requestForm.delivery}
+                onChange={(e) =>
+                  setRequestForm((prev) => ({ ...prev, delivery: e.target.value }))
+                }
+              >
+                <option value="public" style={{ color: "black" }}>
+                  Public on the site
+                </option>
+                <option value="private" style={{ color: "black" }}>
+                  Send to me privately
+                </option>
+              </Select>
+
               <Input
                 label="E-mail"
                 type="email"
@@ -2128,71 +2132,56 @@ Thanks for the request!
                         }}
                       >
                         <div>
-                         <strong>{req.title}</strong>
+                          <strong>{req.title}</strong>
 
-<div style={{ color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
-  by {req.name} • {formatDate(req.createdAt)}
-</div>
+                          <div style={{ color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+                            by {req.name} • {formatDate(req.createdAt)}
+                          </div>
 
-<div
-  style={{
-    color: req.status === "done" ? "#86efac" : "#facc15",
-    marginTop: 6,
-    fontSize: 14,
-    fontWeight: 700,
-  }}
->
-  Status: {req.status === "done" ? "Done" : "Pending"}
-</div>
-
-<div
-  style={{
-    color: "rgba(255,255,255,0.72)",
-    marginTop: 4,
-    fontSize: 14,
-    fontWeight: 600,
-  }}
->
-  Delivery: {req.delivery === "private" ? "Private" : "Public"}
-</div>
-
-{/* NEW SONG LINK SELECTOR */}
-<div style={{ marginTop: 12, maxWidth: 320 }}>
-  <Select
-    label="Attach uploaded song"
-    value={requestSongLinks[req.id] || ""}
-    onChange={(e) =>
-      setRequestSongLinks((prev) => ({
-        ...prev,
-        [req.id]: e.target.value,
-      }))
-    }
-  >
-    <option value="" style={{ color: "black" }}>
-      Select a song
-    </option>
-
-    {songs.map((song) => (
-      <option
-        key={song.id}
-        value={song.id}
-        style={{ color: "black" }}
-      >
-        {song.title} — {song.artist}
-      </option>
-    ))}
-  </Select>
-</div>
                           <div
-  style={{
-    color: "rgba(255,255,255,0.72)",
-    marginTop: 4,
-    fontSize: 14,
-    fontWeight: 600,
-  }}
->
-  Delivery: {req.delivery === "private" ? "Private" : "Public"}
-</div>
+                            style={{
+                              color: req.status === "done" ? "#86efac" : "#facc15",
+                              marginTop: 6,
+                              fontSize: 14,
+                              fontWeight: 700,
+                            }}
+                          >
+                            Status: {req.status === "done" ? "Done" : "Pending"}
+                          </div>
+
+                          <div
+                            style={{
+                              color: "rgba(255,255,255,0.72)",
+                              marginTop: 4,
+                              fontSize: 14,
+                              fontWeight: 600,
+                            }}
+                          >
+                            Delivery: {req.delivery === "private" ? "Private" : "Public"}
+                          </div>
+
+                          <div style={{ marginTop: 12, maxWidth: 320 }}>
+                            <Select
+                              label="Attach uploaded song"
+                              value={requestSongLinks[req.id] || ""}
+                              onChange={(e) =>
+                                setRequestSongLinks((prev) => ({
+                                  ...prev,
+                                  [req.id]: e.target.value,
+                                }))
+                              }
+                            >
+                              <option value="" style={{ color: "black" }}>
+                                Select a song
+                              </option>
+                              {adminSongs.map((song) => (
+                                <option key={song.id} value={song.id} style={{ color: "black" }}>
+                                  {song.title} — {song.artist}
+                                </option>
+                              ))}
+                            </Select>
+                          </div>
+
                           {req.email ? (
                             <div
                               style={{
@@ -2207,29 +2196,29 @@ Thanks for the request!
                         </div>
 
                         <div style={{ display: "grid", gap: 10 }}>
-  <Button
-    variant={req.status === "done" ? "secondary" : "success"}
-    onClick={() => toggleRequestStatus(req.id)}
-  >
-    {req.status === "done" ? "Mark Pending" : "Mark Done"}
-  </Button>
+                          <Button
+                            variant={req.status === "done" ? "secondary" : "success"}
+                            onClick={() => toggleRequestStatus(req.id)}
+                          >
+                            {req.status === "done" ? "Mark Pending" : "Mark Done"}
+                          </Button>
 
-  {req.email ? (
-    <Button
-      variant="secondary"
-      onClick={() => copyRequestReply(req)}
-    >
-      Copy Reply
-    </Button>
-  ) : null}
+                          {req.email ? (
+                            <Button
+                              variant="secondary"
+                              onClick={() => copyRequestReply(req)}
+                            >
+                              Copy Reply With Link
+                            </Button>
+                          ) : null}
 
-  <Button
-    variant="danger"
-    onClick={() => deleteRequest(req.id)}
-  >
-    Delete
-  </Button>
-</div>
+                          <Button
+                            variant="danger"
+                            onClick={() => deleteRequest(req.id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </div>
 
                       {req.details ? (
