@@ -1315,7 +1315,7 @@ function App() {
     alert("Private message sent!");
   };
 
-  const toggleRequestStatus = async (id) => {
+ const toggleRequestStatus = async (id) => {
   const req = requests.find((item) => item.id === id);
   if (!req) return;
 
@@ -1329,12 +1329,28 @@ function App() {
     )
   );
 
-  if (nextStatus === "done" && req.email && req.linkedSongId) {
-    const songUrl = `${window.location.origin}${window.location.pathname}?song=${req.linkedSongId}`;
+  if (nextStatus !== "done") return;
 
-    const message =
-      req.delivery === "private"
-        ? `Hi ${req.name || "there"}!
+  if (!req.email && !req.linkedSongId) {
+    alert("Marked done, but no email and no song are attached yet.");
+    return;
+  }
+
+  if (!req.email) {
+    alert("Marked done, but no email was provided.");
+    return;
+  }
+
+  if (!req.linkedSongId) {
+    alert("Marked done, but no song is attached yet.");
+    return;
+  }
+
+  const songUrl = `${window.location.origin}${window.location.pathname}?song=${req.linkedSongId}`;
+
+  const message =
+    req.delivery === "private"
+      ? `Hi ${req.name || "there"}!
 
 Your song is ready 🎶
 
@@ -1343,7 +1359,7 @@ ${songUrl}
 
 Thanks for the request!
 - DJ-Buang`
-        : `Hi ${req.name || "there"}!
+      : `Hi ${req.name || "there"}!
 
 Your song is ready 🎶
 
@@ -1355,12 +1371,11 @@ ${songUrl}
 Thanks for the request!
 - DJ-Buang`;
 
-    try {
-      await navigator.clipboard.writeText(message);
-      alert("Marked done and reply copied!");
-    } catch {
-      alert("Marked done, but copy failed. Here is the reply:\n\n" + message);
-    }
+  try {
+    await navigator.clipboard.writeText(message);
+    alert("Marked done and reply copied!");
+  } catch {
+    alert("Marked done, but copy failed. Here is the reply:\n\n" + message);
   }
 };
 
