@@ -905,7 +905,6 @@ function App() {
   const [windowWidth, setWindowWidth] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth : 1200
   );
-  const [requestSongLinks, setRequestSongLinks] = useState({});
 
   const isMobile = windowWidth < 900;
   const audioRef = useRef(null);
@@ -1258,6 +1257,7 @@ const handleRequestSubmit = (e) => {
     email: email,
     notify: requestForm.notify,
     delivery: requestForm.delivery || "public",
+    linkedSongId: "",
     status: "pending",
     createdAt: new Date().toISOString(),
   };
@@ -1301,7 +1301,13 @@ const handleRequestSubmit = (e) => {
       )
     );
   };
-
+const attachSongToRequest = (requestId, songId) => {
+  setRequests((prev) =>
+    prev.map((req) =>
+      req.id === requestId ? { ...req, linkedSongId: songId } : req
+    )
+  );
+};
   const deleteRequest = (id) => {
     const confirmed = window.confirm("Are you sure you want to delete this request?");
     if (!confirmed) return;
@@ -1330,7 +1336,7 @@ const handleRequestSubmit = (e) => {
   };
 
   const copyRequestReply = async (req) => {
-    const selectedSongId = requestSongLinks[req.id];
+   const selectedSongId = req.linkedSongId;
 
     if (!selectedSongId) {
       alert("Please select a song first for this request.");
@@ -2175,26 +2181,22 @@ Thanks for the request!
                           </div>
 
                           <div style={{ marginTop: 12, maxWidth: 320 }}>
-                            <Select
-                              label="Attach uploaded song"
-                              value={requestSongLinks[req.id] || ""}
-                              onChange={(e) =>
-                                setRequestSongLinks((prev) => ({
-                                  ...prev,
-                                  [req.id]: e.target.value,
-                                }))
-                              }
-                            >
-                              <option value="" style={{ color: "black" }}>
-                                Select a song
-                              </option>
-                              {adminSongs.map((song) => (
-                                <option key={song.id} value={song.id} style={{ color: "black" }}>
-                                  {song.title} — {song.artist}
-                                </option>
-                              ))}
-                            </Select>
-                          </div>
+  <Select
+    label="Attach uploaded song"
+    value={req.linkedSongId || ""}
+    onChange={(e) => attachSongToRequest(req.id, e.target.value)}
+  >
+    <option value="" style={{ color: "black" }}>
+      Select a song
+    </option>
+
+    {adminSongs.map((song) => (
+      <option key={song.id} value={song.id} style={{ color: "black" }}>
+        {song.title} — {song.artist}
+      </option>
+    ))}
+  </Select>
+</div>
 
                           {req.email ? (
                             <div
