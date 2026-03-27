@@ -2304,9 +2304,22 @@ Thanks for the request!
   }}
 >
   Linked song: {
-    req.linkedSongId
-      ? adminSongs.find(song => song.id === req.linkedSongId)?.title || "Unknown song"
-      : "No song attached yet"
+    req.linkedSongId ? (
+      <span
+        onClick={() => {
+          const song = adminSongs.find(s => s.id === req.linkedSongId);
+          if (song) openSongPlayer(song);
+        }}
+        style={{
+          cursor: "pointer",
+          textDecoration: "underline",
+        }}
+      >
+        {adminSongs.find(song => song.id === req.linkedSongId)?.title || "Unknown song"}
+      </span>
+    ) : (
+      "No song attached yet"
+    )
   }
 </div>
                           <div style={{ marginTop: 12, maxWidth: 320 }}>
