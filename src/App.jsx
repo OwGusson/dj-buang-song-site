@@ -926,11 +926,12 @@ function App() {
   });
 
   const [requestForm, setRequestForm] = useState({
-    name: "",
-    title: "",
-    details: "",
-    email: "",
-    notify: false,
+  name: "",
+  title: "",
+  details: "",
+  email: "",
+  notify: false,
+  delivery: "public",
   });
 
   const [messageForm, setMessageForm] = useState({
@@ -1236,15 +1237,16 @@ function App() {
     if (!requestForm.name.trim() || !requestForm.title.trim()) return;
 
     const item = {
-      id: `req-${Date.now()}`,
-      name: requestForm.name.trim(),
-      title: requestForm.title.trim(),
-      details: requestForm.details.trim(),
-      email: requestForm.email.trim(),
-      notify: requestForm.notify,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    };
+  id: `req-${Date.now()}`,
+  name: requestForm.name.trim(),
+  title: requestForm.title.trim(),
+  details: requestForm.details.trim(),
+  email: requestForm.email.trim(),
+  notify: requestForm.notify,
+  delivery: requestForm.delivery || "public",
+  status: "pending",
+  createdAt: new Date().toISOString(),
+   };
 
     setRequests((prev) => [item, ...prev]);
     setRequestForm({
@@ -1253,6 +1255,7 @@ function App() {
       details: "",
       email: "",
       notify: false,
+      delivery: "public",
     });
     alert("Song request sent!");
   };
@@ -1708,7 +1711,20 @@ function App() {
                 }
                 placeholder="Names, mood, style, references..."
               />
-
+<Select
+  label="Do you want this song to be public on this site or sent to you privately?"
+  value={requestForm.delivery}
+  onChange={(e) =>
+    setRequestForm((prev) => ({ ...prev, delivery: e.target.value }))
+  }
+>
+  <option value="public" style={{ color: "black" }}>
+    Public on the site
+  </option>
+  <option value="private" style={{ color: "black" }}>
+    Send to me privately
+  </option>
+</Select> 
               <Input
                 label="E-mail"
                 type="email"
@@ -2086,6 +2102,16 @@ function App() {
                           >
                             Status: {req.status === "done" ? "Done" : "Pending"}
                           </div>
+                          <div
+  style={{
+    color: "rgba(255,255,255,0.72)",
+    marginTop: 4,
+    fontSize: 14,
+    fontWeight: 600,
+  }}
+>
+  Delivery: {req.delivery === "private" ? "Private" : "Public"}
+</div>
                           {req.email ? (
                             <div
                               style={{
