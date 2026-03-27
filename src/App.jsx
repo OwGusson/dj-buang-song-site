@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
+const [requestSongLinks, setRequestSongLinks] = useState({});
 const STORAGE_KEYS = {
   songs: "djbuang_songs",
   requests: "djbuang_requests",
@@ -1314,6 +1315,15 @@ function App() {
     }
   };
 const copyRequestReply = async (req) => {
+  const selectedSongId = requestSongLinks[req.id];
+
+  if (!selectedSongId) {
+    alert("Please select a song first for this request.");
+    return;
+  }
+
+  const songUrl = `${window.location.origin}${window.location.pathname}?song=${selectedSongId}`;
+
   const message =
     req.delivery === "private"
       ? `Hi ${req.name || "there"}!
@@ -1321,7 +1331,7 @@ const copyRequestReply = async (req) => {
 Your song is ready 🎶
 
 Here is your private song link:
-[PASTE PRIVATE SONG LINK HERE]
+${songUrl}
 
 Thanks for the request!
 - DJ-Buang`
@@ -1332,14 +1342,14 @@ Your song is ready 🎶
 It has been published on the DJ-Buang site.
 
 Here is the song link:
-[PASTE SONG LINK HERE]
+${songUrl}
 
 Thanks for the request!
 - DJ-Buang`;
 
   try {
     await navigator.clipboard.writeText(message);
-    alert("Reply message copied!");
+    alert("Reply with song link copied!");
   } catch {
     alert(message);
   }
@@ -2118,20 +2128,61 @@ Thanks for the request!
                         }}
                       >
                         <div>
-                          <strong>{req.title}</strong>
-                          <div style={{ color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
-                            by {req.name} • {formatDate(req.createdAt)}
-                          </div>
-                          <div
-                            style={{
-                              color: req.status === "done" ? "#86efac" : "#facc15",
-                              marginTop: 6,
-                              fontSize: 14,
-                              fontWeight: 700,
-                            }}
-                          >
-                            Status: {req.status === "done" ? "Done" : "Pending"}
-                          </div>
+                         <strong>{req.title}</strong>
+
+<div style={{ color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+  by {req.name} • {formatDate(req.createdAt)}
+</div>
+
+<div
+  style={{
+    color: req.status === "done" ? "#86efac" : "#facc15",
+    marginTop: 6,
+    fontSize: 14,
+    fontWeight: 700,
+  }}
+>
+  Status: {req.status === "done" ? "Done" : "Pending"}
+</div>
+
+<div
+  style={{
+    color: "rgba(255,255,255,0.72)",
+    marginTop: 4,
+    fontSize: 14,
+    fontWeight: 600,
+  }}
+>
+  Delivery: {req.delivery === "private" ? "Private" : "Public"}
+</div>
+
+{/* NEW SONG LINK SELECTOR */}
+<div style={{ marginTop: 12, maxWidth: 320 }}>
+  <Select
+    label="Attach uploaded song"
+    value={requestSongLinks[req.id] || ""}
+    onChange={(e) =>
+      setRequestSongLinks((prev) => ({
+        ...prev,
+        [req.id]: e.target.value,
+      }))
+    }
+  >
+    <option value="" style={{ color: "black" }}>
+      Select a song
+    </option>
+
+    {songs.map((song) => (
+      <option
+        key={song.id}
+        value={song.id}
+        style={{ color: "black" }}
+      >
+        {song.title} — {song.artist}
+      </option>
+    ))}
+  </Select>
+</div>
                           <div
   style={{
     color: "rgba(255,255,255,0.72)",
