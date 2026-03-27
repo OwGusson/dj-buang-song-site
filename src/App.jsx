@@ -2321,6 +2321,27 @@ Thanks for the request!
       "No song attached yet"
     )
   }
+  {req.status !== "done" && (
+  (!req.linkedSongId || !req.email) && (
+    <div
+      style={{
+        color: "#facc15",
+        marginTop: 4,
+        fontSize: 13,
+        fontWeight: 600,
+      }}
+    >
+      ⚠ Missing: {
+        [
+          !req.linkedSongId && "song",
+          !req.email && "email"
+        ]
+          .filter(Boolean)
+          .join(" + ")
+      }
+    </div>
+  )
+)}
 </div>
                           <div style={{ marginTop: 12, maxWidth: 320 }}>
                             <Select
