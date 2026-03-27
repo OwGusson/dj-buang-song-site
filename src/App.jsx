@@ -2067,6 +2067,9 @@ function App() {
                           <div style={{ color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
                             by {req.name} • {formatDate(req.createdAt)}
                           </div>
+                          <div style={{ color: req.status === "done" ? "#86efac" : "#facc15", marginTop: 6, fontSize: 14, fontWeight: 700 }}>
+                             Status: {req.status === "done" ? "Done" : "Pending"}
+                          </div>
                           {req.email ? (
                             <div style={{ color: "rgba(255,255,255,0.58)", marginTop: 4, fontSize: 14 }}>
                               {req.email} {req.notify ? "• wants notification" : ""}
