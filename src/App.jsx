@@ -22,7 +22,7 @@ function getStored(key, fallback) {
     return fallback;
   }
 }
-
+const [requestFilter, setRequestFilter] = useState("all");
 function clearOldDemoDataOnce() {
   try {
     const currentVersion = "reset-v3";
@@ -1108,7 +1108,25 @@ function App() {
   const topLikedSongs = useMemo(() => {
     return [...publicSongs].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 3);
   }, [publicSongs]);
+const filteredRequests = useMemo(() => {
+  if (requestFilter === "pending") {
+    return requests.filter((req) => req.status === "pending");
+  }
 
+  if (requestFilter === "done") {
+    return requests.filter((req) => req.status === "done");
+  }
+
+  if (requestFilter === "public") {
+    return requests.filter((req) => (req.delivery || "public") === "public");
+  }
+
+  if (requestFilter === "private") {
+    return requests.filter((req) => req.delivery === "private");
+  }
+
+  return requests;
+}, [requests, requestFilter]);
   const pendingRequests = requests.filter((r) => r.status === "pending").length;
   const doneRequests = requests.filter((r) => r.status === "done").length;
   const newMessages = messages.filter((m) => m.status === "new").length;
@@ -1621,7 +1639,42 @@ Thanks for the request!
                   </div>
                 }
                 subtitle="Mobile-friendly browsing with player preview and lyrics view."
-              >
+              ><div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+  <Button
+    variant={requestFilter === "all" ? "primary" : "secondary"}
+    onClick={() => setRequestFilter("all")}
+  >
+    All
+  </Button>
+
+  <Button
+    variant={requestFilter === "pending" ? "primary" : "secondary"}
+    onClick={() => setRequestFilter("pending")}
+  >
+    Pending
+  </Button>
+
+  <Button
+    variant={requestFilter === "done" ? "primary" : "secondary"}
+    onClick={() => setRequestFilter("done")}
+  >
+    Done
+  </Button>
+
+  <Button
+    variant={requestFilter === "public" ? "primary" : "secondary"}
+    onClick={() => setRequestFilter("public")}
+  >
+    Public
+  </Button>
+
+  <Button
+    variant={requestFilter === "private" ? "primary" : "secondary"}
+    onClick={() => setRequestFilter("private")}
+  >
+    Private
+  </Button>
+</div>
                 <div style={{ display: "grid", gap: 14 }}>
                   <div
                     style={{
@@ -2130,10 +2183,10 @@ Thanks for the request!
 
             <Panel title="Song Requests" subtitle="Requests submitted from the public page.">
               <div style={{ display: "grid", gap: 14 }}>
-                {requests.length === 0 ? (
+                {filteredRequests.length === 0 ? (
                   <div style={{ color: "rgba(255,255,255,0.72)" }}>No requests yet.</div>
                 ) : (
-                  requests.map((req) => (
+                  filteredRequests.map((req) => (
                     <div
                       key={req.id}
                       style={{
