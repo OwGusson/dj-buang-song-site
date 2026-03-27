@@ -1109,6 +1109,7 @@ function App() {
   const pendingRequests = requests.filter((r) => r.status === "pending").length;
   const doneRequests = requests.filter((r) => r.status === "done").length;
   const newMessages = messages.filter((m) => m.status === "new").length;
+  const totalLikes = songs.reduce((sum, song) => sum + (song.likes || 0), 0);
 
   const openPayPalDonation = () => {
     window.open(PAYPAL_URL, "_blank", "noopener,noreferrer");
@@ -1827,6 +1828,7 @@ function App() {
                   gap: 14,
                 }}
               >
+                <StatPill label="Total Likes" value={totalLikes} />
                 <StatPill label="Songs Uploaded" value={songs.length} />
                 <StatPill label="Pending Requests" value={pendingRequests} />
                 <StatPill label="Done Requests" value={doneRequests} />
