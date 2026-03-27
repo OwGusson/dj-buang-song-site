@@ -1134,6 +1134,8 @@ function App() {
   const doneRequests = requests.filter((r) => r.status === "done").length;
   const newMessages = messages.filter((m) => m.status === "new").length;
   const totalLikes = songs.reduce((sum, song) => sum + (song.likes || 0), 0);
+  const publicRequests = requests.filter((r) => (r.delivery || "public") === "public").length;
+  const privateRequests = requests.filter((r) => r.delivery === "private").length;
 
   const openPayPalDonation = () => {
     window.open(PAYPAL_URL, "_blank", "noopener,noreferrer");
@@ -2153,41 +2155,41 @@ Thanks for the request!
 
             <Panel title="Song Requests" subtitle="Requests submitted from the public page.">
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
-                <Button
-                  variant={requestFilter === "all" ? "primary" : "secondary"}
-                  onClick={() => setRequestFilter("all")}
-                >
-                  All
-                </Button>
+  <Button
+    variant={requestFilter === "all" ? "primary" : "secondary"}
+    onClick={() => setRequestFilter("all")}
+  >
+    All ({requests.length})
+  </Button>
 
-                <Button
-                  variant={requestFilter === "pending" ? "primary" : "secondary"}
-                  onClick={() => setRequestFilter("pending")}
-                >
-                  Pending
-                </Button>
+  <Button
+    variant={requestFilter === "pending" ? "primary" : "secondary"}
+    onClick={() => setRequestFilter("pending")}
+  >
+    Pending ({pendingRequests})
+  </Button>
 
-                <Button
-                  variant={requestFilter === "done" ? "primary" : "secondary"}
-                  onClick={() => setRequestFilter("done")}
-                >
-                  Done
-                </Button>
+  <Button
+    variant={requestFilter === "done" ? "primary" : "secondary"}
+    onClick={() => setRequestFilter("done")}
+  >
+    Done ({doneRequests})
+  </Button>
 
-                <Button
-                  variant={requestFilter === "public" ? "primary" : "secondary"}
-                  onClick={() => setRequestFilter("public")}
-                >
-                  Public
-                </Button>
+  <Button
+    variant={requestFilter === "public" ? "primary" : "secondary"}
+    onClick={() => setRequestFilter("public")}
+  >
+    Public ({publicRequests})
+  </Button>
 
-                <Button
-                  variant={requestFilter === "private" ? "primary" : "secondary"}
-                  onClick={() => setRequestFilter("private")}
-                >
-                  Private
-                </Button>
-              </div>
+  <Button
+    variant={requestFilter === "private" ? "primary" : "secondary"}
+    onClick={() => setRequestFilter("private")}
+  >
+    Private ({privateRequests})
+  </Button>
+</div>
 
               <div style={{ display: "grid", gap: 14 }}>
                 {filteredRequests.length === 0 ? (
