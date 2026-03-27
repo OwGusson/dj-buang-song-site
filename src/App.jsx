@@ -952,6 +952,8 @@ function App() {
     delivery: "public",
   });
 
+  const [requestSent, setRequestSent] = useState(false);
+
   const [messageForm, setMessageForm] = useState({
     from: "",
     message: "",
@@ -1313,8 +1315,7 @@ function App() {
       notify: false,
       delivery: "public",
     });
-
-    alert("Song request sent!");
+    setRequestSent(true);
   };
 
   const handleMessageSubmit = (e) => {
@@ -1673,7 +1674,13 @@ Thanks for the request!
                     <Button variant="secondary" onClick={openPayPalDonation}>
                       ♡ Support / Donate
                     </Button>
-                    <Button variant="secondary" onClick={() => setView("request")}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setRequestSent(false);
+                        setView("request");
+                      }}
+                    >
                       🗒 Song Request
                     </Button>
                     <Button variant="secondary" onClick={() => setView("message")}>
@@ -1823,7 +1830,13 @@ Thanks for the request!
                   subtitle="Song requests, private messages, and support are open."
                 >
                   <div style={{ display: "grid", gap: 12 }}>
-                    <Button variant="primary" onClick={() => setView("request")}>
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        setRequestSent(false);
+                        setView("request");
+                      }}
+                    >
                       🗒 Open Song Request Form
                     </Button>
                     <Button variant="secondary" onClick={() => setView("message")}>
@@ -1844,6 +1857,27 @@ Thanks for the request!
             title="Song Request"
             subtitle="Send a request and it will show up in the admin panel."
           >
+            {requestSent && (
+              <div
+                style={{
+                  padding: 18,
+                  borderRadius: 18,
+                  background: "rgba(34,197,94,0.15)",
+                  border: "1px solid rgba(74,222,128,0.35)",
+                  marginBottom: 18,
+                  maxWidth: 760,
+                }}
+              >
+                <strong>🎶 Request received!</strong>
+
+                <div style={{ marginTop: 6, lineHeight: 1.5 }}>
+                  Thanks for sending a request.
+                  <br />
+                  I’ll review it and attach your song here when it's ready.
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleRequestSubmit} style={{ display: "grid", gap: 16, maxWidth: 760 }}>
               <Input
                 label="Name"
@@ -1919,7 +1953,14 @@ Thanks for the request!
                 <Button type="submit" variant="primary">
                   Send Request
                 </Button>
-                <Button type="button" variant="secondary" onClick={() => setView("home")}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setRequestSent(false);
+                    setView("home");
+                  }}
+                >
                   Back Home
                 </Button>
               </div>
