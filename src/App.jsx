@@ -1233,33 +1233,47 @@ function App() {
     }
   };
 
-  const handleRequestSubmit = (e) => {
-    e.preventDefault();
-    if (!requestForm.name.trim() || !requestForm.title.trim()) return;
+const handleRequestSubmit = (e) => {
+  e.preventDefault();
 
-    const item = {
-      id: `req-${Date.now()}`,
-      name: requestForm.name.trim(),
-      title: requestForm.title.trim(),
-      details: requestForm.details.trim(),
-      email: requestForm.email.trim(),
-      notify: requestForm.notify,
-      delivery: requestForm.delivery || "public",
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    };
+  if (!requestForm.name.trim() || !requestForm.title.trim()) return;
 
-    setRequests((prev) => [item, ...prev]);
-    setRequestForm({
-      name: "",
-      title: "",
-      details: "",
-      email: "",
-      notify: false,
-      delivery: "public",
-    });
-    alert("Song request sent!");
+  const email = requestForm.email.trim();
+
+  if (requestForm.notify && !email) {
+    alert("Please enter your email address if you want notification.");
+    return;
+  }
+
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    alert("Please enter a valid email address.");
+    return;
+  }
+
+  const item = {
+    id: `req-${Date.now()}`,
+    name: requestForm.name.trim(),
+    title: requestForm.title.trim(),
+    details: requestForm.details.trim(),
+    email: email,
+    notify: requestForm.notify,
+    delivery: requestForm.delivery || "public",
+    status: "pending",
+    createdAt: new Date().toISOString(),
   };
+
+  setRequests((prev) => [item, ...prev]);
+  setRequestForm({
+    name: "",
+    title: "",
+    details: "",
+    email: "",
+    notify: false,
+    delivery: "public",
+  });
+
+  alert("Song request sent!");
+};
 
   const handleMessageSubmit = (e) => {
     e.preventDefault();
