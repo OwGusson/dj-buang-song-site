@@ -72,7 +72,22 @@ function formatDate(dateString) {
     return dateString;
   }
 }
+function timeAgo(dateString) {
+  try {
+    const now = new Date();
+    const past = new Date(dateString);
 
+    const diffMs = now - past;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 0) return "today";
+    if (diffDays === 1) return "1 day ago";
+
+    return `${diffDays} days ago`;
+  } catch {
+    return "";
+  }
+}
 function formatTime(seconds) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
   const mins = Math.floor(seconds / 60);
@@ -2275,7 +2290,7 @@ Thanks for the request!
                           <strong>{req.title}</strong>
 
                           <div style={{ color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
-                            by {req.name} • {formatDate(req.createdAt)}
+                            by {req.name} • {timeAgo(req.createdAt)}
                           </div>
 
                           <div
