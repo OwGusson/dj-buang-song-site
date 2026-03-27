@@ -22,7 +22,7 @@ function getStored(key, fallback) {
     return fallback;
   }
 }
-const [requestFilter, setRequestFilter] = useState("all");
+
 function clearOldDemoDataOnce() {
   try {
     const currentVersion = "reset-v3";
@@ -893,6 +893,7 @@ function App() {
   const [loginError, setLoginError] = useState("");
   const [search, setSearch] = useState("");
   const [filterMode, setFilterMode] = useState("all");
+  const [requestFilter, setRequestFilter] = useState("all");
   const [playerSong, setPlayerSong] = useState(null);
   const [playerMinimized, setPlayerMinimized] = useState(false);
   const [playerCurrentTime, setPlayerCurrentTime] = useState(0);
@@ -1108,25 +1109,27 @@ function App() {
   const topLikedSongs = useMemo(() => {
     return [...publicSongs].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 3);
   }, [publicSongs]);
-const filteredRequests = useMemo(() => {
-  if (requestFilter === "pending") {
-    return requests.filter((req) => req.status === "pending");
-  }
 
-  if (requestFilter === "done") {
-    return requests.filter((req) => req.status === "done");
-  }
+  const filteredRequests = useMemo(() => {
+    if (requestFilter === "pending") {
+      return requests.filter((req) => req.status === "pending");
+    }
 
-  if (requestFilter === "public") {
-    return requests.filter((req) => (req.delivery || "public") === "public");
-  }
+    if (requestFilter === "done") {
+      return requests.filter((req) => req.status === "done");
+    }
 
-  if (requestFilter === "private") {
-    return requests.filter((req) => req.delivery === "private");
-  }
+    if (requestFilter === "public") {
+      return requests.filter((req) => (req.delivery || "public") === "public");
+    }
 
-  return requests;
-}, [requests, requestFilter]);
+    if (requestFilter === "private") {
+      return requests.filter((req) => req.delivery === "private");
+    }
+
+    return requests;
+  }, [requests, requestFilter]);
+
   const pendingRequests = requests.filter((r) => r.status === "pending").length;
   const doneRequests = requests.filter((r) => r.status === "done").length;
   const newMessages = messages.filter((m) => m.status === "new").length;
@@ -1250,48 +1253,48 @@ const filteredRequests = useMemo(() => {
     }
   };
 
-const handleRequestSubmit = (e) => {
-  e.preventDefault();
+  const handleRequestSubmit = (e) => {
+    e.preventDefault();
 
-  if (!requestForm.name.trim() || !requestForm.title.trim()) return;
+    if (!requestForm.name.trim() || !requestForm.title.trim()) return;
 
-  const email = requestForm.email.trim();
+    const email = requestForm.email.trim();
 
-  if (requestForm.notify && !email) {
-    alert("Please enter your email address if you want notification.");
-    return;
-  }
+    if (requestForm.notify && !email) {
+      alert("Please enter your email address if you want notification.");
+      return;
+    }
 
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    alert("Please enter a valid email address.");
-    return;
-  }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
 
-  const item = {
-    id: `req-${Date.now()}`,
-    name: requestForm.name.trim(),
-    title: requestForm.title.trim(),
-    details: requestForm.details.trim(),
-    email: email,
-    notify: requestForm.notify,
-    delivery: requestForm.delivery || "public",
-    linkedSongId: "",
-    status: "pending",
-    createdAt: new Date().toISOString(),
+    const item = {
+      id: `req-${Date.now()}`,
+      name: requestForm.name.trim(),
+      title: requestForm.title.trim(),
+      details: requestForm.details.trim(),
+      email: email,
+      notify: requestForm.notify,
+      delivery: requestForm.delivery || "public",
+      linkedSongId: "",
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+
+    setRequests((prev) => [item, ...prev]);
+    setRequestForm({
+      name: "",
+      title: "",
+      details: "",
+      email: "",
+      notify: false,
+      delivery: "public",
+    });
+
+    alert("Song request sent!");
   };
-
-  setRequests((prev) => [item, ...prev]);
-  setRequestForm({
-    name: "",
-    title: "",
-    details: "",
-    email: "",
-    notify: false,
-    delivery: "public",
-  });
-
-  alert("Song request sent!");
-};
 
   const handleMessageSubmit = (e) => {
     e.preventDefault();
@@ -1319,13 +1322,15 @@ const handleRequestSubmit = (e) => {
       )
     );
   };
-const attachSongToRequest = (requestId, songId) => {
-  setRequests((prev) =>
-    prev.map((req) =>
-      req.id === requestId ? { ...req, linkedSongId: songId } : req
-    )
-  );
-};
+
+  const attachSongToRequest = (requestId, songId) => {
+    setRequests((prev) =>
+      prev.map((req) =>
+        req.id === requestId ? { ...req, linkedSongId: songId } : req
+      )
+    );
+  };
+
   const deleteRequest = (id) => {
     const confirmed = window.confirm("Are you sure you want to delete this request?");
     if (!confirmed) return;
@@ -1354,7 +1359,7 @@ const attachSongToRequest = (requestId, songId) => {
   };
 
   const copyRequestReply = async (req) => {
-   const selectedSongId = req.linkedSongId;
+    const selectedSongId = req.linkedSongId;
 
     if (!selectedSongId) {
       alert("Please select a song first for this request.");
@@ -1639,42 +1644,7 @@ Thanks for the request!
                   </div>
                 }
                 subtitle="Mobile-friendly browsing with player preview and lyrics view."
-              ><div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-  <Button
-    variant={requestFilter === "all" ? "primary" : "secondary"}
-    onClick={() => setRequestFilter("all")}
-  >
-    All
-  </Button>
-
-  <Button
-    variant={requestFilter === "pending" ? "primary" : "secondary"}
-    onClick={() => setRequestFilter("pending")}
-  >
-    Pending
-  </Button>
-
-  <Button
-    variant={requestFilter === "done" ? "primary" : "secondary"}
-    onClick={() => setRequestFilter("done")}
-  >
-    Done
-  </Button>
-
-  <Button
-    variant={requestFilter === "public" ? "primary" : "secondary"}
-    onClick={() => setRequestFilter("public")}
-  >
-    Public
-  </Button>
-
-  <Button
-    variant={requestFilter === "private" ? "primary" : "secondary"}
-    onClick={() => setRequestFilter("private")}
-  >
-    Private
-  </Button>
-</div>
+              >
                 <div style={{ display: "grid", gap: 14 }}>
                   <div
                     style={{
@@ -2182,6 +2152,43 @@ Thanks for the request!
             </Panel>
 
             <Panel title="Song Requests" subtitle="Requests submitted from the public page.">
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                <Button
+                  variant={requestFilter === "all" ? "primary" : "secondary"}
+                  onClick={() => setRequestFilter("all")}
+                >
+                  All
+                </Button>
+
+                <Button
+                  variant={requestFilter === "pending" ? "primary" : "secondary"}
+                  onClick={() => setRequestFilter("pending")}
+                >
+                  Pending
+                </Button>
+
+                <Button
+                  variant={requestFilter === "done" ? "primary" : "secondary"}
+                  onClick={() => setRequestFilter("done")}
+                >
+                  Done
+                </Button>
+
+                <Button
+                  variant={requestFilter === "public" ? "primary" : "secondary"}
+                  onClick={() => setRequestFilter("public")}
+                >
+                  Public
+                </Button>
+
+                <Button
+                  variant={requestFilter === "private" ? "primary" : "secondary"}
+                  onClick={() => setRequestFilter("private")}
+                >
+                  Private
+                </Button>
+              </div>
+
               <div style={{ display: "grid", gap: 14 }}>
                 {filteredRequests.length === 0 ? (
                   <div style={{ color: "rgba(255,255,255,0.72)" }}>No requests yet.</div>
@@ -2234,22 +2241,22 @@ Thanks for the request!
                           </div>
 
                           <div style={{ marginTop: 12, maxWidth: 320 }}>
-  <Select
-    label="Attach uploaded song"
-    value={req.linkedSongId || ""}
-    onChange={(e) => attachSongToRequest(req.id, e.target.value)}
-  >
-    <option value="" style={{ color: "black" }}>
-      Select a song
-    </option>
+                            <Select
+                              label="Attach uploaded song"
+                              value={req.linkedSongId || ""}
+                              onChange={(e) => attachSongToRequest(req.id, e.target.value)}
+                            >
+                              <option value="" style={{ color: "black" }}>
+                                Select a song
+                              </option>
 
-    {adminSongs.map((song) => (
-      <option key={song.id} value={song.id} style={{ color: "black" }}>
-        {song.title} — {song.artist}
-      </option>
-    ))}
-  </Select>
-</div>
+                              {adminSongs.map((song) => (
+                                <option key={song.id} value={song.id} style={{ color: "black" }}>
+                                  {song.title} — {song.artist}
+                                </option>
+                              ))}
+                            </Select>
+                          </div>
 
                           {req.email ? (
                             <div
