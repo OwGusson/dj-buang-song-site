@@ -1313,7 +1313,24 @@ function App() {
       alert(url);
     }
   };
+const copyRequestReply = async (req) => {
+  const message = `Hi ${req.name || "there"}!
 
+Your song is ready 🎶
+
+Here is your song link:
+[PASTE SONG LINK HERE]
+
+Thanks for the request!
+- DJ-Buang`;
+
+  try {
+    await navigator.clipboard.writeText(message);
+    alert("Reply message copied!");
+  } catch {
+    alert(message);
+  }
+};
   const openSongPlayer = async (song) => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -2126,20 +2143,29 @@ function App() {
                         </div>
 
                         <div style={{ display: "grid", gap: 10 }}>
-                          <Button
-                            variant={req.status === "done" ? "secondary" : "success"}
-                            onClick={() => toggleRequestStatus(req.id)}
-                          >
-                            {req.status === "done" ? "Mark Pending" : "Mark Done"}
-                          </Button>
+  <Button
+    variant={req.status === "done" ? "secondary" : "success"}
+    onClick={() => toggleRequestStatus(req.id)}
+  >
+    {req.status === "done" ? "Mark Pending" : "Mark Done"}
+  </Button>
 
-                          <Button
-                            variant="danger"
-                            onClick={() => deleteRequest(req.id)}
-                          >
-                            Delete
-                          </Button>
-                        </div>
+  {req.email ? (
+    <Button
+      variant="secondary"
+      onClick={() => copyRequestReply(req)}
+    >
+      Copy Reply
+    </Button>
+  ) : null}
+
+  <Button
+    variant="danger"
+    onClick={() => deleteRequest(req.id)}
+  >
+    Delete
+  </Button>
+</div>
                       </div>
 
                       {req.details ? (
