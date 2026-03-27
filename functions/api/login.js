@@ -19,7 +19,7 @@ export async function onRequestPost(context) {
       JSON.stringify({ error: "Invalid password" }),
       { status: 401 }
     );
-  } catch (error) {
+  } catch {
     return new Response(
       JSON.stringify({ error: "Login failed" }),
       { status: 500 }

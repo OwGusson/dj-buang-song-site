@@ -72,6 +72,7 @@ function formatDate(dateString) {
     return dateString;
   }
 }
+
 function timeAgo(dateString) {
   try {
     const now = new Date();
@@ -88,6 +89,7 @@ function timeAgo(dateString) {
     return "";
   }
 }
+
 function formatTime(seconds) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
   const mins = Math.floor(seconds / 60);
@@ -1126,36 +1128,34 @@ function App() {
   }, [publicSongs]);
 
   const filteredRequests = useMemo(() => {
-  let list = [...requests];
+    let list = [...requests];
 
-  if (requestFilter === "pending") {
-    list = list.filter((req) => req.status === "pending");
-  } else if (requestFilter === "done") {
-    list = list.filter((req) => req.status === "done");
-  } else if (requestFilter === "public") {
-    list = list.filter((req) => (req.delivery || "public") === "public");
-  } else if (requestFilter === "private") {
-    list = list.filter((req) => req.delivery === "private");
-  }
-
-  list.sort((a, b) => {
-    if (a.status !== b.status) {
-      return a.status === "pending" ? -1 : 1;
+    if (requestFilter === "pending") {
+      list = list.filter((req) => req.status === "pending");
+    } else if (requestFilter === "done") {
+      list = list.filter((req) => req.status === "done");
+    } else if (requestFilter === "public") {
+      list = list.filter((req) => (req.delivery || "public") === "public");
+    } else if (requestFilter === "private") {
+      list = list.filter((req) => req.delivery === "private");
     }
 
-    return new Date(b.createdAt) - new Date(a.createdAt);
-  });
+    list.sort((a, b) => {
+      if (a.status !== b.status) {
+        return a.status === "pending" ? -1 : 1;
+      }
 
-  return list;
-}, [requests, requestFilter]);
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    return list;
+  }, [requests, requestFilter]);
 
   const pendingRequests = requests.filter((r) => r.status === "pending").length;
   const doneRequests = requests.filter((r) => r.status === "done").length;
   const newMessages = messages.filter((m) => m.status === "new").length;
   const totalLikes = songs.reduce((sum, song) => sum + (song.likes || 0), 0);
-  const publicRequests = requests.filter((r) => (r.delivery || "public") === "public").length;
-  const privateRequests = requests.filter((r) => r.delivery === "private").length;
-  
+
   const openPayPalDonation = () => {
     window.open(PAYPAL_URL, "_blank", "noopener,noreferrer");
   };
@@ -1296,7 +1296,7 @@ function App() {
       name: requestForm.name.trim(),
       title: requestForm.title.trim(),
       details: requestForm.details.trim(),
-      email: email,
+      email,
       notify: requestForm.notify,
       delivery: requestForm.delivery || "public",
       linkedSongId: "",
@@ -1334,42 +1334,42 @@ function App() {
     alert("Private message sent!");
   };
 
- const toggleRequestStatus = async (id) => {
-  const req = requests.find((item) => item.id === id);
-  if (!req) return;
+  const toggleRequestStatus = async (id) => {
+    const req = requests.find((item) => item.id === id);
+    if (!req) return;
 
-  const nextStatus = req.status === "done" ? "pending" : "done";
+    const nextStatus = req.status === "done" ? "pending" : "done";
 
-  setRequests((prev) =>
-    prev.map((item) =>
-      item.id === id
-        ? { ...item, status: nextStatus }
-        : item
-    )
-  );
+    setRequests((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? { ...item, status: nextStatus }
+          : item
+      )
+    );
 
-  if (nextStatus !== "done") return;
+    if (nextStatus !== "done") return;
 
-  if (!req.email && !req.linkedSongId) {
-    alert("Marked done, but no email and no song are attached yet.");
-    return;
-  }
+    if (!req.email && !req.linkedSongId) {
+      alert("Marked done, but no email and no song are attached yet.");
+      return;
+    }
 
-  if (!req.email) {
-    alert("Marked done, but no email was provided.");
-    return;
-  }
+    if (!req.email) {
+      alert("Marked done, but no email was provided.");
+      return;
+    }
 
-  if (!req.linkedSongId) {
-    alert("Marked done, but no song is attached yet.");
-    return;
-  }
+    if (!req.linkedSongId) {
+      alert("Marked done, but no song is attached yet.");
+      return;
+    }
 
-  const songUrl = `${window.location.origin}${window.location.pathname}?song=${req.linkedSongId}`;
+    const songUrl = `${window.location.origin}${window.location.pathname}?song=${req.linkedSongId}`;
 
-  const message =
-    req.delivery === "private"
-      ? `Hi ${req.name || "there"}!
+    const message =
+      req.delivery === "private"
+        ? `Hi ${req.name || "there"}!
 
 Your song is ready 🎶
 
@@ -1378,7 +1378,7 @@ ${songUrl}
 
 Thanks for the request!
 - DJ-Buang`
-      : `Hi ${req.name || "there"}!
+        : `Hi ${req.name || "there"}!
 
 Your song is ready 🎶
 
@@ -1390,13 +1390,13 @@ ${songUrl}
 Thanks for the request!
 - DJ-Buang`;
 
-  try {
-    await navigator.clipboard.writeText(message);
-    alert("Marked done and reply copied!");
-  } catch {
-    alert("Marked done, but copy failed. Here is the reply:\n\n" + message);
-  }
-};
+    try {
+      await navigator.clipboard.writeText(message);
+      alert("Marked done and reply copied!");
+    } catch {
+      alert("Marked done, but copy failed. Here is the reply:\n\n" + message);
+    }
+  };
 
   const attachSongToRequest = (requestId, songId) => {
     setRequests((prev) =>
@@ -2268,174 +2268,182 @@ Thanks for the request!
                 {filteredRequests.length === 0 ? (
                   <div style={{ color: "rgba(255,255,255,0.72)" }}>No requests yet.</div>
                 ) : (
-                  filteredRequests.map((req) => (
-                    <div
-                      key={req.id}
-                      style={{
-                        padding: 16,
-                        borderRadius: 18,
-                        background: "rgba(10,15,28,0.52)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                      }}
-                    >
+                  filteredRequests.map((req) => {
+                    const isReady = req.status !== "done" && req.linkedSongId && req.email;
+
+                    return (
                       <div
+                        key={req.id}
                         style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 12,
-                          flexWrap: "wrap",
+                          padding: 16,
+                          borderRadius: 18,
+                          background: isReady
+                            ? "rgba(20,83,45,0.28)"
+                            : "rgba(10,15,28,0.52)",
+                          border: isReady
+                            ? "1px solid rgba(134,239,172,0.35)"
+                            : "1px solid rgba(255,255,255,0.08)",
+                          boxShadow: isReady
+                            ? "0 0 0 1px rgba(134,239,172,0.08), 0 12px 30px rgba(34,197,94,0.10)"
+                            : "none",
                         }}
                       >
-                        <div>
-                          <strong>{req.title}</strong>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div>
+                            <strong>{req.title}</strong>
 
-                          <div style={{ color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
-                            by {req.name} • {timeAgo(req.createdAt)}
-                          </div>
+                            <div style={{ color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+                              by {req.name} • {timeAgo(req.createdAt)}
+                            </div>
 
-                          <div
-                            style={{
-                              color: req.status === "done" ? "#86efac" : "#facc15",
-                              marginTop: 6,
-                              fontSize: 14,
-                              fontWeight: 700,
-                            }}
-                          >
-                            Status: {req.status === "done" ? "Done" : "Pending"}
-                          </div>
-
-                          <div
-                            style={{
-                              color: "rgba(255,255,255,0.72)",
-                              marginTop: 4,
-                              fontSize: 14,
-                              fontWeight: 600,
-                            }}
-                          >
-                            Delivery: {req.delivery === "private" ? "Private" : "Public"}
-                          </div>
-<div
-  style={{
-    color: req.linkedSongId ? "#86efac" : "#f87171",
-    marginTop: 4,
-    fontSize: 14,
-    fontWeight: 600,
-  }}
->
-  Linked song: {
-    req.linkedSongId ? (
-      <span
-        onClick={() => {
-          const song = adminSongs.find(s => s.id === req.linkedSongId);
-          if (song) openSongPlayer(song);
-        }}
-        style={{
-          cursor: "pointer",
-          textDecoration: "underline",
-        }}
-      >
-        {adminSongs.find(song => song.id === req.linkedSongId)?.title || "Unknown song"}
-      </span>
-    ) : (
-      "No song attached yet"
-    )
-  }
-  {req.status !== "done" && (
-  (!req.linkedSongId || !req.email) && (
-    <div
-      style={{
-        color: "#facc15",
-        marginTop: 4,
-        fontSize: 13,
-        fontWeight: 600,
-      }}
-    >
-      ⚠ Missing: {
-        [
-          !req.linkedSongId && "song",
-          !req.email && "email"
-        ]
-          .filter(Boolean)
-          .join(" + ")
-      }
-    </div>
-  )
-)}
-{req.status !== "done" && req.linkedSongId && req.email && (
-  <div
-    style={{
-      color: "#86efac",
-      marginTop: 4,
-      fontSize: 13,
-      fontWeight: 600,
-    }}
-  >
-    ✅ Ready to send reply
-  </div>
-)}
-</div>
-                          <div style={{ marginTop: 12, maxWidth: 320 }}>
-                            <Select
-                              label="Attach uploaded song"
-                              value={req.linkedSongId || ""}
-                              onChange={(e) => attachSongToRequest(req.id, e.target.value)}
-                            >
-                              <option value="" style={{ color: "black" }}>
-                                Select a song
-                              </option>
-
-                              {adminSongs.map((song) => (
-                                <option key={song.id} value={song.id} style={{ color: "black" }}>
-                                  {song.title} — {song.artist}
-                                </option>
-                              ))}
-                            </Select>
-                          </div>
-
-                          {req.email ? (
                             <div
                               style={{
-                                color: "rgba(255,255,255,0.58)",
-                                marginTop: 4,
+                                color: req.status === "done" ? "#86efac" : "#facc15",
+                                marginTop: 6,
                                 fontSize: 14,
+                                fontWeight: 700,
                               }}
                             >
-                              {req.email} {req.notify ? "• wants notification" : ""}
+                              Status: {req.status === "done" ? "Done" : "Pending"}
                             </div>
-                          ) : null}
-                        </div>
 
-                        <div style={{ display: "grid", gap: 10 }}>
-                          <Button
-                            variant={req.status === "done" ? "secondary" : "success"}
-                            onClick={() => toggleRequestStatus(req.id)}
-                          >
-                            {req.status === "done" ? "Mark Pending" : "Mark Done"}
-                          </Button>
-
-                          {req.email ? (
-                            <Button
-                              variant="secondary"
-                              onClick={() => copyRequestReply(req)}
+                            <div
+                              style={{
+                                color: "rgba(255,255,255,0.72)",
+                                marginTop: 4,
+                                fontSize: 14,
+                                fontWeight: 600,
+                              }}
                             >
-                              Copy Reply With Link
+                              Delivery: {req.delivery === "private" ? "Private" : "Public"}
+                            </div>
+
+                            <div
+                              style={{
+                                color: req.linkedSongId ? "#86efac" : "#f87171",
+                                marginTop: 4,
+                                fontSize: 14,
+                                fontWeight: 600,
+                              }}
+                            >
+                              Linked song:{" "}
+                              {req.linkedSongId ? (
+                                <span
+                                  onClick={() => {
+                                    const song = adminSongs.find((s) => s.id === req.linkedSongId);
+                                    if (song) openSongPlayer(song);
+                                  }}
+                                  style={{
+                                    cursor: "pointer",
+                                    textDecoration: "underline",
+                                  }}
+                                >
+                                  {adminSongs.find((song) => song.id === req.linkedSongId)?.title || "Unknown song"}
+                                </span>
+                              ) : (
+                                "No song attached yet"
+                              )}
+                            </div>
+
+                            {req.status !== "done" && (!req.linkedSongId || !req.email) && (
+                              <div
+                                style={{
+                                  color: "#facc15",
+                                  marginTop: 4,
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                ⚠ Missing:{" "}
+                                {[!req.linkedSongId && "song", !req.email && "email"]
+                                  .filter(Boolean)
+                                  .join(" + ")}
+                              </div>
+                            )}
+
+                            {req.status !== "done" && req.linkedSongId && req.email && (
+                              <div
+                                style={{
+                                  color: "#86efac",
+                                  marginTop: 4,
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                ✅ Ready to send reply
+                              </div>
+                            )}
+
+                            <div style={{ marginTop: 12, maxWidth: 320 }}>
+                              <Select
+                                label="Attach uploaded song"
+                                value={req.linkedSongId || ""}
+                                onChange={(e) => attachSongToRequest(req.id, e.target.value)}
+                              >
+                                <option value="" style={{ color: "black" }}>
+                                  Select a song
+                                </option>
+
+                                {adminSongs.map((song) => (
+                                  <option key={song.id} value={song.id} style={{ color: "black" }}>
+                                    {song.title} — {song.artist}
+                                  </option>
+                                ))}
+                              </Select>
+                            </div>
+
+                            {req.email ? (
+                              <div
+                                style={{
+                                  color: "rgba(255,255,255,0.58)",
+                                  marginTop: 4,
+                                  fontSize: 14,
+                                }}
+                              >
+                                {req.email} {req.notify ? "• wants notification" : ""}
+                              </div>
+                            ) : null}
+                          </div>
+
+                          <div style={{ display: "grid", gap: 10 }}>
+                            <Button
+                              variant={req.status === "done" ? "secondary" : "success"}
+                              onClick={() => toggleRequestStatus(req.id)}
+                            >
+                              {req.status === "done" ? "Mark Pending" : "Mark Done"}
                             </Button>
-                          ) : null}
 
-                          <Button
-                            variant="danger"
-                            onClick={() => deleteRequest(req.id)}
-                          >
-                            Delete
-                          </Button>
+                            {req.email ? (
+                              <Button
+                                variant="secondary"
+                                onClick={() => copyRequestReply(req)}
+                              >
+                                Copy Reply With Link
+                              </Button>
+                            ) : null}
+
+                            <Button
+                              variant="danger"
+                              onClick={() => deleteRequest(req.id)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
                         </div>
-                      </div>
 
-                      {req.details ? (
-                        <p style={{ margin: "14px 0 0", lineHeight: 1.55 }}>{req.details}</p>
-                      ) : null}
-                    </div>
-                  ))
+                        {req.details ? (
+                          <p style={{ margin: "14px 0 0", lineHeight: 1.55 }}>{req.details}</p>
+                        ) : null}
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </Panel>

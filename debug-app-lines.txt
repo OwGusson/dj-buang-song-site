@@ -1,0 +1,221 @@
+2240:                 </Button>
+2241: 
+2242:                 <Button
+2243:                   variant={requestFilter === "done" ? "primary" : "secondary"}
+2244:                   onClick={() => setRequestFilter("done")}
+2245:                 >
+2246:                   Done
+2247:                 </Button>
+2248: 
+2249:                 <Button
+2250:                   variant={requestFilter === "public" ? "primary" : "secondary"}
+2251:                   onClick={() => setRequestFilter("public")}
+2252:                 >
+2253:                   Public
+2254:                 </Button>
+2255: 
+2256:                 <Button
+2257:                   variant={requestFilter === "private" ? "primary" : "secondary"}
+2258:                   onClick={() => setRequestFilter("private")}
+2259:                 >
+2260:                   Private
+2261:                 </Button>
+2262:               </div>
+2263: 
+2264:               <div style={{ display: "grid", gap: 14 }}>
+2265:                 {filteredRequests.length === 0 ? (
+2266:                   <div style={{ color: "rgba(255,255,255,0.72)" }}>No requests yet.</div>
+2267:                 ) : (
+2268:               filteredRequests.map((req) => {
+2269:   const isReady = req.status !== "done" && req.linkedSongId && req.email;
+2270: 
+2271:   return (
+2272:     <div
+2273:       key={req.id}
+2274:       style={{
+2275:         padding: 16,
+2276:         borderRadius: 18,
+2277:         background: isReady
+2278:           ? "rgba(20,83,45,0.28)"
+2279:           : "rgba(10,15,28,0.52)",
+2280:         border: isReady
+2281:           ? "1px solid rgba(134,239,172,0.35)"
+2282:           : "1px solid rgba(255,255,255,0.08)",
+2283:         boxShadow: isReady
+2284:           ? "0 0 0 1px rgba(134,239,172,0.08), 0 12px 30px rgba(34,197,94,0.10)"
+2285:           : "none",
+2286:       }}
+2287:     >
+2288:                       <div
+2289:                         style={{
+2290:                           display: "flex",
+2291:                           justifyContent: "space-between",
+2292:                           gap: 12,
+2293:                           flexWrap: "wrap",
+2294:                         }}
+2295:                       >
+2296:                         <div>
+2297:                           <strong>{req.title}</strong>
+2298: 
+2299:                           <div style={{ color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+2300:                             by {req.name} • {timeAgo(req.createdAt)}
+2301:                           </div>
+2302: 
+2303:                           <div
+2304:                             style={{
+2305:                               color: req.status === "done" ? "#86efac" : "#facc15",
+2306:                               marginTop: 6,
+2307:                               fontSize: 14,
+2308:                               fontWeight: 700,
+2309:                             }}
+2310:                           >
+2311:                             Status: {req.status === "done" ? "Done" : "Pending"}
+2312:                           </div>
+2313: 
+2314:                           <div
+2315:                             style={{
+2316:                               color: "rgba(255,255,255,0.72)",
+2317:                               marginTop: 4,
+2318:                               fontSize: 14,
+2319:                               fontWeight: 600,
+2320:                             }}
+2321:                           >
+2322:                             Delivery: {req.delivery === "private" ? "Private" : "Public"}
+2323:                           </div>
+2324: <div
+2325:   style={{
+2326:     color: req.linkedSongId ? "#86efac" : "#f87171",
+2327:     marginTop: 4,
+2328:     fontSize: 14,
+2329:     fontWeight: 600,
+2330:   }}
+2331: >
+2332:   Linked song:{" "}
+2333:   {req.linkedSongId ? (
+2334:     <span
+2335:       onClick={() => {
+2336:         const song = adminSongs.find((s) => s.id === req.linkedSongId);
+2337:         if (song) openSongPlayer(song);
+2338:       }}
+2339:       style={{
+2340:         cursor: "pointer",
+2341:         textDecoration: "underline",
+2342:       }}
+2343:     >
+2344:       {adminSongs.find((song) => song.id === req.linkedSongId)?.title || "Unknown song"}
+2345:     </span>
+2346:   ) : (
+2347:     "No song attached yet"
+2348:   )}
+2349: </div>
+2350: 
+2351: {req.status !== "done" && (!req.linkedSongId || !req.email) && (
+2352:   <div
+2353:     style={{
+2354:       color: "#facc15",
+2355:       marginTop: 4,
+2356:       fontSize: 13,
+2357:       fontWeight: 600,
+2358:     }}
+2359:   >
+2360:     ⚠ Missing: {
+2361:       [!req.linkedSongId && "song", !req.email && "email"].filter(Boolean).join(" + ")
+2362:     }
+2363:   </div>
+2364: )}
+2365: 
+2366: {req.status !== "done" && req.linkedSongId && req.email && (
+2367:   <div
+2368:     style={{
+2369:       color: "#86efac",
+2370:       marginTop: 4,
+2371:       fontSize: 13,
+2372:       fontWeight: 600,
+2373:     }}
+2374:   >
+2375:     ✅ Ready to send reply
+2376:   </div>
+2377: )}
+2378: </div>
+2379:                           <div style={{ marginTop: 12, maxWidth: 320 }}>
+2380:                             <Select
+2381:                               label="Attach uploaded song"
+2382:                               value={req.linkedSongId || ""}
+2383:                               onChange={(e) => attachSongToRequest(req.id, e.target.value)}
+2384:                             >
+2385:                               <option value="" style={{ color: "black" }}>
+2386:                                 Select a song
+2387:                               </option>
+2388: 
+2389:                               {adminSongs.map((song) => (
+2390:                                 <option key={song.id} value={song.id} style={{ color: "black" }}>
+2391:                                   {song.title} — {song.artist}
+2392:                                 </option>
+2393:                               ))}
+2394:                             </Select>
+2395:                           </div>
+2396: 
+2397:                           {req.email ? (
+2398:                             <div
+2399:                               style={{
+2400:                                 color: "rgba(255,255,255,0.58)",
+2401:                                 marginTop: 4,
+2402:                                 fontSize: 14,
+2403:                               }}
+2404:                             >
+2405:                               {req.email} {req.notify ? "• wants notification" : ""}
+2406:                             </div>
+2407:                           ) : null}
+2408:                         </div>
+2409: 
+2410:                         <div style={{ display: "grid", gap: 10 }}>
+2411:                           <Button
+2412:                             variant={req.status === "done" ? "secondary" : "success"}
+2413:                             onClick={() => toggleRequestStatus(req.id)}
+2414:                           >
+2415:                             {req.status === "done" ? "Mark Pending" : "Mark Done"}
+2416:                           </Button>
+2417: 
+2418:                           {req.email ? (
+2419:                             <Button
+2420:                               variant="secondary"
+2421:                               onClick={() => copyRequestReply(req)}
+2422:                             >
+2423:                               Copy Reply With Link
+2424:                             </Button>
+2425:                           ) : null}
+2426: 
+2427:                           <Button
+2428:                             variant="danger"
+2429:                             onClick={() => deleteRequest(req.id)}
+2430:                           >
+2431:                             Delete
+2432:                           </Button>
+2433:                         </div>
+2434:                       </div>
+2435: 
+2436:                       {req.details ? (
+2437:                         <p style={{ margin: "14px 0 0", lineHeight: 1.55 }}>{req.details}</p>
+2438:                       ) : null}
+2439:                     </div>
+2440:                   }))
+2441:                 )}
+2442:               </div>
+2443:             </Panel>
+2444:           </div>
+2445:         )}
+2446: 
+2447:         {view === "admin" && !adminLoggedIn && (
+2448:           <Panel title="Admin Locked" subtitle="You need to log in first.">
+2449:             <Button variant="primary" onClick={() => setView("login")}>
+2450:               Go to Login
+2451:             </Button>
+2452:           </Panel>
+2453:         )}
+2454:       </div>
+2455: 
+2456:       {playerSong && !playerMinimized ? (
+2457:         <PlayerModal
+2458:           song={playerSong}
+2459:           onClose={closePlayer}
+2460:           onMinimize={minimizePlayer}
