@@ -1111,24 +1111,28 @@ function App() {
   }, [publicSongs]);
 
   const filteredRequests = useMemo(() => {
-    if (requestFilter === "pending") {
-      return requests.filter((req) => req.status === "pending");
+  let list = [...requests];
+
+  if (requestFilter === "pending") {
+    list = list.filter((req) => req.status === "pending");
+  } else if (requestFilter === "done") {
+    list = list.filter((req) => req.status === "done");
+  } else if (requestFilter === "public") {
+    list = list.filter((req) => (req.delivery || "public") === "public");
+  } else if (requestFilter === "private") {
+    list = list.filter((req) => req.delivery === "private");
+  }
+
+  list.sort((a, b) => {
+    if (a.status !== b.status) {
+      return a.status === "pending" ? -1 : 1;
     }
 
-    if (requestFilter === "done") {
-      return requests.filter((req) => req.status === "done");
-    }
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
 
-    if (requestFilter === "public") {
-      return requests.filter((req) => (req.delivery || "public") === "public");
-    }
-
-    if (requestFilter === "private") {
-      return requests.filter((req) => req.delivery === "private");
-    }
-
-    return requests;
-  }, [requests, requestFilter]);
+  return list;
+}, [requests, requestFilter]);
 
   const pendingRequests = requests.filter((r) => r.status === "pending").length;
   const doneRequests = requests.filter((r) => r.status === "done").length;
@@ -2341,6 +2345,18 @@ Thanks for the request!
       }
     </div>
   )
+)}
+{req.status !== "done" && req.linkedSongId && req.email && (
+  <div
+    style={{
+      color: "#86efac",
+      marginTop: 4,
+      fontSize: 13,
+      fontWeight: 600,
+    }}
+  >
+    ✅ Ready to send reply
+  </div>
 )}
 </div>
                           <div style={{ marginTop: 12, maxWidth: 320 }}>
