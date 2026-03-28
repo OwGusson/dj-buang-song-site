@@ -49,11 +49,13 @@ function clearOldDemoDataOnce() {
 }
 
 function normalizeSong(song) {
+  const requestedBy = (song.requestedBy || song.genre || "").trim();
+
   return {
     id: song.id || `song-${Date.now()}-${Math.random()}`,
     title: song.title || "Untitled Song",
     artist: song.artist || "DJ-Buang",
-    genre: song.genre || "",
+    requestedBy,
     coverUrl: song.coverUrl || "",
     audioUrl: song.audioUrl || "",
     lyrics: song.lyrics || "",
@@ -106,6 +108,22 @@ function getFileNameFromUrl(url = "") {
   } catch {
     return "";
   }
+}
+
+function getSongTypeLabel(song) {
+  if ((song.requestedBy || "").trim()) {
+    return `Requested by ${song.requestedBy.trim()}`;
+  }
+
+  return "DJ-BUANG Original";
+}
+
+function isRequestedSong(song) {
+  return Boolean((song.requestedBy || "").trim());
+}
+
+function isOriginalSong(song) {
+  return !isRequestedSong(song);
 }
 
 function shellCardStyle(extra = {}) {
@@ -326,6 +344,8 @@ function SongRow({
   onCopyLink,
   onEdit,
 }) {
+  const songTypeLabel = getSongTypeLabel(song);
+
   return (
     <div
       onClick={() => onOpenPlayer(song)}
@@ -379,7 +399,7 @@ function SongRow({
         </div>
 
         <div style={{ color: "rgba(255,255,255,0.72)", marginBottom: 12, fontSize: 14 }}>
-          {song.artist} • {song.genre || "Uncategorized"} • Added {formatDate(song.createdAt)}
+          {song.artist} • {songTypeLabel} • Added {formatDate(song.createdAt)}
         </div>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
@@ -605,7 +625,7 @@ function PlayerModal({
           <div>
             <h2 style={{ margin: 0 }}>{song.title}</h2>
             <div style={{ color: "rgba(255,255,255,0.7)", marginTop: 6 }}>
-              {song.artist} • {song.genre || "Uncategorized"}
+              {song.artist} • {getSongTypeLabel(song)}
             </div>
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -647,6 +667,10 @@ function PlayerModal({
               ) : (
                 <span style={{ fontSize: 70 }}>🎧</span>
               )}
+            </div>
+
+            <div style={{ marginTop: 14, color: "rgba(255,255,255,0.76)", fontSize: 14 }}>
+              {getSongTypeLabel(song)}
             </div>
 
             <div style={{ marginTop: 16 }}>
@@ -771,7 +795,9 @@ function MiniPlayer({
           >
             <div>
               <div style={{ fontWeight: 700 }}>{song.title}</div>
-              <div style={{ color: "rgba(255,255,255,0.68)", fontSize: 14 }}>{song.artist}</div>
+              <div style={{ color: "rgba(255,255,255,0.68)", fontSize: 14 }}>
+                {song.artist} • {getSongTypeLabel(song)}
+              </div>
             </div>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -946,6 +972,7 @@ function App() {
   const [search, setSearch] = useState("");
   const [filterMode, setFilterMode] = useState("all");
   const [requestFilter, setRequestFilter] = useState("all");
+  const [adminSongFilter, setAdminSongFilter] = useState("all");
   const [playerSong, setPlayerSong] = useState(null);
   const [playerMinimized, setPlayerMinimized] = useState(false);
   const [playerCurrentTime, setPlayerCurrentTime] = useState(0);
@@ -965,7 +992,7 @@ function App() {
   const [newSong, setNewSong] = useState({
     title: "",
     artist: "DJ-Buang",
-    genre: "",
+    requestedBy: "",
     coverUrl: "",
     audioUrl: "",
     lyrics: "",
@@ -998,7 +1025,7 @@ function App() {
     setNewSong({
       title: "",
       artist: "DJ-Buang",
-      genre: "",
+      requestedBy: "",
       coverUrl: "",
       audioUrl: "",
       lyrics: "",
@@ -1040,7 +1067,7 @@ function App() {
     setNewSong({
       title: song.title || "",
       artist: song.artist || "DJ-Buang",
-      genre: song.genre || "",
+      requestedBy: song.requestedBy || "",
       coverUrl: song.coverUrl || "",
       audioUrl: song.audioUrl || "",
       lyrics: song.lyrics || "",
@@ -1266,7 +1293,7 @@ function App() {
         id: song.id,
         title: song.title,
         artist: song.artist,
-        genre: song.genre,
+        requestedBy: song.requestedBy,
         coverUrl: song.coverUrl,
         audioUrl: song.audioUrl,
         lyrics: song.lyrics,
@@ -1371,7 +1398,7 @@ function App() {
         (song) =>
           song.title.toLowerCase().includes(q) ||
           song.artist.toLowerCase().includes(q) ||
-          (song.genre || "").toLowerCase().includes(q)
+          (song.requestedBy || "").toLowerCase().includes(q)
       );
     }
 
@@ -1380,6 +1407,12 @@ function App() {
       list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } else if (filterMode === "most-liked") {
       list.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    } else if (filterMode === "requested") {
+      list = list.filter((song) => isRequestedSong(song));
+      list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else if (filterMode === "originals") {
+      list = list.filter((song) => isOriginalSong(song));
+      list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } else {
       list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
@@ -1388,8 +1421,20 @@ function App() {
   }, [publicSongs, search, filterMode]);
 
   const adminSongs = useMemo(() => {
-    return [...songs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [songs]);
+    let list = [...songs].map(normalizeSong);
+
+    if (adminSongFilter === "public") {
+      list = list.filter((song) => song.visibility === "public");
+    } else if (adminSongFilter === "private") {
+      list = list.filter((song) => song.visibility === "private");
+    } else if (adminSongFilter === "requested") {
+      list = list.filter((song) => isRequestedSong(song));
+    } else if (adminSongFilter === "originals") {
+      list = list.filter((song) => isOriginalSong(song));
+    }
+
+    return list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }, [songs, adminSongFilter]);
 
   const topLikedSongs = useMemo(() => {
     return [...publicSongs].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 3);
@@ -1517,7 +1562,7 @@ function App() {
         id: editingSongId || makeSongId(),
         title: newSong.title.trim(),
         artist: newSong.artist.trim() || "DJ-Buang",
-        genre: newSong.genre.trim(),
+        requestedBy: newSong.requestedBy.trim(),
         coverUrl: uploadedCoverUrl,
         audioUrl: uploadedAudioUrl,
         lyrics: newSong.lyrics.trim(),
@@ -2168,7 +2213,7 @@ Thanks for the request!
                     }}
                   >
                     <Input
-                      placeholder="Search songs, genre, or artist"
+                      placeholder="Search songs, requested by, or artist"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                     />
@@ -2184,6 +2229,12 @@ Thanks for the request!
                       </option>
                       <option value="most-liked" style={{ color: "black" }}>
                         Most liked
+                      </option>
+                      <option value="requested" style={{ color: "black" }}>
+                        Requested songs
+                      </option>
+                      <option value="originals" style={{ color: "black" }}>
+                        DJ-BUANG originals
                       </option>
                     </Select>
                   </div>
@@ -2242,7 +2293,7 @@ Thanks for the request!
                               </div>
                               <div style={{ fontSize: 20, fontWeight: 700 }}>{song.title}</div>
                               <div style={{ color: "rgba(255,255,255,0.70)", marginTop: 4 }}>
-                                {song.genre}
+                                {getSongTypeLabel(song)}
                               </div>
                             </div>
                             <Badge>{song.likes} likes</Badge>
@@ -2566,6 +2617,20 @@ Thanks for the request!
                         </div>
                       </div>
 
+                      <div
+                        style={{
+                          padding: 12,
+                          borderRadius: 14,
+                          background: "rgba(10,15,28,0.45)",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                        }}
+                      >
+                        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.68)", marginBottom: 6 }}>
+                          Song type
+                        </div>
+                        <div>{getSongTypeLabel(editingOriginalSong)}</div>
+                      </div>
+
                       <div style={{ fontSize: 13, color: "rgba(255,255,255,0.68)" }}>
                         Leave the file inputs empty to keep the current cover and audio.
                       </div>
@@ -2607,12 +2672,13 @@ Thanks for the request!
                 />
 
                 <Input
-                  label="Genre"
-                  value={newSong.genre}
+                  label="Requested by"
+                  value={newSong.requestedBy}
                   onChange={(e) => {
-                    setNewSong((p) => ({ ...p, genre: e.target.value }));
+                    setNewSong((p) => ({ ...p, requestedBy: e.target.value }));
                     if (editingSongId) setHasUnsavedSongChanges(true);
                   }}
+                  placeholder="Leave empty for DJ-BUANG original"
                 />
 
                 <Select
@@ -2748,7 +2814,31 @@ Thanks for the request!
               </form>
             </Panel>
 
-            <Panel title="Song Library" subtitle="Compact view of your uploaded songs, including private ones.">
+            <Panel
+              title="Song Library"
+              subtitle="Compact view of your uploaded songs, including private ones."
+              right={
+                <div style={{ minWidth: 220 }}>
+                  <Select value={adminSongFilter} onChange={(e) => setAdminSongFilter(e.target.value)}>
+                    <option value="all" style={{ color: "black" }}>
+                      All songs
+                    </option>
+                    <option value="public" style={{ color: "black" }}>
+                      Public songs
+                    </option>
+                    <option value="private" style={{ color: "black" }}>
+                      Private songs
+                    </option>
+                    <option value="requested" style={{ color: "black" }}>
+                      Requested songs
+                    </option>
+                    <option value="originals" style={{ color: "black" }}>
+                      Originals
+                    </option>
+                  </Select>
+                </div>
+              }
+            >
               <div style={{ display: "grid", gap: 12 }}>
                 {adminSongs.length > 0 ? (
                   adminSongs.map((song) => (
@@ -2928,7 +3018,7 @@ Thanks for the request!
                               {req.linkedSongId ? (
                                 <span
                                   onClick={() => {
-                                    const song = adminSongs.find((s) => s.id === req.linkedSongId);
+                                    const song = songs.find((s) => s.id === req.linkedSongId);
                                     if (song) openSongPlayer(song);
                                   }}
                                   style={{
@@ -2936,7 +3026,7 @@ Thanks for the request!
                                     textDecoration: "underline",
                                   }}
                                 >
-                                  {adminSongs.find((song) => song.id === req.linkedSongId)?.title || "Unknown song"}
+                                  {songs.find((song) => song.id === req.linkedSongId)?.title || "Unknown song"}
                                 </span>
                               ) : (
                                 "No song attached yet"
@@ -2982,11 +3072,14 @@ Thanks for the request!
                                   Select a song
                                 </option>
 
-                                {adminSongs.map((song) => (
-                                  <option key={song.id} value={song.id} style={{ color: "black" }}>
-                                    {song.title} — {song.artist}
-                                  </option>
-                                ))}
+                                {songs
+                                  .map(normalizeSong)
+                                  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                                  .map((song) => (
+                                    <option key={song.id} value={song.id} style={{ color: "black" }}>
+                                      {song.title} — {song.artist}
+                                    </option>
+                                  ))}
                               </Select>
                             </div>
 
