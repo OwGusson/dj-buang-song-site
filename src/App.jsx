@@ -2477,8 +2477,9 @@ Thanks for the request!
                     Upload cover image
                   </div>
                   <input
-                    type="file"
-                    accept="image/*"
+  id="song-cover-input"
+  type="file"
+  accept="image/*"
                     onChange={(e) =>
                       setNewSongFiles((prev) => ({
                         ...prev,
@@ -2505,8 +2506,9 @@ Thanks for the request!
                     Upload MP3 song
                   </div>
                   <input
-                    type="file"
-                    accept="audio/*"
+  id="song-audio-input"
+  type="file"
+  accept="audio/*"
                     onChange={(e) =>
                       setNewSongFiles((prev) => ({
                         ...prev,
