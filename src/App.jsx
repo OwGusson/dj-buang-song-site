@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "./lib/supabase";
 
 const STORAGE_KEYS = {
   songs: "djbuang_songs",
-  requests: "djbuang_requests",
-  messages: "djbuang_messages",
   admin: "djbuang_admin_logged_in",
   resetVersion: "djbuang_reset_version",
 };
@@ -11,8 +10,6 @@ const STORAGE_KEYS = {
 const PAYPAL_URL = "https://www.paypal.com/donate/?hosted_button_id=DWL7PTXG7BQ9A";
 
 const DEFAULT_SONGS = [];
-const DEFAULT_REQUESTS = [];
-const DEFAULT_MESSAGES = [];
 
 function getStored(key, fallback) {
   try {
@@ -25,14 +22,14 @@ function getStored(key, fallback) {
 
 function clearOldDemoDataOnce() {
   try {
-    const currentVersion = "reset-v3";
+    const currentVersion = "reset-v4";
     const alreadyReset = localStorage.getItem(STORAGE_KEYS.resetVersion);
 
     if (alreadyReset === currentVersion) return;
 
     localStorage.removeItem(STORAGE_KEYS.songs);
-    localStorage.removeItem(STORAGE_KEYS.requests);
-    localStorage.removeItem(STORAGE_KEYS.messages);
+    localStorage.removeItem("djbuang_requests");
+    localStorage.removeItem("djbuang_messages");
     localStorage.removeItem("djbuang_donations");
 
     Object.keys(localStorage).forEach((key) => {
@@ -891,12 +888,8 @@ function App() {
     return [];
   });
 
-  const [requests, setRequests] = useState(() =>
-    getStored(STORAGE_KEYS.requests, DEFAULT_REQUESTS)
-  );
-  const [messages, setMessages] = useState(() =>
-    getStored(STORAGE_KEYS.messages, DEFAULT_MESSAGES)
-  );
+  const [requests, setRequests] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [adminLoggedIn, setAdminLoggedIn] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEYS.admin) || "false");
@@ -987,6 +980,55 @@ function App() {
   }, []);
 
   useEffect(() => {
+    async function loadRequestsAndMessages() {
+      const { data: requestsData, error: requestsError } = await supabase
+        .from("song_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (!requestsError && requestsData) {
+        setRequests(
+          requestsData.map((r) => ({
+            id: r.id,
+            name: r.requester_name,
+            title: r.song_name,
+            details: r.details,
+            email: r.email,
+            notify: r.notify,
+            delivery: r.delivery,
+            linkedSongId: r.linked_song_id,
+            status: r.status,
+            createdAt: r.created_at,
+          }))
+        );
+      } else if (requestsError) {
+        console.error("Could not load requests:", requestsError);
+      }
+
+      const { data: messagesData, error: messagesError } = await supabase
+        .from("private_messages")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (!messagesError && messagesData) {
+        setMessages(
+          messagesData.map((m) => ({
+            id: m.id,
+            from: m.sender_name,
+            message: m.message,
+            status: m.status,
+            createdAt: m.created_at,
+          }))
+        );
+      } else if (messagesError) {
+        console.error("Could not load messages:", messagesError);
+      }
+    }
+
+    loadRequestsAndMessages();
+  }, []);
+
+  useEffect(() => {
     try {
       const safeSongs = songs.map((song) => ({
         id: song.id,
@@ -1007,14 +1049,6 @@ function App() {
       console.warn("Skipping local song cache:", error);
     }
   }, [songs]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.requests, JSON.stringify(requests));
-  }, [requests]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.messages, JSON.stringify(messages));
-  }, [messages]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.admin, JSON.stringify(adminLoggedIn));
@@ -1276,7 +1310,7 @@ function App() {
     }
   };
 
-  const handleRequestSubmit = (e) => {
+  const handleRequestSubmit = async (e) => {
     e.preventDefault();
 
     if (!requestForm.name.trim() || !requestForm.title.trim()) return;
@@ -1293,20 +1327,44 @@ function App() {
       return;
     }
 
-    const item = {
-      id: `req-${Date.now()}`,
-      name: requestForm.name.trim(),
-      title: requestForm.title.trim(),
+    const payload = {
+      requester_name: requestForm.name.trim(),
+      song_name: requestForm.title.trim(),
       details: requestForm.details.trim(),
       email,
       notify: requestForm.notify,
       delivery: requestForm.delivery || "public",
-      linkedSongId: "",
+      linked_song_id: "",
       status: "pending",
-      createdAt: new Date().toISOString(),
     };
 
-    setRequests((prev) => [item, ...prev]);
+    const { data, error } = await supabase
+      .from("song_requests")
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) {
+      alert("Could not send request. Please try again.");
+      console.error(error);
+      return;
+    }
+
+    const newRequest = {
+      id: data.id,
+      name: data.requester_name,
+      title: data.song_name,
+      details: data.details,
+      email: data.email,
+      notify: data.notify,
+      delivery: data.delivery,
+      linkedSongId: data.linked_song_id,
+      status: data.status,
+      createdAt: data.created_at,
+    };
+
+    setRequests((prev) => [newRequest, ...prev]);
+
     setRequestForm({
       name: "",
       title: "",
@@ -1315,22 +1373,42 @@ function App() {
       notify: false,
       delivery: "public",
     });
+
     setRequestSent(true);
   };
 
-  const handleMessageSubmit = (e) => {
+  const handleMessageSubmit = async (e) => {
     e.preventDefault();
     if (!messageForm.from.trim() || !messageForm.message.trim()) return;
 
-    const item = {
-      id: `msg-${Date.now()}`,
-      from: messageForm.from.trim(),
+    const payload = {
+      sender_name: messageForm.from.trim(),
+      sender_email: "",
       message: messageForm.message.trim(),
       status: "new",
-      createdAt: new Date().toISOString(),
     };
 
-    setMessages((prev) => [item, ...prev]);
+    const { data, error } = await supabase
+      .from("private_messages")
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) {
+      alert("Could not send private message. Please try again.");
+      console.error(error);
+      return;
+    }
+
+    const newMessage = {
+      id: data.id,
+      from: data.sender_name,
+      message: data.message,
+      status: data.status,
+      createdAt: data.created_at,
+    };
+
+    setMessages((prev) => [newMessage, ...prev]);
     setMessageForm({ from: "", message: "" });
     alert("Private message sent!");
   };
@@ -1340,6 +1418,17 @@ function App() {
     if (!req) return;
 
     const nextStatus = req.status === "done" ? "pending" : "done";
+
+    const { error } = await supabase
+      .from("song_requests")
+      .update({ status: nextStatus })
+      .eq("id", id);
+
+    if (error) {
+      alert("Could not update request status.");
+      console.error(error);
+      return;
+    }
 
     setRequests((prev) =>
       prev.map((item) =>
@@ -1399,7 +1488,18 @@ Thanks for the request!
     }
   };
 
-  const attachSongToRequest = (requestId, songId) => {
+  const attachSongToRequest = async (requestId, songId) => {
+    const { error } = await supabase
+      .from("song_requests")
+      .update({ linked_song_id: songId })
+      .eq("id", requestId);
+
+    if (error) {
+      alert("Could not attach song.");
+      console.error(error);
+      return;
+    }
+
     setRequests((prev) =>
       prev.map((req) =>
         req.id === requestId ? { ...req, linkedSongId: songId } : req
@@ -1407,20 +1507,53 @@ Thanks for the request!
     );
   };
 
-  const deleteRequest = (id) => {
+  const deleteRequest = async (id) => {
     const confirmed = window.confirm("Are you sure you want to delete this request?");
     if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("song_requests")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      alert("Could not delete request.");
+      console.error(error);
+      return;
+    }
 
     setRequests((prev) => prev.filter((req) => req.id !== id));
   };
 
-  const markMessageRead = (id) => {
+  const markMessageRead = async (id) => {
+    const { error } = await supabase
+      .from("private_messages")
+      .update({ status: "read" })
+      .eq("id", id);
+
+    if (error) {
+      alert("Could not mark message as read.");
+      console.error(error);
+      return;
+    }
+
     setMessages((prev) =>
       prev.map((item) => (item.id === id ? { ...item, status: "read" } : item))
     );
   };
 
-  const deleteMessage = (id) => {
+  const deleteMessage = async (id) => {
+    const { error } = await supabase
+      .from("private_messages")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      alert("Could not delete message.");
+      console.error(error);
+      return;
+    }
+
     setMessages((prev) => prev.filter((item) => item.id !== id));
   };
 
@@ -1690,35 +1823,35 @@ Thanks for the request!
                 </div>
 
                 <div
-  style={{
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "flex-end",
-gap: 24,
-marginTop: 6,
-    minWidth: isMobile ? "100%" : 260,
-  }}
->
-  <Button
-    variant="secondary"
-    onClick={() => setView(adminLoggedIn ? "admin" : "login")}
-    style={{ minWidth: 110 }}
-  >
-    🔒 Admin
-  </Button>
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-end",
+                    gap: 24,
+                    marginTop: 6,
+                    minWidth: isMobile ? "100%" : 260,
+                  }}
+                >
+                  <Button
+                    variant="secondary"
+                    onClick={() => setView(adminLoggedIn ? "admin" : "login")}
+                    style={{ minWidth: 110 }}
+                  >
+                    🔒 Admin
+                  </Button>
 
-  <img
-    src="/hero-logo.png"
-    alt="DJ-BUANG logo"
-    style={{
-      width: isMobile ? "100%" : 300,
-      maxWidth: "100%",
-      height: "auto",
-      objectFit: "contain",
-      filter: "drop-shadow(0 10px 30px rgba(123, 92, 255, 0.45))",
-    }}
-  />
-</div>
+                  <img
+                    src="/hero-logo.png"
+                    alt="DJ-BUANG logo"
+                    style={{
+                      width: isMobile ? "100%" : 300,
+                      maxWidth: "100%",
+                      height: "auto",
+                      objectFit: "contain",
+                      filter: "drop-shadow(0 10px 30px rgba(123, 92, 255, 0.45))",
+                    }}
+                  />
+                </div>
               </div>
             </section>
 
