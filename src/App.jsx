@@ -882,7 +882,7 @@ function PlayerModal({
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: 14,
+              gap: 10,
               minHeight: 0,
               flex: 1,
             }}
@@ -955,39 +955,7 @@ function PlayerModal({
               </div>
             ) : null}
 
-            <div
-              style={{
-                width: "100%",
-                display: "flex",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <div
-                style={{
-                  width: "min(220px, 62vw)",
-                  aspectRatio: "1 / 1",
-                  borderRadius: 20,
-                  overflow: "hidden",
-                  background: "linear-gradient(135deg, rgba(89,55,150,0.8), rgba(41,73,120,0.8))",
-                  display: "grid",
-                  placeItems: "center",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                }}
-              >
-                {song.coverUrl ? (
-                  <img
-                    src={song.coverUrl}
-                    alt={song.title}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-                ) : (
-                  <span style={{ fontSize: 60 }}>🎧</span>
-                )}
-              </div>
-            </div>
-
-            <div style={{ fontSize: 18, fontWeight: 700, flexShrink: 0 }}>Lyrics</div>
+            <div style={{ fontSize: 18, fontWeight: 700, flexShrink: 0, marginTop: 4 }}>Lyrics</div>
 
             <div
               style={{
