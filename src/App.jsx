@@ -505,6 +505,7 @@ function AudioControls({
   onVolumeChange,
   onToggleMute,
   compact = false,
+  isMobile = false,
 }) {
   return (
     <div style={{ display: "grid", gap: compact ? 8 : 12 }}>
@@ -519,7 +520,10 @@ function AudioControls({
         <Button
           variant="primary"
           onClick={onPlayPause}
-          style={{ padding: compact ? "9px 14px" : undefined }}
+          style={{
+            padding: compact ? "9px 14px" : undefined,
+            minWidth: compact && isMobile ? 96 : undefined,
+          }}
         >
           {isPlaying ? "Pause" : "Play"}
         </Button>
@@ -550,7 +554,11 @@ function AudioControls({
         <Button
           variant="secondary"
           onClick={onToggleMute}
-          style={{ padding: compact ? "8px 12px" : "10px 14px", fontSize: compact ? 14 : 15 }}
+          style={{
+            padding: compact ? "8px 12px" : "10px 14px",
+            fontSize: compact ? 14 : 15,
+            minWidth: compact && isMobile ? 130 : undefined,
+          }}
         >
           {isMuted || volume === 0 ? "🔇 Muted" : "🔊 Volume"}
         </Button>
@@ -562,7 +570,13 @@ function AudioControls({
           step="0.01"
           value={isMuted ? 0 : volume}
           onChange={(e) => onVolumeChange(Number(e.target.value))}
-          style={{ width: compact ? "120px" : "180px" }}
+          style={{
+            width: compact
+              ? isMobile
+                ? "150px"
+                : "120px"
+              : "180px",
+          }}
         />
 
         <div style={{ minWidth: 42, color: "rgba(255,255,255,0.72)", fontSize: compact ? 13 : 14 }}>
@@ -577,6 +591,8 @@ function PlayerModal({
   song,
   onClose,
   onMinimize,
+  onNext,
+  onPrevious,
   isPlaying,
   currentTime,
   duration,
@@ -600,17 +616,19 @@ function PlayerModal({
         display: "grid",
         placeItems: "center",
         zIndex: 1000,
-        padding: 20,
+        padding: isMobile ? 12 : 20,
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "min(860px, 100%)",
-          maxHeight: "88vh",
-          overflow: "auto",
+          width: "min(980px, 100%)",
+          height: isMobile ? "min(88vh, 920px)" : "min(88vh, 820px)",
           ...shellCardStyle(),
-          padding: 24,
+          padding: isMobile ? 16 : 24,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
         }}
       >
         <div
@@ -621,15 +639,32 @@ function PlayerModal({
             alignItems: "center",
             marginBottom: 18,
             flexWrap: "wrap",
+            flexShrink: 0,
           }}
         >
-          <div>
-            <h2 style={{ margin: 0 }}>{song.title}</h2>
+          <div style={{ minWidth: 0 }}>
+            <h2
+              style={{
+                margin: 0,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {song.title}
+            </h2>
             <div style={{ color: "rgba(255,255,255,0.7)", marginTop: 6 }}>
               {song.artist} • {getSongTypeLabel(song)}
             </div>
           </div>
+
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Button variant="secondary" onClick={onPrevious}>
+              ⏮
+            </Button>
+            <Button variant="secondary" onClick={onNext}>
+              ⏭
+            </Button>
             <Button variant="secondary" onClick={onMinimize}>
               Minimize
             </Button>
@@ -642,11 +677,19 @@ function PlayerModal({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "280px 1fr",
+            gridTemplateColumns: isMobile ? "1fr" : "280px minmax(0, 1fr)",
             gap: 22,
+            minHeight: 0,
+            flex: 1,
           }}
         >
-          <div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              minHeight: 0,
+            }}
+          >
             <div
               style={{
                 width: "100%",
@@ -657,6 +700,7 @@ function PlayerModal({
                 display: "grid",
                 placeItems: "center",
                 border: "1px solid rgba(255,255,255,0.08)",
+                flexShrink: 0,
               }}
             >
               {song.coverUrl ? (
@@ -670,11 +714,11 @@ function PlayerModal({
               )}
             </div>
 
-            <div style={{ marginTop: 14, color: "rgba(255,255,255,0.76)", fontSize: 14 }}>
+            <div style={{ marginTop: 14, color: "rgba(255,255,255,0.76)", fontSize: 14, flexShrink: 0 }}>
               {getSongTypeLabel(song)}
             </div>
 
-            <div style={{ marginTop: 16 }}>
+            <div style={{ marginTop: 16, flexShrink: 0 }}>
               {song.audioUrl ? (
                 <AudioControls
                   isPlaying={isPlaying}
@@ -686,6 +730,7 @@ function PlayerModal({
                   onSeek={onSeek}
                   onVolumeChange={onVolumeChange}
                   onToggleMute={onToggleMute}
+                  isMobile={isMobile}
                 />
               ) : (
                 <div style={{ color: "rgba(255,255,255,0.7)" }}>No audio uploaded yet.</div>
@@ -693,15 +738,24 @@ function PlayerModal({
             </div>
           </div>
 
-          <div>
-            <h3 style={{ marginTop: 0, marginBottom: 10 }}>Lyrics</h3>
+          <div
+            style={{
+              minHeight: 0,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: 10, flexShrink: 0 }}>Lyrics</h3>
+
             <div
               style={{
                 background: "rgba(10,15,28,0.55)",
                 border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 18,
                 padding: 16,
-                minHeight: 300,
+                minHeight: 0,
+                flex: 1,
+                overflowY: "auto",
               }}
             >
               <pre
@@ -738,6 +792,7 @@ function MiniPlayer({
   onSeek,
   onVolumeChange,
   onToggleMute,
+  isMobile,
 }) {
   if (!song) return null;
 
@@ -745,12 +800,12 @@ function MiniPlayer({
     <div
       style={{
         position: "fixed",
-        left: 18,
-        right: 18,
-        bottom: 18,
+        left: isMobile ? 12 : 18,
+        right: isMobile ? 12 : 18,
+        bottom: isMobile ? 12 : 18,
         zIndex: 999,
         ...shellCardStyle({
-          padding: 10,
+          padding: isMobile ? 12 : 10,
           borderRadius: 18,
           background: "linear-gradient(180deg, rgba(18,25,46,0.96), rgba(11,17,34,0.98))",
         }),
@@ -778,7 +833,7 @@ function MiniPlayer({
               <div
                 style={{
                   fontWeight: 700,
-                  fontSize: 15,
+                  fontSize: isMobile ? 14 : 15,
                   lineHeight: 1.2,
                   whiteSpace: "nowrap",
                   overflow: "hidden",
@@ -788,26 +843,28 @@ function MiniPlayer({
                 {song.title}
               </div>
 
-              <div
-                style={{
-                  color: "rgba(255,255,255,0.68)",
-                  fontSize: 13,
-                  lineHeight: 1.2,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  marginTop: 2,
-                }}
-              >
-                {song.artist} • {getSongTypeLabel(song)}
-              </div>
+              {!isMobile ? (
+                <div
+                  style={{
+                    color: "rgba(255,255,255,0.68)",
+                    fontSize: 13,
+                    lineHeight: 1.2,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    marginTop: 2,
+                  }}
+                >
+                  {song.artist} • {getSongTypeLabel(song)}
+                </div>
+              ) : null}
             </div>
 
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <Button
                 variant="secondary"
                 onClick={onPrevious}
-                style={{ padding: "7px 10px", fontSize: 13 }}
+                style={{ padding: "7px 10px", fontSize: 13, minWidth: isMobile ? 44 : undefined }}
               >
                 ⏮
               </Button>
@@ -815,7 +872,7 @@ function MiniPlayer({
               <Button
                 variant="secondary"
                 onClick={onPlayPause}
-                style={{ padding: "7px 10px", fontSize: 13 }}
+                style={{ padding: "7px 10px", fontSize: 13, minWidth: isMobile ? 86 : undefined }}
               >
                 {isPlaying ? "Pause" : "Play"}
               </Button>
@@ -823,7 +880,7 @@ function MiniPlayer({
               <Button
                 variant="secondary"
                 onClick={onNext}
-                style={{ padding: "7px 10px", fontSize: 13 }}
+                style={{ padding: "7px 10px", fontSize: 13, minWidth: isMobile ? 44 : undefined }}
               >
                 ⏭
               </Button>
@@ -859,6 +916,7 @@ function MiniPlayer({
                 onVolumeChange={onVolumeChange}
                 onToggleMute={onToggleMute}
                 compact
+                isMobile={isMobile}
               />
             </div>
           ) : null}
@@ -2015,13 +2073,15 @@ Thanks for the request!
     }
   };
 
-  const openSongPlayer = async (song) => {
+  const openSongPlayer = async (song, options = {}) => {
+    const { keepMinimized = false } = options;
     const audio = audioRef.current;
     if (!audio) return;
 
     const sameSong = playerSong?.id === song.id;
+
     setPlayerSong(song);
-    setPlayerMinimized(false);
+    setPlayerMinimized(keepMinimized);
 
     if (!song.audioUrl) return;
 
@@ -2115,7 +2175,7 @@ Thanks for the request!
     if (currentIndex === -1) return;
 
     const nextSong = filteredSongs[(currentIndex + 1) % filteredSongs.length];
-    openSongPlayer(nextSong);
+    openSongPlayer(nextSong, { keepMinimized: playerMinimized });
   };
 
   const handlePreviousSong = () => {
@@ -2132,7 +2192,7 @@ Thanks for the request!
         (currentIndex - 1 + filteredSongs.length) % filteredSongs.length
       ];
 
-    openSongPlayer(previousSong);
+    openSongPlayer(previousSong, { keepMinimized: playerMinimized });
   };
 
   const downloadTextFile = (filename, content) => {
@@ -2177,7 +2237,7 @@ Thanks for the request!
           "radial-gradient(circle at top left, rgba(58,31,102,0.42), transparent 28%), radial-gradient(circle at top right, rgba(93,40,126,0.22), transparent 20%), linear-gradient(180deg, #050a18 0%, #07112a 55%, #081226 100%)",
         fontFamily:
           'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        paddingBottom: playerSong && playerMinimized ? 180 : 0,
+        paddingBottom: playerSong && playerMinimized ? (isMobile ? 240 : 180) : 0,
       }}
     >
       <audio ref={audioRef} preload="metadata" style={{ display: "none" }} />
@@ -2915,8 +2975,8 @@ Thanks for the request!
                         ? "Saving..."
                         : "Uploading..."
                       : editingSongId
-                      ? "Save Changes"
-                      : "Upload Song"}
+                        ? "Save Changes"
+                        : "Upload Song"}
                   </Button>
 
                   {editingSongId ? (
@@ -3262,6 +3322,8 @@ Thanks for the request!
           song={playerSong}
           onClose={closePlayer}
           onMinimize={minimizePlayer}
+          onNext={handleNextSong}
+          onPrevious={handlePreviousSong}
           isPlaying={isPlaying}
           currentTime={playerCurrentTime}
           duration={playerDuration}
@@ -3291,6 +3353,7 @@ Thanks for the request!
           onSeek={handleSeek}
           onVolumeChange={handleVolumeChange}
           onToggleMute={handleToggleMute}
+          isMobile={isMobile}
         />
       ) : null}
     </div>
