@@ -1707,7 +1707,7 @@ Thanks for the request!
   </Button>
 
   <img
-    src="/dj-buang-logo.png"
+    src="/logo.png"
     alt="DJ-BUANG logo"
     style={{
       width: isMobile ? "100%" : 240,
