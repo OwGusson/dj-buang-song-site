@@ -55,7 +55,29 @@ export async function onRequestPost(context) {
       songs = text ? JSON.parse(text) : [];
     }
 
-    songs.unshift(newSong);
+    const existingSongIndex = songs.findIndex((song) => song.id === newSong.id);
+
+    if (existingSongIndex !== -1) {
+      const oldSong = songs[existingSongIndex];
+
+      const oldCoverKey = getFileKeyFromUrl(oldSong.coverUrl);
+      const oldAudioKey = getFileKeyFromUrl(oldSong.audioUrl);
+
+      const newCoverKey = getFileKeyFromUrl(newSong.coverUrl);
+      const newAudioKey = getFileKeyFromUrl(newSong.audioUrl);
+
+      if (oldCoverKey && oldCoverKey !== newCoverKey) {
+        await context.env.FILES.delete(oldCoverKey);
+      }
+
+      if (oldAudioKey && oldAudioKey !== newAudioKey) {
+        await context.env.FILES.delete(oldAudioKey);
+      }
+
+      songs[existingSongIndex] = newSong;
+    } else {
+      songs.unshift(newSong);
+    }
 
     await context.env.FILES.put(
       "data/songs.json",
