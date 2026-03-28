@@ -1046,6 +1046,104 @@ function App() {
 
     loadRequestsAndMessages();
   }, []);
+useEffect(() => {
+  const requestsChannel = supabase
+    .channel("live-song-requests")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "song_requests" },
+      async () => {
+        const { data, error } = await supabase
+          .from("song_requests")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (!error && data) {
+          setRequests(
+            data.map((r) => ({
+              id: r.id,
+              name: r.requester_name,
+              title: r.song_name,
+              details: r.details,
+              email: r.email,
+              notify: r.notify,
+              delivery: r.delivery,
+              linkedSongId: r.linked_song_id,
+              status: r.status,
+              createdAt: r.created_at,
+            }))
+          );
+        }
+      }
+    )
+    .subscribe();
+
+  const messagesChannel = supabase
+    .channel("live-private-messages")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "private_messages" },
+      async () => {
+        const { data, error } = await supabase
+          .from("private_messages")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (!error && data) {
+          setMessages(
+            data.map((m) => ({
+              id: m.id,
+              from: m.sender_name,
+              message: m.message,
+              status: m.status,
+              createdAt: m.created_at,
+            }))
+          );
+        }
+      }
+    )
+    .subscribe();
+
+    useEffect(() => {
+  const likesChannel = supabase
+    .channel("live-song-likes")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "song_likes" },
+      async () => {
+        const { data: likesData, error: likesError } = await supabase
+          .from("song_likes")
+          .select("*");
+
+        if (likesError) {
+          console.error("Could not refresh live likes:", likesError);
+          return;
+        }
+
+        const likesMap = new Map(
+          (likesData || []).map((row) => [row.song_id, Number(row.likes || 0)])
+        );
+
+        setSongs((prev) =>
+          prev.map((song) => ({
+            ...song,
+            likes: likesMap.has(song.id) ? likesMap.get(song.id) : Number(song.likes || 0),
+          }))
+        );
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(likesChannel);
+  };
+}, []);
+
+  return () => {
+    supabase.removeChannel(requestsChannel);
+    supabase.removeChannel(messagesChannel);
+  };
+}, []);
 
   useEffect(() => {
     try {
