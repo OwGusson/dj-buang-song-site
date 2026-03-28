@@ -960,8 +960,27 @@ function App() {
         const cloudSongs = await fetchSongsFromCloudflare();
 
         if (!cancelled) {
-          setSongs(cloudSongs.map(normalizeSong));
-        }
+  const normalizedSongs = cloudSongs.map(normalizeSong);
+
+  const { data: likesData, error: likesError } = await supabase
+    .from("song_likes")
+    .select("*");
+
+  const likesMap = new Map(
+    (likesData || []).map((row) => [row.song_id, Number(row.likes || 0)])
+  );
+
+  const songsWithLiveLikes = normalizedSongs.map((song) => ({
+    ...song,
+    likes: likesMap.has(song.id) ? likesMap.get(song.id) : Number(song.likes || 0),
+  }));
+
+  if (likesError) {
+    console.error("Could not load live likes:", likesError);
+  }
+
+  setSongs(songsWithLiveLikes);
+}
       } catch (error) {
         console.warn("Could not load songs from Cloudflare, falling back to local cache:", error);
 
@@ -1196,18 +1215,44 @@ function App() {
     window.open(PAYPAL_URL, "_blank", "noopener,noreferrer");
   };
 
-  const handleLikeSong = (songId) => {
-    const likedKey = `liked_${songId}`;
-    if (localStorage.getItem(likedKey)) return;
+  const handleLikeSong = async (songId) => {
+  const likedKey = `liked_${songId}`;
+  if (localStorage.getItem(likedKey)) return;
 
-    setSongs((prev) =>
-      prev.map((song) =>
-        song.id === songId ? { ...song, likes: (song.likes || 0) + 1 } : song
-      )
-    );
+  const currentSong = songs.find((song) => song.id === songId);
+  const currentLikes = Number(currentSong?.likes || 0);
+  const nextLikes = currentLikes + 1;
 
-    localStorage.setItem(likedKey, "true");
-  };
+  const { error } = await supabase.from("song_likes").upsert(
+    {
+      song_id: songId,
+      likes: nextLikes,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "song_id" }
+  );
+
+  if (error) {
+    alert("Could not save like.");
+    console.error(error);
+    return;
+  }
+
+  const { data: refreshedLikeRow } = await supabase
+  .from("song_likes")
+  .select("*")
+  .eq("song_id", songId)
+  .single();
+
+const finalLikes = Number(refreshedLikeRow?.likes || nextLikes);
+
+setSongs((prev) =>
+  prev.map((song) =>
+    song.id === songId ? { ...song, likes: finalLikes } : song
+  )
+);
+
+localStorage.setItem(likedKey, "true");
 
   const handleAdminLogin = async (e) => {
     e.preventDefault();
