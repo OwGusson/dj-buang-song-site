@@ -73,7 +73,7 @@ export const onRequestDelete = async (context) => {
       );
     }
 
-    const fileName = pathname.slice(prefix.length);
+    const fileName = decodeURIComponent(pathname.slice(prefix.length));
 
     if (!fileName) {
       return new Response(
