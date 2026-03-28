@@ -1,46 +1,55 @@
+const SONGS_FILE_KEY = "data/songs.json";
+
+async function loadSongs(env) {
+  const object = await env.FILES.get(SONGS_FILE_KEY);
+
+  if (!object) return [];
+
+  const text = await object.text();
+  return JSON.parse(text || "[]");
+}
+
+async function saveSongs(env, songs) {
+  await env.FILES.put(
+    SONGS_FILE_KEY,
+    JSON.stringify(songs, null, 2),
+    {
+      httpMetadata: {
+        contentType: "application/json",
+      },
+    }
+  );
+}
+
 export async function onRequestGet(context) {
   try {
-    const { env } = context;
-
-    const existing = await env.DJBUANG_DATA.get("songs");
-    const songs = existing ? JSON.parse(existing) : [];
+    const songs = await loadSongs(context.env);
 
     return new Response(JSON.stringify(songs), {
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error.message || "Failed to load songs" }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
+      JSON.stringify({ error: error.message }),
+      { status: 500 }
     );
   }
 }
 
 export async function onRequestPost(context) {
   try {
-    const { request, env } = context;
-    const body = await request.json();
+    const body = await context.request.json();
 
     if (!body?.id) {
-      return new Response(JSON.stringify({ error: "Song id is required" }), {
-        status: 400,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      return new Response(
+        JSON.stringify({ error: "Song id required" }),
+        { status: 400 }
+      );
     }
 
-    const existing = await env.DJBUANG_DATA.get("songs");
-    const songs = existing ? JSON.parse(existing) : [];
+    const songs = await loadSongs(context.env);
 
-    const index = songs.findIndex((song) => song.id === body.id);
+    const index = songs.findIndex((s) => s.id === body.id);
 
     if (index >= 0) {
       songs[index] = {
@@ -51,69 +60,46 @@ export async function onRequestPost(context) {
       songs.unshift(body);
     }
 
-    await env.DJBUANG_DATA.put("songs", JSON.stringify(songs));
+    await saveSongs(context.env, songs);
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        updated: index >= 0,
-        song: body,
-      }),
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
+      JSON.stringify({ success: true }),
+      { headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error.message || "Failed to save song" }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
+      JSON.stringify({ error: error.message }),
+      { status: 500 }
     );
   }
 }
 
 export async function onRequestDelete(context) {
   try {
-    const { request, env } = context;
-    const url = new URL(request.url);
+    const url = new URL(context.request.url);
     const songId = url.searchParams.get("id");
 
     if (!songId) {
-      return new Response(JSON.stringify({ error: "Song id is required" }), {
-        status: 400,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      return new Response(
+        JSON.stringify({ error: "Song id required" }),
+        { status: 400 }
+      );
     }
 
-    const existing = await env.DJBUANG_DATA.get("songs");
-    const songs = existing ? JSON.parse(existing) : [];
+    const songs = await loadSongs(context.env);
 
-    const filtered = songs.filter((song) => song.id !== songId);
+    const filtered = songs.filter((s) => s.id !== songId);
 
-    await env.DJBUANG_DATA.put("songs", JSON.stringify(filtered));
+    await saveSongs(context.env, filtered);
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    return new Response(
+      JSON.stringify({ success: true }),
+      { headers: { "Content-Type": "application/json" } }
+    );
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error.message || "Failed to delete song" }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
+      JSON.stringify({ error: error.message }),
+      { status: 500 }
     );
   }
 }
