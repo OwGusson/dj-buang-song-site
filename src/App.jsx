@@ -727,6 +727,8 @@ function MiniPlayer({
   song,
   onExpand,
   onClose,
+  onNext,
+  onPrevious,
   isPlaying,
   currentTime,
   duration,
@@ -748,8 +750,8 @@ function MiniPlayer({
         bottom: 18,
         zIndex: 999,
         ...shellCardStyle({
-          padding: 14,
-          borderRadius: 20,
+          padding: 10,
+          borderRadius: 18,
           background: "linear-gradient(180deg, rgba(18,25,46,0.96), rgba(11,17,34,0.98))",
         }),
       }}
@@ -757,33 +759,11 @@ function MiniPlayer({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "58px 1fr",
-          gap: 12,
-          alignItems: "start",
+          gridTemplateColumns: "1fr",
+          gap: 10,
+          alignItems: "center",
         }}
       >
-        <div
-          style={{
-            width: 58,
-            height: 58,
-            borderRadius: 14,
-            overflow: "hidden",
-            background: "linear-gradient(135deg, rgba(89,55,150,0.8), rgba(41,73,120,0.8))",
-            display: "grid",
-            placeItems: "center",
-          }}
-        >
-          {song.coverUrl ? (
-            <img
-              src={song.coverUrl}
-              alt={song.title}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
-          ) : (
-            <span style={{ fontSize: 24 }}>🎧</span>
-          )}
-        </div>
-
         <div style={{ minWidth: 0 }}>
           <div
             style={{
@@ -794,18 +774,98 @@ function MiniPlayer({
               alignItems: "center",
             }}
           >
-            <div>
-              <div style={{ fontWeight: 700 }}>{song.title}</div>
-              <div style={{ color: "rgba(255,255,255,0.68)", fontSize: 14 }}>
-                {song.artist} • {getSongTypeLabel(song)}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: 15,
+                  lineHeight: 1.2,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {song.title}
+              </div>
+
+              <div
+                style={{
+                  color: "rgba(255,255,255,0.68)",
+                  fontSize: 13,
+                  lineHeight: 1.2,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  marginTop: 2,
+                }}
+              >
+                <div
+  style={{
+    fontWeight: 700,
+    fontSize: 15,
+    lineHeight: 1.2,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  }}
+>
+  {song.title}
+</div>
+
+<div
+  style={{
+    color: "rgba(255,255,255,0.68)",
+    fontSize: 13,
+    lineHeight: 1.2,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    marginTop: 2,
+  }}
+>
+  {song.artist} • {getSongTypeLabel(song)}
+</div>
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Button variant="secondary" onClick={onExpand} style={{ padding: "9px 12px", fontSize: 14 }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <Button
+                variant="secondary"
+                onClick={onPrevious}
+                style={{ padding: "7px 10px", fontSize: 13 }}
+              >
+                ⏮
+              </Button>
+
+              <Button
+                variant="secondary"
+                onClick={onPlayPause}
+                style={{ padding: "7px 10px", fontSize: 13 }}
+              >
+                {isPlaying ? "Pause" : "Play"}
+              </Button>
+
+              <Button
+                variant="secondary"
+                onClick={onNext}
+                style={{ padding: "7px 10px", fontSize: 13 }}
+              >
+                ⏭
+              </Button>
+
+              <Button
+                variant="secondary"
+                onClick={onExpand}
+                style={{ padding: "7px 10px", fontSize: 13 }}
+              >
                 Expand
               </Button>
-              <Button variant="secondary" onClick={onClose} style={{ padding: "9px 12px", fontSize: 14 }}>
+
+              <Button
+                variant="secondary"
+                onClick={onClose}
+                style={{ padding: "7px 10px", fontSize: 13 }}
+              >
                 Close
               </Button>
             </div>
@@ -2060,15 +2120,45 @@ Thanks for the request!
   };
 
   const handleToggleMute = () => {
-    if (isMuted || volume === 0) {
-      const restoreVolume = previousVolume > 0 ? previousVolume : 1;
-      setVolume(restoreVolume);
-      setIsMuted(false);
-    } else {
-      setPreviousVolume(volume);
-      setIsMuted(true);
-    }
-  };
+  if (isMuted || volume === 0) {
+    const restoreVolume = previousVolume > 0 ? previousVolume : 1;
+    setVolume(restoreVolume);
+    setIsMuted(false);
+  } else {
+    setPreviousVolume(volume);
+    setIsMuted(true);
+  }
+};
+
+const handleNextSong = () => {
+  if (!playerSong || filteredSongs.length === 0) return;
+
+  const currentIndex = filteredSongs.findIndex(
+    (song) => song.id === playerSong.id
+  );
+
+  if (currentIndex === -1) return;
+
+  const nextSong = filteredSongs[(currentIndex + 1) % filteredSongs.length];
+  openSongPlayer(nextSong);
+};
+
+const handlePreviousSong = () => {
+  if (!playerSong || filteredSongs.length === 0) return;
+
+  const currentIndex = filteredSongs.findIndex(
+    (song) => song.id === playerSong.id
+  );
+
+  if (currentIndex === -1) return;
+
+  const previousSong =
+    filteredSongs[
+      (currentIndex - 1 + filteredSongs.length) % filteredSongs.length
+    ];
+
+  openSongPlayer(previousSong);
+};
 
   const downloadTextFile = (filename, content) => {
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
@@ -3214,19 +3304,21 @@ Thanks for the request!
 
       {playerSong && playerMinimized ? (
         <MiniPlayer
-          song={playerSong}
-          onExpand={expandPlayer}
-          onClose={closePlayer}
-          isPlaying={isPlaying}
-          currentTime={playerCurrentTime}
-          duration={playerDuration}
-          volume={volume}
-          isMuted={isMuted}
-          onPlayPause={handlePlayPause}
-          onSeek={handleSeek}
-          onVolumeChange={handleVolumeChange}
-          onToggleMute={handleToggleMute}
-        />
+  song={playerSong}
+  onExpand={expandPlayer}
+  onClose={closePlayer}
+  onNext={handleNextSong}
+  onPrevious={handlePreviousSong}
+  isPlaying={isPlaying}
+  currentTime={playerCurrentTime}
+  duration={playerDuration}
+  volume={volume}
+  isMuted={isMuted}
+  onPlayPause={handlePlayPause}
+  onSeek={handleSeek}
+  onVolumeChange={handleVolumeChange}
+  onToggleMute={handleToggleMute}
+/>
       ) : null}
     </div>
   );
