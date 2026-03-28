@@ -1,181 +1,117 @@
-function getFileKeyFromUrl(fileUrl) {
-  if (!fileUrl || typeof fileUrl !== "string") return null;
+// songs.js
 
+export const STORAGE_KEYS = {
+  songs: "djbuang_songs",
+};
+
+export function getStoredSongs() {
   try {
-    const url = new URL(fileUrl);
-
-    const marker = "/files/";
-    const index = url.pathname.indexOf(marker);
-
-    if (index === -1) return null;
-
-    const key = url.pathname.slice(index + marker.length);
-    return decodeURIComponent(key);
+    const raw = localStorage.getItem(STORAGE_KEYS.songs);
+    return raw ? JSON.parse(raw) : [];
   } catch {
-    return null;
+    return [];
   }
 }
 
-export async function onRequestGet(context) {
+export function setStoredSongs(songs) {
+  localStorage.setItem(STORAGE_KEYS.songs, JSON.stringify(songs));
+}
+
+export function makeSongId() {
+  return `song-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export function isCloudflareFileUrl(url = "") {
+  if (!url) return false;
+  return (
+    url.includes("dj-buang.com/files/") ||
+    url.includes("/files/")
+  );
+}
+
+export function extractFilePathFromUrl(url = "") {
+  if (!url) return "";
   try {
-    const object = await context.env.FILES.get("data/songs.json");
+    const parsed = new URL(url);
+    return parsed.pathname || "";
+  } catch {
+    return "";
+  }
+}
 
-    if (!object) {
-      return new Response(JSON.stringify([]), {
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+export async function uploadFile(file) {
+  if (!file) return "";
 
-    const text = await object.text();
-    const songs = text ? JSON.parse(text) : [];
+  const formData = new FormData();
+  formData.append("file", file);
 
-    return new Response(JSON.stringify(songs), {
-      headers: { "Content-Type": "application/json" },
+  const res = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    throw new Error("Upload failed");
+  }
+
+  const data = await res.json();
+  return data?.url || "";
+}
+
+export async function deleteStorageFileByUrl(url) {
+  if (!url || !isCloudflareFileUrl(url)) return;
+
+  try {
+    await fetch("/api/delete-file", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ url }),
     });
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error.message || "Failed to load songs" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    console.error("Failed to delete file:", url, error);
   }
 }
 
-export async function onRequestPost(context) {
-  try {
-    const newSong = await context.request.json();
+export async function autoCleanReplacedFiles({
+  oldSong,
+  newCoverUrl,
+  newAudioUrl,
+}) {
+  const deleteJobs = [];
 
-    const object = await context.env.FILES.get("data/songs.json");
-    let songs = [];
-
-    if (object) {
-      const text = await object.text();
-      songs = text ? JSON.parse(text) : [];
-    }
-
-    const existingSongIndex = songs.findIndex((song) => song.id === newSong.id);
-
-    if (existingSongIndex !== -1) {
-      const oldSong = songs[existingSongIndex];
-
-      const oldCoverKey = getFileKeyFromUrl(oldSong.coverUrl);
-      const oldAudioKey = getFileKeyFromUrl(oldSong.audioUrl);
-
-      const newCoverKey = getFileKeyFromUrl(newSong.coverUrl);
-      const newAudioKey = getFileKeyFromUrl(newSong.audioUrl);
-
-      if (oldCoverKey && oldCoverKey !== newCoverKey) {
-        await context.env.FILES.delete(oldCoverKey);
-      }
-
-      if (oldAudioKey && oldAudioKey !== newAudioKey) {
-        await context.env.FILES.delete(oldAudioKey);
-      }
-
-      songs[existingSongIndex] = newSong;
-    } else {
-      songs.unshift(newSong);
-    }
-
-    await context.env.FILES.put(
-      "data/songs.json",
-      JSON.stringify(songs, null, 2),
-      {
-        httpMetadata: {
-          contentType: "application/json",
-        },
-      }
-    );
-
-    return new Response(JSON.stringify({ success: true, songs }), {
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error.message || "Failed to save song" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+  if (
+    oldSong?.coverUrl &&
+    newCoverUrl &&
+    oldSong.coverUrl !== newCoverUrl &&
+    isCloudflareFileUrl(oldSong.coverUrl)
+  ) {
+    deleteJobs.push(deleteStorageFileByUrl(oldSong.coverUrl));
   }
+
+  if (
+    oldSong?.audioUrl &&
+    newAudioUrl &&
+    oldSong.audioUrl !== newAudioUrl &&
+    isCloudflareFileUrl(oldSong.audioUrl)
+  ) {
+    deleteJobs.push(deleteStorageFileByUrl(oldSong.audioUrl));
+  }
+
+  await Promise.allSettled(deleteJobs);
 }
 
-export async function onRequestDelete(context) {
-  try {
-    const url = new URL(context.request.url);
-    const id = url.searchParams.get("id");
+export async function autoCleanDeletedSongFiles(song) {
+  const deleteJobs = [];
 
-    if (!id) {
-      return new Response(JSON.stringify({ error: "Missing song id" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const object = await context.env.FILES.get("data/songs.json");
-    let songs = [];
-
-    if (object) {
-      const text = await object.text();
-      songs = text ? JSON.parse(text) : [];
-    }
-
-    const songToDelete = songs.find((song) => song.id === id);
-
-    if (!songToDelete) {
-      return new Response(JSON.stringify({ error: "Song not found" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const coverKey = getFileKeyFromUrl(songToDelete.coverUrl);
-    const audioKey = getFileKeyFromUrl(songToDelete.audioUrl);
-
-    if (coverKey) {
-      await context.env.FILES.delete(coverKey);
-    }
-
-    if (audioKey) {
-      await context.env.FILES.delete(audioKey);
-    }
-
-    const updatedSongs = songs.filter((song) => song.id !== id);
-
-    await context.env.FILES.put(
-      "data/songs.json",
-      JSON.stringify(updatedSongs, null, 2),
-      {
-        httpMetadata: {
-          contentType: "application/json",
-        },
-      }
-    );
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        deletedSongId: id,
-        deletedFiles: {
-          coverKey,
-          audioKey,
-        },
-        songs: updatedSongs,
-      }),
-      {
-        headers: { "Content-Type": "application/json" },
-      }
-    );
-  } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error.message || "Failed to delete song" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+  if (song?.coverUrl && isCloudflareFileUrl(song.coverUrl)) {
+    deleteJobs.push(deleteStorageFileByUrl(song.coverUrl));
   }
+
+  if (song?.audioUrl && isCloudflareFileUrl(song.audioUrl)) {
+    deleteJobs.push(deleteStorageFileByUrl(song.audioUrl));
+  }
+
+  await Promise.allSettled(deleteJobs);
 }

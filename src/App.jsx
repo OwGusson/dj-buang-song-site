@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./supabase";
+import {
+  getStoredSongs,
+  setStoredSongs,
+  makeSongId,
+  uploadFile,
+  autoCleanReplacedFiles,
+  autoCleanDeletedSongFiles,
+} from "./songs";
 
 const STORAGE_KEYS = {
   songs: "djbuang_songs",
@@ -310,6 +318,7 @@ function SongRow({
   isAdmin,
   onDelete,
   onCopyLink,
+  onEdit,
 }) {
   return (
     <div
@@ -406,7 +415,16 @@ function SongRow({
           </Button>
 
           {isAdmin ? (
-            <>
+            <><Button
+  variant="secondary"
+  onClick={(e) => {
+    e.stopPropagation();
+    onEdit(song);
+  }}
+  style={{ padding: "9px 14px", fontSize: 14 }}
+>
+  Edit
+</Button>
               <Button
                 variant="secondary"
                 onClick={(e) => {
@@ -888,6 +906,9 @@ function App() {
     return [];
   });
 
+  const [editingSongId, setEditingSongId] = useState(null);
+  const [editingOriginalSong, setEditingOriginalSong] = useState(null);
+
   const [requests, setRequests] = useState([]);
   const [messages, setMessages] = useState([]);
   const [adminLoggedIn, setAdminLoggedIn] = useState(() => {
@@ -921,6 +942,18 @@ function App() {
   const audioRef = useRef(null);
 
   const [newSong, setNewSong] = useState({
+  title: "",
+  artist: "DJ-Buang",
+  genre: "",
+  coverUrl: "",
+  audioUrl: "",
+  lyrics: "",
+  featured: false,
+  visibility: "public",
+});
+
+function resetSongForm() {
+  setNewSong({
     title: "",
     artist: "DJ-Buang",
     genre: "",
@@ -930,6 +963,42 @@ function App() {
     featured: false,
     visibility: "public",
   });
+
+  setEditingSongId(null);
+  setEditingOriginalSong(null);
+
+  const coverInput = document.getElementById("song-cover-input");
+  const audioInput = document.getElementById("song-audio-input");
+
+  if (coverInput) coverInput.value = "";
+  if (audioInput) audioInput.value = "";
+}
+
+function startEditSong(song) {
+  setEditingSongId(song.id);
+  setEditingOriginalSong(song);
+
+  setNewSong({
+    title: song.title || "",
+    artist: song.artist || "DJ-Buang",
+    genre: song.genre || "",
+    coverUrl: song.coverUrl || "",
+    audioUrl: song.audioUrl || "",
+    lyrics: song.lyrics || "",
+    featured: !!song.featured,
+    visibility: song.visibility || "public",
+  });
+
+  const coverInput = document.getElementById("song-cover-input");
+  const audioInput = document.getElementById("song-audio-input");
+
+  if (coverInput) coverInput.value = "";
+  if (audioInput) audioInput.value = "";
+}
+
+function cancelEditSong() {
+  resetSongForm();
+}
 
   const [newSongFiles, setNewSongFiles] = useState({
     coverFile: null,
@@ -2502,16 +2571,17 @@ Thanks for the request!
               <div style={{ display: "grid", gap: 12 }}>
                 {adminSongs.length > 0 ? (
                   adminSongs.map((song) => (
-                    <SongRow
-                      key={song.id}
-                      song={song}
-                      isAdmin
-                      onOpenPlayer={openSongPlayer}
-                      onDownloadSong={downloadSong}
-                      onDownloadLyrics={downloadLyrics}
-                      onDelete={handleDeleteSong}
-                      onCopyLink={copySongLink}
-                    />
+                   <SongRow
+  key={song.id}
+  song={song}
+  isAdmin
+  onOpenPlayer={openSongPlayer}
+  onDownloadSong={downloadSong}
+  onDownloadLyrics={downloadLyrics}
+  onDelete={handleDeleteSong}
+  onCopyLink={copySongLink}
+  onEdit={startEditSong}
+/>
                   ))
                 ) : (
                   <div style={{ color: "rgba(255,255,255,0.72)" }}>No songs uploaded yet.</div>
