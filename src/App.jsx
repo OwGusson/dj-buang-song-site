@@ -1390,35 +1390,55 @@ function App() {
   );
 
   const filteredSongs = useMemo(() => {
-    let list = [...publicSongs];
+  let list = [...publicSongs];
 
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (song) =>
-          song.title.toLowerCase().includes(q) ||
-          song.artist.toLowerCase().includes(q) ||
-          (song.requestedBy || "").toLowerCase().includes(q)
-      );
-    }
+  if (search.trim()) {
+    const q = search.toLowerCase();
+    list = list.filter(
+      (song) =>
+        song.title.toLowerCase().includes(q) ||
+        song.artist.toLowerCase().includes(q) ||
+        (song.requestedBy || "").toLowerCase().includes(q)
+    );
+  }
 
-    if (filterMode === "featured") {
-      list = list.filter((song) => song.featured);
-      list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    } else if (filterMode === "most-liked") {
-      list.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-    } else if (filterMode === "requested") {
-      list = list.filter((song) => isRequestedSong(song));
-      list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    } else if (filterMode === "originals") {
-      list = list.filter((song) => isOriginalSong(song));
-      list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    } else {
-      list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    }
+  if (filterMode === "featured") {
+    list = list.filter((song) => song.featured);
+    list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  } else if (filterMode === "most-liked") {
+    list.sort((a, b) => {
+      if (!!b.featured !== !!a.featured) {
+        return b.featured ? 1 : -1;
+      }
+      return (b.likes || 0) - (a.likes || 0);
+    });
+  } else if (filterMode === "requested") {
+    list = list.filter((song) => isRequestedSong(song));
+    list.sort((a, b) => {
+      if (!!b.featured !== !!a.featured) {
+        return b.featured ? 1 : -1;
+      }
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+  } else if (filterMode === "originals") {
+    list = list.filter((song) => isOriginalSong(song));
+    list.sort((a, b) => {
+      if (!!b.featured !== !!a.featured) {
+        return b.featured ? 1 : -1;
+      }
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+  } else {
+    list.sort((a, b) => {
+      if (!!b.featured !== !!a.featured) {
+        return b.featured ? 1 : -1;
+      }
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+  }
 
-    return list;
-  }, [publicSongs, search, filterMode]);
+  return list;
+}, [publicSongs, search, filterMode]);
 
   const adminSongs = useMemo(() => {
     let list = [...songs].map(normalizeSong);
