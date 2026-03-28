@@ -1812,23 +1812,51 @@ Thanks for the request!
   };
 
   const attachSongToRequest = async (requestId, songId) => {
-    const { error } = await supabase
-      .from("song_requests")
-      .update({ linked_song_id: songId })
-      .eq("id", requestId);
+  const req = requests.find((item) => item.id === requestId);
+  if (!req) return;
 
-    if (error) {
-      alert("Could not attach song.");
-      console.error(error);
-      return;
-    }
+  const selectedSong = songs.find((song) => song.id === songId);
 
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === requestId ? { ...req, linkedSongId: songId } : req
-      )
+  const { error } = await supabase
+    .from("song_requests")
+    .update({ linked_song_id: songId })
+    .eq("id", requestId);
+
+  if (error) {
+    alert("Could not attach song.");
+    console.error(error);
+    return;
+  }
+
+  setRequests((prev) =>
+    prev.map((item) =>
+      item.id === requestId ? { ...item, linkedSongId: songId } : item
+    )
+  );
+
+  if (!songId || !selectedSong) return;
+
+  const currentRequestedBy = (selectedSong.requestedBy || "").trim();
+  const requesterName = (req.name || "").trim();
+
+  if (currentRequestedBy || !requesterName) return;
+
+  const updatedSong = normalizeSong({
+    ...selectedSong,
+    requestedBy: requesterName,
+  });
+
+  try {
+    await saveSongToCloudflare(updatedSong);
+
+    setSongs((prev) =>
+      prev.map((song) => (song.id === songId ? updatedSong : song))
     );
-  };
+  } catch (saveError) {
+    console.error("Could not auto-fill requested by:", saveError);
+    alert("Song attached, but could not auto-fill Requested by.");
+  }
+};
 
   const deleteRequest = async (id) => {
     const confirmed = window.confirm("Are you sure you want to delete this request?");
