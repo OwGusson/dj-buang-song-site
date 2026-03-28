@@ -1046,6 +1046,7 @@ function App() {
 
     loadRequestsAndMessages();
   }, []);
+
 useEffect(() => {
   const requestsChannel = supabase
     .channel("live-song-requests")
@@ -1104,7 +1105,13 @@ useEffect(() => {
     )
     .subscribe();
 
-    useEffect(() => {
+  return () => {
+    supabase.removeChannel(requestsChannel);
+    supabase.removeChannel(messagesChannel);
+  };
+}, []);
+
+useEffect(() => {
   const likesChannel = supabase
     .channel("live-song-likes")
     .on(
