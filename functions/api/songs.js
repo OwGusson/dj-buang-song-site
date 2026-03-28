@@ -100,16 +100,11 @@ export async function onRequestDelete(context) {
 
     await env.DJBUANG_DATA.put("songs", JSON.stringify(filtered));
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-      }),
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    return new Response(JSON.stringify({ success: true }), {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   } catch (error) {
     return new Response(
       JSON.stringify({ error: error.message || "Failed to delete song" }),
