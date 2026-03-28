@@ -1,10 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./supabase";
 import {
-  getStoredSongs,
-  setStoredSongs,
   makeSongId,
-  uploadFile,
   autoCleanReplacedFiles,
   autoCleanDeletedSongFiles,
 } from "./songs";
@@ -415,16 +412,18 @@ function SongRow({
           </Button>
 
           {isAdmin ? (
-            <><Button
-  variant="secondary"
-  onClick={(e) => {
-    e.stopPropagation();
-    onEdit(song);
-  }}
-  style={{ padding: "9px 14px", fontSize: 14 }}
->
-  Edit
-</Button>
+            <>
+              <Button
+                variant="secondary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(song);
+                }}
+                style={{ padding: "9px 14px", fontSize: 14 }}
+              >
+                Edit
+              </Button>
+
               <Button
                 variant="secondary"
                 onClick={(e) => {
@@ -435,6 +434,7 @@ function SongRow({
               >
                 Copy Link
               </Button>
+
               <Button
                 variant="danger"
                 onClick={(e) => {
@@ -942,18 +942,6 @@ function App() {
   const audioRef = useRef(null);
 
   const [newSong, setNewSong] = useState({
-  title: "",
-  artist: "DJ-Buang",
-  genre: "",
-  coverUrl: "",
-  audioUrl: "",
-  lyrics: "",
-  featured: false,
-  visibility: "public",
-});
-
-function resetSongForm() {
-  setNewSong({
     title: "",
     artist: "DJ-Buang",
     genre: "",
@@ -963,42 +951,6 @@ function resetSongForm() {
     featured: false,
     visibility: "public",
   });
-
-  setEditingSongId(null);
-  setEditingOriginalSong(null);
-
-  const coverInput = document.getElementById("song-cover-input");
-  const audioInput = document.getElementById("song-audio-input");
-
-  if (coverInput) coverInput.value = "";
-  if (audioInput) audioInput.value = "";
-}
-
-function startEditSong(song) {
-  setEditingSongId(song.id);
-  setEditingOriginalSong(song);
-
-  setNewSong({
-    title: song.title || "",
-    artist: song.artist || "DJ-Buang",
-    genre: song.genre || "",
-    coverUrl: song.coverUrl || "",
-    audioUrl: song.audioUrl || "",
-    lyrics: song.lyrics || "",
-    featured: !!song.featured,
-    visibility: song.visibility || "public",
-  });
-
-  const coverInput = document.getElementById("song-cover-input");
-  const audioInput = document.getElementById("song-audio-input");
-
-  if (coverInput) coverInput.value = "";
-  if (audioInput) audioInput.value = "";
-}
-
-function cancelEditSong() {
-  resetSongForm();
-}
 
   const [newSongFiles, setNewSongFiles] = useState({
     coverFile: null,
@@ -1020,6 +972,64 @@ function cancelEditSong() {
     from: "",
     message: "",
   });
+
+  function resetSongForm() {
+    setNewSong({
+      title: "",
+      artist: "DJ-Buang",
+      genre: "",
+      coverUrl: "",
+      audioUrl: "",
+      lyrics: "",
+      featured: false,
+      visibility: "public",
+    });
+
+    setNewSongFiles({
+      coverFile: null,
+      audioFile: null,
+    });
+
+    setEditingSongId(null);
+    setEditingOriginalSong(null);
+
+    const coverInput = document.getElementById("song-cover-input");
+    const audioInput = document.getElementById("song-audio-input");
+
+    if (coverInput) coverInput.value = "";
+    if (audioInput) audioInput.value = "";
+  }
+
+  function startEditSong(song) {
+    setEditingSongId(song.id);
+    setEditingOriginalSong(song);
+
+    setNewSong({
+      title: song.title || "",
+      artist: song.artist || "DJ-Buang",
+      genre: song.genre || "",
+      coverUrl: song.coverUrl || "",
+      audioUrl: song.audioUrl || "",
+      lyrics: song.lyrics || "",
+      featured: !!song.featured,
+      visibility: song.visibility || "public",
+    });
+
+    setNewSongFiles({
+      coverFile: null,
+      audioFile: null,
+    });
+
+    const coverInput = document.getElementById("song-cover-input");
+    const audioInput = document.getElementById("song-audio-input");
+
+    if (coverInput) coverInput.value = "";
+    if (audioInput) audioInput.value = "";
+  }
+
+  function cancelEditSong() {
+    resetSongForm();
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -1444,13 +1454,22 @@ function cancelEditSong() {
 
   const handleAddSong = async (e) => {
     e.preventDefault();
-    if (!newSong.title.trim()) return;
+
+    if (!newSong.title.trim()) {
+      alert("Please enter a song title.");
+      return;
+    }
+
+    if (!editingSongId && !newSong.audioUrl && !newSongFiles.audioFile) {
+      alert("Please upload an audio file for a new song.");
+      return;
+    }
 
     try {
       setIsUploading(true);
 
-      let uploadedCoverUrl = newSong.coverUrl;
-      let uploadedAudioUrl = newSong.audioUrl;
+      let uploadedCoverUrl = editingOriginalSong?.coverUrl || newSong.coverUrl || "";
+      let uploadedAudioUrl = editingOriginalSong?.audioUrl || newSong.audioUrl || "";
 
       if (newSongFiles.coverFile) {
         uploadedCoverUrl = await uploadFileToCloudflare(newSongFiles.coverFile);
@@ -1461,50 +1480,64 @@ function cancelEditSong() {
       }
 
       const item = normalizeSong({
-        id: `song-${Date.now()}`,
+        id: editingSongId || makeSongId(),
         title: newSong.title.trim(),
         artist: newSong.artist.trim() || "DJ-Buang",
         genre: newSong.genre.trim(),
         coverUrl: uploadedCoverUrl,
         audioUrl: uploadedAudioUrl,
         lyrics: newSong.lyrics.trim(),
-        likes: 0,
+        likes: editingOriginalSong?.likes || 0,
         featured: !!newSong.featured,
         visibility: newSong.visibility,
-        createdAt: new Date().toISOString(),
-        status: "published",
+        createdAt: editingOriginalSong?.createdAt || new Date().toISOString(),
+        status: editingOriginalSong?.status || "published",
       });
 
       await saveSongToCloudflare(item);
-      setSongs((prev) => [item, ...prev]);
 
-      setNewSong({
-        title: "",
-        artist: "DJ-Buang",
-        genre: "",
-        coverUrl: "",
-        audioUrl: "",
-        lyrics: "",
-        featured: false,
-        visibility: "public",
-      });
-      setNewSongFiles({
-        coverFile: null,
-        audioFile: null,
-      });
+      if (editingSongId) {
+        setSongs((prev) =>
+          prev.map((song) => (song.id === editingSongId ? item : song))
+        );
 
-      alert("Song uploaded!");
+        await autoCleanReplacedFiles({
+          oldSong: editingOriginalSong,
+          newCoverUrl: uploadedCoverUrl,
+          newAudioUrl: uploadedAudioUrl,
+        });
+
+        alert("Song updated!");
+      } else {
+        setSongs((prev) => [item, ...prev]);
+        alert("Song uploaded!");
+      }
+
+      resetSongForm();
     } catch (error) {
-      alert(error.message || "Upload failed");
+      alert(error.message || "Save failed");
     } finally {
       setIsUploading(false);
     }
   };
 
   const handleDeleteSong = async (id) => {
+    const songToDelete = songs.find((song) => song.id === id);
+    if (!songToDelete) return;
+
+    const confirmed = window.confirm(`Delete "${songToDelete.title}"?`);
+    if (!confirmed) return;
+
     try {
       await deleteSongFromCloudflare(id);
+
       setSongs((prev) => prev.filter((song) => song.id !== id));
+
+      await autoCleanDeletedSongFiles(songToDelete);
+
+      if (editingSongId === id) {
+        resetSongForm();
+      }
 
       if (playerSong?.id === id) {
         const audio = audioRef.current;
@@ -2432,7 +2465,31 @@ Thanks for the request!
               </div>
             </Panel>
 
-            <Panel title="Admin Upload Panel" subtitle="Add a new song to the collection.">
+            <Panel
+              title={editingSongId ? "Edit Song" : "Admin Upload Panel"}
+              subtitle={
+                editingSongId
+                  ? "Update song details or replace cover/audio files."
+                  : "Add a new song to the collection."
+              }
+            >
+              {editingSongId && editingOriginalSong ? (
+                <div
+                  style={{
+                    marginBottom: 16,
+                    padding: 14,
+                    borderRadius: 16,
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                  }}
+                >
+                  <strong>Editing:</strong> {editingOriginalSong.title}
+                  <div style={{ marginTop: 6, color: "rgba(255,255,255,0.68)", fontSize: 14 }}>
+                    Leave cover/audio empty if you want to keep the current files.
+                  </div>
+                </div>
+              ) : null}
+
               <form
                 onSubmit={handleAddSong}
                 style={{
@@ -2477,9 +2534,9 @@ Thanks for the request!
                     Upload cover image
                   </div>
                   <input
-  id="song-cover-input"
-  type="file"
-  accept="image/*"
+                    id="song-cover-input"
+                    type="file"
+                    accept="image/*"
                     onChange={(e) =>
                       setNewSongFiles((prev) => ({
                         ...prev,
@@ -2506,9 +2563,9 @@ Thanks for the request!
                     Upload MP3 song
                   </div>
                   <input
-  id="song-audio-input"
-  type="file"
-  accept="audio/*"
+                    id="song-audio-input"
+                    type="file"
+                    accept="audio/*"
                     onChange={(e) =>
                       setNewSongFiles((prev) => ({
                         ...prev,
@@ -2561,10 +2618,22 @@ Thanks for the request!
                   />
                 </div>
 
-                <div style={{ gridColumn: "1 / -1" }}>
+                <div style={{ gridColumn: "1 / -1", display: "flex", gap: 12, flexWrap: "wrap" }}>
                   <Button type="submit" variant="primary" disabled={isUploading}>
-                    {isUploading ? "Uploading..." : "Upload Song"}
+                    {isUploading
+                      ? editingSongId
+                        ? "Saving..."
+                        : "Uploading..."
+                      : editingSongId
+                      ? "Save Changes"
+                      : "Upload Song"}
                   </Button>
+
+                  {editingSongId ? (
+                    <Button type="button" variant="secondary" onClick={cancelEditSong}>
+                      Cancel Edit
+                    </Button>
+                  ) : null}
                 </div>
               </form>
             </Panel>
@@ -2573,17 +2642,17 @@ Thanks for the request!
               <div style={{ display: "grid", gap: 12 }}>
                 {adminSongs.length > 0 ? (
                   adminSongs.map((song) => (
-                   <SongRow
-  key={song.id}
-  song={song}
-  isAdmin
-  onOpenPlayer={openSongPlayer}
-  onDownloadSong={downloadSong}
-  onDownloadLyrics={downloadLyrics}
-  onDelete={handleDeleteSong}
-  onCopyLink={copySongLink}
-  onEdit={startEditSong}
-/>
+                    <SongRow
+                      key={song.id}
+                      song={song}
+                      isAdmin
+                      onOpenPlayer={openSongPlayer}
+                      onDownloadSong={downloadSong}
+                      onDownloadLyrics={downloadLyrics}
+                      onDelete={handleDeleteSong}
+                      onCopyLink={copySongLink}
+                      onEdit={startEditSong}
+                    />
                   ))
                 ) : (
                   <div style={{ color: "rgba(255,255,255,0.72)" }}>No songs uploaded yet.</div>
@@ -2745,7 +2814,7 @@ Thanks for the request!
                                 fontWeight: 600,
                               }}
                             >
-                              Linked song:{" "}
+                              Linked song{" "}
                               {req.linkedSongId ? (
                                 <span
                                   onClick={() => {
