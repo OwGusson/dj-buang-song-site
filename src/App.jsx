@@ -1689,13 +1689,35 @@ Thanks for the request!
                   </div>
                 </div>
 
-                <Button
-                  variant="secondary"
-                  onClick={() => setView(adminLoggedIn ? "admin" : "login")}
-                  style={{ minWidth: 110 }}
-                >
-                  🔒 Admin
-                </Button>
+                <div
+  style={{
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-end",
+    gap: 18,
+    minWidth: isMobile ? "100%" : 260,
+  }}
+>
+  <Button
+    variant="secondary"
+    onClick={() => setView(adminLoggedIn ? "admin" : "login")}
+    style={{ minWidth: 110 }}
+  >
+    🔒 Admin
+  </Button>
+
+  <img
+    src="/dj-buang-logo.png"
+    alt="DJ-BUANG logo"
+    style={{
+      width: isMobile ? "100%" : 240,
+      maxWidth: "100%",
+      height: "auto",
+      objectFit: "contain",
+      filter: "drop-shadow(0 10px 30px rgba(123, 92, 255, 0.45))",
+    }}
+  />
+</div>
               </div>
             </section>
 
