@@ -1,117 +1,124 @@
-// songs.js
-
-export const STORAGE_KEYS = {
-  songs: "djbuang_songs",
-};
-
-export function getStoredSongs() {
+export async function onRequestGet(context) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.songs);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
+    const { env } = context;
 
-export function setStoredSongs(songs) {
-  localStorage.setItem(STORAGE_KEYS.songs, JSON.stringify(songs));
-}
+    const existing = await env.DJBUANG_DATA.get("songs");
+    const songs = existing ? JSON.parse(existing) : [];
 
-export function makeSongId() {
-  return `song-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-export function isCloudflareFileUrl(url = "") {
-  if (!url) return false;
-  return (
-    url.includes("dj-buang.com/files/") ||
-    url.includes("/files/")
-  );
-}
-
-export function extractFilePathFromUrl(url = "") {
-  if (!url) return "";
-  try {
-    const parsed = new URL(url);
-    return parsed.pathname || "";
-  } catch {
-    return "";
-  }
-}
-
-export async function uploadFile(file) {
-  if (!file) return "";
-
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const res = await fetch("/api/upload", {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!res.ok) {
-    throw new Error("Upload failed");
-  }
-
-  const data = await res.json();
-  return data?.url || "";
-}
-
-export async function deleteStorageFileByUrl(url) {
-  if (!url || !isCloudflareFileUrl(url)) return;
-
-  try {
-    await fetch("/api/delete-file", {
-      method: "POST",
+    return new Response(JSON.stringify(songs), {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ url }),
     });
   } catch (error) {
-    console.error("Failed to delete file:", url, error);
+    return new Response(
+      JSON.stringify({ error: error.message || "Failed to load songs" }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
   }
 }
 
-export async function autoCleanReplacedFiles({
-  oldSong,
-  newCoverUrl,
-  newAudioUrl,
-}) {
-  const deleteJobs = [];
+export async function onRequestPost(context) {
+  try {
+    const { request, env } = context;
+    const body = await request.json();
 
-  if (
-    oldSong?.coverUrl &&
-    newCoverUrl &&
-    oldSong.coverUrl !== newCoverUrl &&
-    isCloudflareFileUrl(oldSong.coverUrl)
-  ) {
-    deleteJobs.push(deleteStorageFileByUrl(oldSong.coverUrl));
+    if (!body?.id) {
+      return new Response(JSON.stringify({ error: "Song id is required" }), {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    }
+
+    const existing = await env.DJBUANG_DATA.get("songs");
+    const songs = existing ? JSON.parse(existing) : [];
+
+    const index = songs.findIndex((song) => song.id === body.id);
+
+    if (index >= 0) {
+      songs[index] = {
+        ...songs[index],
+        ...body,
+      };
+    } else {
+      songs.unshift(body);
+    }
+
+    await env.DJBUANG_DATA.put("songs", JSON.stringify(songs));
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        updated: index >= 0,
+        song: body,
+      }),
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: error.message || "Failed to save song" }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
   }
-
-  if (
-    oldSong?.audioUrl &&
-    newAudioUrl &&
-    oldSong.audioUrl !== newAudioUrl &&
-    isCloudflareFileUrl(oldSong.audioUrl)
-  ) {
-    deleteJobs.push(deleteStorageFileByUrl(oldSong.audioUrl));
-  }
-
-  await Promise.allSettled(deleteJobs);
 }
 
-export async function autoCleanDeletedSongFiles(song) {
-  const deleteJobs = [];
+export async function onRequestDelete(context) {
+  try {
+    const { request, env } = context;
+    const url = new URL(request.url);
+    const songId = url.searchParams.get("id");
 
-  if (song?.coverUrl && isCloudflareFileUrl(song.coverUrl)) {
-    deleteJobs.push(deleteStorageFileByUrl(song.coverUrl));
+    if (!songId) {
+      return new Response(JSON.stringify({ error: "Song id is required" }), {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    }
+
+    const existing = await env.DJBUANG_DATA.get("songs");
+    const songs = existing ? JSON.parse(existing) : [];
+
+    const filtered = songs.filter((song) => song.id !== songId);
+
+    await env.DJBUANG_DATA.put("songs", JSON.stringify(filtered));
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+      }),
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: error.message || "Failed to delete song" }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
   }
-
-  if (song?.audioUrl && isCloudflareFileUrl(song.audioUrl)) {
-    deleteJobs.push(deleteStorageFileByUrl(song.audioUrl));
-  }
-
-  await Promise.allSettled(deleteJobs);
 }
