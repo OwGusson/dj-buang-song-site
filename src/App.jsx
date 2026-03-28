@@ -1694,7 +1694,8 @@ Thanks for the request!
     display: "flex",
     flexDirection: "column",
     alignItems: "flex-end",
-    gap: 18,
+gap: 24,
+marginTop: 6,
     minWidth: isMobile ? "100%" : 260,
   }}
 >
