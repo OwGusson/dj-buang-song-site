@@ -13,7 +13,6 @@ const STORAGE_KEYS = {
 };
 
 const PAYPAL_URL = "https://www.paypal.com/donate/?hosted_button_id=DWL7PTXG7BQ9A";
-
 const DEFAULT_SONGS = [];
 
 function getStored(key, fallback) {
@@ -97,6 +96,16 @@ function formatTime(seconds) {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${String(secs).padStart(2, "0")}`;
+}
+
+function getFileNameFromUrl(url = "") {
+  try {
+    const parsed = new URL(url);
+    const parts = parsed.pathname.split("/");
+    return decodeURIComponent(parts[parts.length - 1] || "");
+  } catch {
+    return "";
+  }
 }
 
 function shellCardStyle(extra = {}) {
@@ -413,6 +422,17 @@ function SongRow({
 
           {isAdmin ? (
             <>
+              <Button
+                variant="secondary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenPlayer(song);
+                }}
+                style={{ padding: "9px 14px", fontSize: 14 }}
+              >
+                Open
+              </Button>
+
               <Button
                 variant="secondary"
                 onClick={(e) => {
@@ -1377,7 +1397,6 @@ function App() {
       if (a.status !== b.status) {
         return a.status === "pending" ? -1 : 1;
       }
-
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
@@ -1530,9 +1549,7 @@ function App() {
 
     try {
       await deleteSongFromCloudflare(id);
-
       setSongs((prev) => prev.filter((song) => song.id !== id));
-
       await autoCleanDeletedSongFiles(songToDelete);
 
       if (editingSongId === id) {
@@ -1858,7 +1875,6 @@ Thanks for the request!
     if (!audio) return;
 
     const sameSong = playerSong?.id === song.id;
-
     setPlayerSong(song);
     setPlayerMinimized(false);
 
@@ -1894,13 +1910,8 @@ Thanks for the request!
     setIsPlaying(false);
   };
 
-  const minimizePlayer = () => {
-    setPlayerMinimized(true);
-  };
-
-  const expandPlayer = () => {
-    setPlayerMinimized(false);
-  };
+  const minimizePlayer = () => setPlayerMinimized(true);
+  const expandPlayer = () => setPlayerMinimized(false);
 
   const handlePlayPause = async () => {
     const audio = audioRef.current;
@@ -1977,6 +1988,10 @@ Thanks for the request!
     }
     downloadTextFile(`${song.title}-lyrics.txt`, song.lyrics);
   };
+
+  const currentAudioName = editingOriginalSong?.audioUrl
+    ? getFileNameFromUrl(editingOriginalSong.audioUrl)
+    : "";
 
   return (
     <div
@@ -2254,10 +2269,7 @@ Thanks for the request!
         )}
 
         {view === "request" && (
-          <Panel
-            title="Song Request"
-            subtitle="Send a request and it will show up in the admin panel."
-          >
+          <Panel title="Song Request" subtitle="Send a request and it will show up in the admin panel.">
             {requestSent && (
               <div
                 style={{
@@ -2270,7 +2282,6 @@ Thanks for the request!
                 }}
               >
                 <strong>🎶 Request received!</strong>
-
                 <div style={{ marginTop: 6, lineHeight: 1.5 }}>
                   Thanks for sending a request.
                   <br />
@@ -2283,36 +2294,28 @@ Thanks for the request!
               <Input
                 label="Name"
                 value={requestForm.name}
-                onChange={(e) =>
-                  setRequestForm((prev) => ({ ...prev, name: e.target.value }))
-                }
+                onChange={(e) => setRequestForm((prev) => ({ ...prev, name: e.target.value }))}
                 placeholder="Your name"
               />
 
               <Input
                 label="Song title / idea"
                 value={requestForm.title}
-                onChange={(e) =>
-                  setRequestForm((prev) => ({ ...prev, title: e.target.value }))
-                }
+                onChange={(e) => setRequestForm((prev) => ({ ...prev, title: e.target.value }))}
                 placeholder="Epic lobby anthem"
               />
 
               <TextArea
                 label="Details"
                 value={requestForm.details}
-                onChange={(e) =>
-                  setRequestForm((prev) => ({ ...prev, details: e.target.value }))
-                }
+                onChange={(e) => setRequestForm((prev) => ({ ...prev, details: e.target.value }))}
                 placeholder="Names, mood, style, references..."
               />
 
               <Select
                 label="Do you want this song to be public on this site or sent to you privately?"
                 value={requestForm.delivery}
-                onChange={(e) =>
-                  setRequestForm((prev) => ({ ...prev, delivery: e.target.value }))
-                }
+                onChange={(e) => setRequestForm((prev) => ({ ...prev, delivery: e.target.value }))}
               >
                 <option value="public" style={{ color: "black" }}>
                   Public on the site
@@ -2326,9 +2329,7 @@ Thanks for the request!
                 label="E-mail"
                 type="email"
                 value={requestForm.email}
-                onChange={(e) =>
-                  setRequestForm((prev) => ({ ...prev, email: e.target.value }))
-                }
+                onChange={(e) => setRequestForm((prev) => ({ ...prev, email: e.target.value }))}
                 placeholder="Optional if you want to be notified"
               />
 
@@ -2343,9 +2344,7 @@ Thanks for the request!
                 <input
                   type="checkbox"
                   checked={requestForm.notify}
-                  onChange={(e) =>
-                    setRequestForm((prev) => ({ ...prev, notify: e.target.checked }))
-                  }
+                  onChange={(e) => setRequestForm((prev) => ({ ...prev, notify: e.target.checked }))}
                 />
                 Notify me if the song is ready
               </label>
@@ -2370,25 +2369,18 @@ Thanks for the request!
         )}
 
         {view === "message" && (
-          <Panel
-            title="Private Message"
-            subtitle="This goes to a separate private admin area."
-          >
+          <Panel title="Private Message" subtitle="This goes to a separate private admin area.">
             <form onSubmit={handleMessageSubmit} style={{ display: "grid", gap: 16, maxWidth: 760 }}>
               <Input
                 label="Your name"
                 value={messageForm.from}
-                onChange={(e) =>
-                  setMessageForm((prev) => ({ ...prev, from: e.target.value }))
-                }
+                onChange={(e) => setMessageForm((prev) => ({ ...prev, from: e.target.value }))}
                 placeholder="Your name"
               />
               <TextArea
                 label="Message"
                 value={messageForm.message}
-                onChange={(e) =>
-                  setMessageForm((prev) => ({ ...prev, message: e.target.value }))
-                }
+                onChange={(e) => setMessageForm((prev) => ({ ...prev, message: e.target.value }))}
                 placeholder="Write your message here..."
               />
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -2469,23 +2461,99 @@ Thanks for the request!
               title={editingSongId ? "Edit Song" : "Admin Upload Panel"}
               subtitle={
                 editingSongId
-                  ? "Update song details or replace cover/audio files."
+                  ? "Update details, keep current files, or replace only what you want."
                   : "Add a new song to the collection."
               }
             >
               {editingSongId && editingOriginalSong ? (
                 <div
                   style={{
-                    marginBottom: 16,
-                    padding: 14,
-                    borderRadius: 16,
+                    marginBottom: 18,
+                    padding: 16,
+                    borderRadius: 18,
                     background: "rgba(255,255,255,0.06)",
                     border: "1px solid rgba(255,255,255,0.10)",
+                    display: "grid",
+                    gap: 14,
                   }}
                 >
-                  <strong>Editing:</strong> {editingOriginalSong.title}
-                  <div style={{ marginTop: 6, color: "rgba(255,255,255,0.68)", fontSize: 14 }}>
-                    Leave cover/audio empty if you want to keep the current files.
+                  <div>
+                    <strong>Editing:</strong> {editingOriginalSong.title}
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: isMobile ? "1fr" : "140px 1fr",
+                      gap: 14,
+                      alignItems: "start",
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 13, color: "rgba(255,255,255,0.68)", marginBottom: 8 }}>
+                        Current cover
+                      </div>
+                      <div
+                        style={{
+                          width: isMobile ? 120 : 140,
+                          height: isMobile ? 120 : 140,
+                          borderRadius: 16,
+                          overflow: "hidden",
+                          background: "rgba(255,255,255,0.05)",
+                          border: "1px solid rgba(255,255,255,0.10)",
+                          display: "grid",
+                          placeItems: "center",
+                        }}
+                      >
+                        {editingOriginalSong.coverUrl ? (
+                          <img
+                            src={editingOriginalSong.coverUrl}
+                            alt={editingOriginalSong.title}
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          />
+                        ) : (
+                          <span style={{ fontSize: 30 }}>🎧</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gap: 10 }}>
+                      <div
+                        style={{
+                          padding: 12,
+                          borderRadius: 14,
+                          background: "rgba(10,15,28,0.45)",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                        }}
+                      >
+                        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.68)", marginBottom: 6 }}>
+                          Current cover status
+                        </div>
+                        <div>{editingOriginalSong.coverUrl ? "✅ Cover uploaded" : "— No cover uploaded"}</div>
+                      </div>
+
+                      <div
+                        style={{
+                          padding: 12,
+                          borderRadius: 14,
+                          background: "rgba(10,15,28,0.45)",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                        }}
+                      >
+                        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.68)", marginBottom: 6 }}>
+                          Current audio
+                        </div>
+                        <div>
+                          {editingOriginalSong.audioUrl
+                            ? `✅ ${currentAudioName || "Audio uploaded"}`
+                            : "— No audio uploaded"}
+                        </div>
+                      </div>
+
+                      <div style={{ fontSize: 13, color: "rgba(255,255,255,0.68)" }}>
+                        Leave the file inputs empty to keep the current cover and audio.
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : null}
@@ -2531,7 +2599,7 @@ Thanks for the request!
 
                 <div>
                   <div style={{ marginBottom: 8, fontSize: 14, color: "rgba(255,255,255,0.82)" }}>
-                    Upload cover image
+                    {editingSongId ? "Replace cover image (optional)" : "Upload cover image"}
                   </div>
                   <input
                     id="song-cover-input"
@@ -2554,13 +2622,15 @@ Thanks for the request!
                     }}
                   />
                   <div style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.58)" }}>
-                    Image will upload to Cloudflare storage.
+                    {editingSongId
+                      ? "Only choose a new image if you want to replace the current cover."
+                      : "Image will upload to Cloudflare storage."}
                   </div>
                 </div>
 
                 <div>
                   <div style={{ marginBottom: 8, fontSize: 14, color: "rgba(255,255,255,0.82)" }}>
-                    Upload MP3 song
+                    {editingSongId ? "Replace MP3 song (optional)" : "Upload MP3 song"}
                   </div>
                   <input
                     id="song-audio-input"
@@ -2583,7 +2653,9 @@ Thanks for the request!
                     }}
                   />
                   <div style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.58)" }}>
-                    MP3 will upload to Cloudflare storage.
+                    {editingSongId
+                      ? "Only choose a new audio file if you want to replace the current song."
+                      : "MP3 will upload to Cloudflare storage."}
                   </div>
                 </div>
 
@@ -2599,9 +2671,7 @@ Thanks for the request!
                   <input
                     type="checkbox"
                     checked={newSong.featured}
-                    onChange={(e) =>
-                      setNewSong((p) => ({ ...p, featured: e.target.checked }))
-                    }
+                    onChange={(e) => setNewSong((p) => ({ ...p, featured: e.target.checked }))}
                   />
                   Featured song
                 </label>
@@ -2610,9 +2680,7 @@ Thanks for the request!
                   <TextArea
                     label="Lyrics"
                     value={newSong.lyrics}
-                    onChange={(e) =>
-                      setNewSong((p) => ({ ...p, lyrics: e.target.value }))
-                    }
+                    onChange={(e) => setNewSong((p) => ({ ...p, lyrics: e.target.value }))}
                     placeholder="Paste lyrics here..."
                     style={{ minHeight: 180 }}
                   />
