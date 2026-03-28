@@ -1,3 +1,21 @@
+function getFileKeyFromUrl(fileUrl) {
+  if (!fileUrl || typeof fileUrl !== "string") return null;
+
+  try {
+    const url = new URL(fileUrl);
+
+    const marker = "/files/";
+    const index = url.pathname.indexOf(marker);
+
+    if (index === -1) return null;
+
+    const key = url.pathname.slice(index + marker.length);
+    return decodeURIComponent(key);
+  } catch {
+    return null;
+  }
+}
+
 export async function onRequestGet(context) {
   try {
     const object = await context.env.FILES.get("data/songs.json");
@@ -83,6 +101,26 @@ export async function onRequestDelete(context) {
       songs = text ? JSON.parse(text) : [];
     }
 
+    const songToDelete = songs.find((song) => song.id === id);
+
+    if (!songToDelete) {
+      return new Response(JSON.stringify({ error: "Song not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const coverKey = getFileKeyFromUrl(songToDelete.coverUrl);
+    const audioKey = getFileKeyFromUrl(songToDelete.audioUrl);
+
+    if (coverKey) {
+      await context.env.FILES.delete(coverKey);
+    }
+
+    if (audioKey) {
+      await context.env.FILES.delete(audioKey);
+    }
+
     const updatedSongs = songs.filter((song) => song.id !== id);
 
     await context.env.FILES.put(
@@ -95,9 +133,20 @@ export async function onRequestDelete(context) {
       }
     );
 
-    return new Response(JSON.stringify({ success: true, songs: updatedSongs }), {
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        deletedSongId: id,
+        deletedFiles: {
+          coverKey,
+          audioKey,
+        },
+        songs: updatedSongs,
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   } catch (error) {
     return new Response(
       JSON.stringify({ error: error.message || "Failed to delete song" }),
