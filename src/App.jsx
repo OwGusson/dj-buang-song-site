@@ -274,19 +274,19 @@ function Select({ label, children, ...props }) {
 function Badge({ children }) {
   return (
     <span
-  style={{
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    padding: "7px 12px",
-    borderRadius: 999,
-    background: "rgba(255,255,255,0.08)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    fontSize: 13,
-    color: "rgba(255,255,255,0.88)",
-    whiteSpace: "nowrap",
-  }}
->
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "7px 12px",
+        borderRadius: 999,
+        background: "rgba(255,255,255,0.08)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        fontSize: 13,
+        color: "rgba(255,255,255,0.88)",
+        whiteSpace: "nowrap",
+      }}
+    >
       {children}
     </span>
   );
@@ -799,32 +799,7 @@ function MiniPlayer({
                   marginTop: 2,
                 }}
               >
-                <div
-  style={{
-    fontWeight: 700,
-    fontSize: 15,
-    lineHeight: 1.2,
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  }}
->
-  {song.title}
-</div>
-
-<div
-  style={{
-    color: "rgba(255,255,255,0.68)",
-    fontSize: 13,
-    lineHeight: 1.2,
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    marginTop: 2,
-  }}
->
-  {song.artist} • {getSongTypeLabel(song)}
-</div>
+                {song.artist} • {getSongTypeLabel(song)}
               </div>
             </div>
 
@@ -1451,55 +1426,55 @@ function App() {
   );
 
   const filteredSongs = useMemo(() => {
-  let list = [...publicSongs];
+    let list = [...publicSongs];
 
-  if (search.trim()) {
-    const q = search.toLowerCase();
-    list = list.filter(
-      (song) =>
-        song.title.toLowerCase().includes(q) ||
-        song.artist.toLowerCase().includes(q) ||
-        (song.requestedBy || "").toLowerCase().includes(q)
-    );
-  }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (song) =>
+          song.title.toLowerCase().includes(q) ||
+          song.artist.toLowerCase().includes(q) ||
+          (song.requestedBy || "").toLowerCase().includes(q)
+      );
+    }
 
-  if (filterMode === "featured") {
-    list = list.filter((song) => song.featured);
-    list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  } else if (filterMode === "most-liked") {
-    list.sort((a, b) => {
-      if (!!b.featured !== !!a.featured) {
-        return b.featured ? 1 : -1;
-      }
-      return (b.likes || 0) - (a.likes || 0);
-    });
-  } else if (filterMode === "requested") {
-    list = list.filter((song) => isRequestedSong(song));
-    list.sort((a, b) => {
-      if (!!b.featured !== !!a.featured) {
-        return b.featured ? 1 : -1;
-      }
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
-  } else if (filterMode === "originals") {
-    list = list.filter((song) => isOriginalSong(song));
-    list.sort((a, b) => {
-      if (!!b.featured !== !!a.featured) {
-        return b.featured ? 1 : -1;
-      }
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
-  } else {
-    list.sort((a, b) => {
-      if (!!b.featured !== !!a.featured) {
-        return b.featured ? 1 : -1;
-      }
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
-  }
+    if (filterMode === "featured") {
+      list = list.filter((song) => song.featured);
+      list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else if (filterMode === "most-liked") {
+      list.sort((a, b) => {
+        if (!!b.featured !== !!a.featured) {
+          return b.featured ? 1 : -1;
+        }
+        return (b.likes || 0) - (a.likes || 0);
+      });
+    } else if (filterMode === "requested") {
+      list = list.filter((song) => isRequestedSong(song));
+      list.sort((a, b) => {
+        if (!!b.featured !== !!a.featured) {
+          return b.featured ? 1 : -1;
+        }
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+    } else if (filterMode === "originals") {
+      list = list.filter((song) => isOriginalSong(song));
+      list.sort((a, b) => {
+        if (!!b.featured !== !!a.featured) {
+          return b.featured ? 1 : -1;
+        }
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+    } else {
+      list.sort((a, b) => {
+        if (!!b.featured !== !!a.featured) {
+          return b.featured ? 1 : -1;
+        }
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+    }
 
-  return list;
-}, [publicSongs, search, filterMode]);
+    return list;
+  }, [publicSongs, search, filterMode]);
 
   const adminSongs = useMemo(() => {
     let list = [...songs].map(normalizeSong);
@@ -1893,51 +1868,51 @@ Thanks for the request!
   };
 
   const attachSongToRequest = async (requestId, songId) => {
-  const req = requests.find((item) => item.id === requestId);
-  if (!req) return;
+    const req = requests.find((item) => item.id === requestId);
+    if (!req) return;
 
-  const selectedSong = songs.find((song) => song.id === songId);
+    const selectedSong = songs.find((song) => song.id === songId);
 
-  const { error } = await supabase
-    .from("song_requests")
-    .update({ linked_song_id: songId })
-    .eq("id", requestId);
+    const { error } = await supabase
+      .from("song_requests")
+      .update({ linked_song_id: songId })
+      .eq("id", requestId);
 
-  if (error) {
-    alert("Could not attach song.");
-    console.error(error);
-    return;
-  }
+    if (error) {
+      alert("Could not attach song.");
+      console.error(error);
+      return;
+    }
 
-  setRequests((prev) =>
-    prev.map((item) =>
-      item.id === requestId ? { ...item, linkedSongId: songId } : item
-    )
-  );
-
-  if (!songId || !selectedSong) return;
-
-  const currentRequestedBy = (selectedSong.requestedBy || "").trim();
-  const requesterName = (req.name || "").trim();
-
-  if (currentRequestedBy || !requesterName) return;
-
-  const updatedSong = normalizeSong({
-    ...selectedSong,
-    requestedBy: requesterName,
-  });
-
-  try {
-    await saveSongToCloudflare(updatedSong);
-
-    setSongs((prev) =>
-      prev.map((song) => (song.id === songId ? updatedSong : song))
+    setRequests((prev) =>
+      prev.map((item) =>
+        item.id === requestId ? { ...item, linkedSongId: songId } : item
+      )
     );
-  } catch (saveError) {
-    console.error("Could not auto-fill requested by:", saveError);
-    alert("Song attached, but could not auto-fill Requested by.");
-  }
-};
+
+    if (!songId || !selectedSong) return;
+
+    const currentRequestedBy = (selectedSong.requestedBy || "").trim();
+    const requesterName = (req.name || "").trim();
+
+    if (currentRequestedBy || !requesterName) return;
+
+    const updatedSong = normalizeSong({
+      ...selectedSong,
+      requestedBy: requesterName,
+    });
+
+    try {
+      await saveSongToCloudflare(updatedSong);
+
+      setSongs((prev) =>
+        prev.map((song) => (song.id === songId ? updatedSong : song))
+      );
+    } catch (saveError) {
+      console.error("Could not auto-fill requested by:", saveError);
+      alert("Song attached, but could not auto-fill Requested by.");
+    }
+  };
 
   const deleteRequest = async (id) => {
     const confirmed = window.confirm("Are you sure you want to delete this request?");
@@ -2120,45 +2095,45 @@ Thanks for the request!
   };
 
   const handleToggleMute = () => {
-  if (isMuted || volume === 0) {
-    const restoreVolume = previousVolume > 0 ? previousVolume : 1;
-    setVolume(restoreVolume);
-    setIsMuted(false);
-  } else {
-    setPreviousVolume(volume);
-    setIsMuted(true);
-  }
-};
+    if (isMuted || volume === 0) {
+      const restoreVolume = previousVolume > 0 ? previousVolume : 1;
+      setVolume(restoreVolume);
+      setIsMuted(false);
+    } else {
+      setPreviousVolume(volume);
+      setIsMuted(true);
+    }
+  };
 
-const handleNextSong = () => {
-  if (!playerSong || filteredSongs.length === 0) return;
+  const handleNextSong = () => {
+    if (!playerSong || filteredSongs.length === 0) return;
 
-  const currentIndex = filteredSongs.findIndex(
-    (song) => song.id === playerSong.id
-  );
+    const currentIndex = filteredSongs.findIndex(
+      (song) => song.id === playerSong.id
+    );
 
-  if (currentIndex === -1) return;
+    if (currentIndex === -1) return;
 
-  const nextSong = filteredSongs[(currentIndex + 1) % filteredSongs.length];
-  openSongPlayer(nextSong);
-};
+    const nextSong = filteredSongs[(currentIndex + 1) % filteredSongs.length];
+    openSongPlayer(nextSong);
+  };
 
-const handlePreviousSong = () => {
-  if (!playerSong || filteredSongs.length === 0) return;
+  const handlePreviousSong = () => {
+    if (!playerSong || filteredSongs.length === 0) return;
 
-  const currentIndex = filteredSongs.findIndex(
-    (song) => song.id === playerSong.id
-  );
+    const currentIndex = filteredSongs.findIndex(
+      (song) => song.id === playerSong.id
+    );
 
-  if (currentIndex === -1) return;
+    if (currentIndex === -1) return;
 
-  const previousSong =
-    filteredSongs[
-      (currentIndex - 1 + filteredSongs.length) % filteredSongs.length
-    ];
+    const previousSong =
+      filteredSongs[
+        (currentIndex - 1 + filteredSongs.length) % filteredSongs.length
+      ];
 
-  openSongPlayer(previousSong);
-};
+    openSongPlayer(previousSong);
+  };
 
   const downloadTextFile = (filename, content) => {
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
@@ -2435,9 +2410,7 @@ const handlePreviousSong = () => {
                                 {getSongTypeLabel(song)}
                               </div>
                             </div>
-                            <Badge>
-  <span style={{ whiteSpace: "nowrap" }}>{song.likes} likes</span>
-</Badge>
+                            <Badge>{song.likes} likes</Badge>
                           </div>
                         </div>
                       ))
@@ -3304,21 +3277,21 @@ const handlePreviousSong = () => {
 
       {playerSong && playerMinimized ? (
         <MiniPlayer
-  song={playerSong}
-  onExpand={expandPlayer}
-  onClose={closePlayer}
-  onNext={handleNextSong}
-  onPrevious={handlePreviousSong}
-  isPlaying={isPlaying}
-  currentTime={playerCurrentTime}
-  duration={playerDuration}
-  volume={volume}
-  isMuted={isMuted}
-  onPlayPause={handlePlayPause}
-  onSeek={handleSeek}
-  onVolumeChange={handleVolumeChange}
-  onToggleMute={handleToggleMute}
-/>
+          song={playerSong}
+          onExpand={expandPlayer}
+          onClose={closePlayer}
+          onNext={handleNextSong}
+          onPrevious={handlePreviousSong}
+          isPlaying={isPlaying}
+          currentTime={playerCurrentTime}
+          duration={playerDuration}
+          volume={volume}
+          isMuted={isMuted}
+          onPlayPause={handlePlayPause}
+          onSeek={handleSeek}
+          onVolumeChange={handleVolumeChange}
+          onToggleMute={handleToggleMute}
+        />
       ) : null}
     </div>
   );
