@@ -927,6 +927,7 @@ function App() {
   });
 
   const [editingSongId, setEditingSongId] = useState(null);
+  const [hasUnsavedSongChanges, setHasUnsavedSongChanges] = useState(false);
   const [editingOriginalSong, setEditingOriginalSong] = useState(null);
 
   const [requests, setRequests] = useState([]);
@@ -1012,6 +1013,7 @@ function App() {
 
     setEditingSongId(null);
     setEditingOriginalSong(null);
+    setHasUnsavedSongChanges(false);
 
     const coverInput = document.getElementById("song-cover-input");
     const audioInput = document.getElementById("song-audio-input");
@@ -1021,6 +1023,17 @@ function App() {
   }
 
   function startEditSong(song) {
+    if (
+      editingSongId &&
+      hasUnsavedSongChanges &&
+      editingSongId !== song.id
+    ) {
+      const confirmed = window.confirm(
+        "You have unsaved changes. Switch songs and lose those changes?"
+      );
+      if (!confirmed) return;
+    }
+
     setEditingSongId(song.id);
     setEditingOriginalSong(song);
 
@@ -1039,6 +1052,8 @@ function App() {
       coverFile: null,
       audioFile: null,
     });
+
+    setHasUnsavedSongChanges(false);
 
     const coverInput = document.getElementById("song-cover-input");
     const audioInput = document.getElementById("song-audio-input");
@@ -1532,6 +1547,7 @@ function App() {
         alert("Song uploaded!");
       }
 
+      setHasUnsavedSongChanges(false);
       resetSongForm();
     } catch (error) {
       alert(error.message || "Save failed");
@@ -2553,6 +2569,12 @@ Thanks for the request!
                       <div style={{ fontSize: 13, color: "rgba(255,255,255,0.68)" }}>
                         Leave the file inputs empty to keep the current cover and audio.
                       </div>
+
+                      {hasUnsavedSongChanges ? (
+                        <div style={{ marginTop: 6, color: "#facc15", fontSize: 13, fontWeight: 600 }}>
+                          ⚠ You have unsaved changes
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -2569,25 +2591,37 @@ Thanks for the request!
                 <Input
                   label="Song title"
                   value={newSong.title}
-                  onChange={(e) => setNewSong((p) => ({ ...p, title: e.target.value }))}
+                  onChange={(e) => {
+                    setNewSong((p) => ({ ...p, title: e.target.value }));
+                    if (editingSongId) setHasUnsavedSongChanges(true);
+                  }}
                 />
 
                 <Input
                   label="Artist"
                   value={newSong.artist}
-                  onChange={(e) => setNewSong((p) => ({ ...p, artist: e.target.value }))}
+                  onChange={(e) => {
+                    setNewSong((p) => ({ ...p, artist: e.target.value }));
+                    if (editingSongId) setHasUnsavedSongChanges(true);
+                  }}
                 />
 
                 <Input
                   label="Genre"
                   value={newSong.genre}
-                  onChange={(e) => setNewSong((p) => ({ ...p, genre: e.target.value }))}
+                  onChange={(e) => {
+                    setNewSong((p) => ({ ...p, genre: e.target.value }));
+                    if (editingSongId) setHasUnsavedSongChanges(true);
+                  }}
                 />
 
                 <Select
                   label="Collection"
                   value={newSong.visibility}
-                  onChange={(e) => setNewSong((p) => ({ ...p, visibility: e.target.value }))}
+                  onChange={(e) => {
+                    setNewSong((p) => ({ ...p, visibility: e.target.value }));
+                    if (editingSongId) setHasUnsavedSongChanges(true);
+                  }}
                 >
                   <option value="public" style={{ color: "black" }}>
                     Main website / Public
@@ -2605,12 +2639,13 @@ Thanks for the request!
                     id="song-cover-input"
                     type="file"
                     accept="image/*"
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setNewSongFiles((prev) => ({
                         ...prev,
                         coverFile: e.target.files?.[0] || null,
-                      }))
-                    }
+                      }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
                     style={{
                       width: "100%",
                       padding: "12px 14px",
@@ -2636,12 +2671,13 @@ Thanks for the request!
                     id="song-audio-input"
                     type="file"
                     accept="audio/*"
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setNewSongFiles((prev) => ({
                         ...prev,
                         audioFile: e.target.files?.[0] || null,
-                      }))
-                    }
+                      }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
                     style={{
                       width: "100%",
                       padding: "12px 14px",
@@ -2671,7 +2707,10 @@ Thanks for the request!
                   <input
                     type="checkbox"
                     checked={newSong.featured}
-                    onChange={(e) => setNewSong((p) => ({ ...p, featured: e.target.checked }))}
+                    onChange={(e) => {
+                      setNewSong((p) => ({ ...p, featured: e.target.checked }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
                   />
                   Featured song
                 </label>
@@ -2680,7 +2719,10 @@ Thanks for the request!
                   <TextArea
                     label="Lyrics"
                     value={newSong.lyrics}
-                    onChange={(e) => setNewSong((p) => ({ ...p, lyrics: e.target.value }))}
+                    onChange={(e) => {
+                      setNewSong((p) => ({ ...p, lyrics: e.target.value }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
                     placeholder="Paste lyrics here..."
                     style={{ minHeight: 180 }}
                   />
