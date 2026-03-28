@@ -1239,21 +1239,21 @@ function App() {
   }
 
   const { data: refreshedLikeRow } = await supabase
-  .from("song_likes")
-  .select("*")
-  .eq("song_id", songId)
-  .single();
+    .from("song_likes")
+    .select("*")
+    .eq("song_id", songId)
+    .single();
 
-const finalLikes = Number(refreshedLikeRow?.likes || nextLikes);
+  const finalLikes = Number(refreshedLikeRow?.likes || nextLikes);
 
-setSongs((prev) =>
-  prev.map((song) =>
-    song.id === songId ? { ...song, likes: finalLikes } : song
-  )
-);
+  setSongs((prev) =>
+    prev.map((song) =>
+      song.id === songId ? { ...song, likes: finalLikes } : song
+    )
+  );
 
-localStorage.setItem(likedKey, "true");
-
+  localStorage.setItem(likedKey, "true");
+};
   const handleAdminLogin = async (e) => {
     e.preventDefault();
 
