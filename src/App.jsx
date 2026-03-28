@@ -1710,7 +1710,7 @@ Thanks for the request!
     src="/hero-logo.png"
     alt="DJ-BUANG logo"
     style={{
-      width: isMobile ? "100%" : 240,
+      width: isMobile ? "100%" : 300,
       maxWidth: "100%",
       height: "auto",
       objectFit: "contain",
