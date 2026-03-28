@@ -274,18 +274,19 @@ function Select({ label, children, ...props }) {
 function Badge({ children }) {
   return (
     <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "7px 12px",
-        borderRadius: 999,
-        background: "rgba(255,255,255,0.08)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        fontSize: 13,
-        color: "rgba(255,255,255,0.88)",
-      }}
-    >
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "7px 12px",
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    fontSize: 13,
+    color: "rgba(255,255,255,0.88)",
+    whiteSpace: "nowrap",
+  }}
+>
       {children}
     </span>
   );
@@ -2344,7 +2345,9 @@ Thanks for the request!
                                 {getSongTypeLabel(song)}
                               </div>
                             </div>
-                            <Badge>{song.likes} likes</Badge>
+                            <Badge>
+  <span style={{ whiteSpace: "nowrap" }}>{song.likes} likes</span>
+</Badge>
                           </div>
                         </div>
                       ))
