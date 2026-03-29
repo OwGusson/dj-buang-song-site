@@ -687,11 +687,7 @@ function AudioControls({
               value={isMuted ? 0 : volume}
               onChange={(e) => onVolumeChange(Number(e.target.value))}
               style={{
-                width: compact
-                  ? isMobile
-                    ? "150px"
-                    : "120px"
-                  : "180px",
+                width: compact ? (isMobile ? "150px" : "120px") : "180px",
               }}
             />
 
@@ -710,6 +706,7 @@ function AudioControls({
     </div>
   );
 }
+
 function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
   if (!request) return null;
 
@@ -1337,19 +1334,11 @@ function MiniPlayer({
             ⏭
           </Button>
 
-          <Button
-            variant="secondary"
-            onClick={onExpand}
-            style={{ padding: "7px 10px", fontSize: 13 }}
-          >
+          <Button variant="secondary" onClick={onExpand} style={{ padding: "7px 10px", fontSize: 13 }}>
             Expand
           </Button>
 
-          <Button
-            variant="secondary"
-            onClick={onClose}
-            style={{ padding: "7px 10px", fontSize: 13 }}
-          >
+          <Button variant="secondary" onClick={onClose} style={{ padding: "7px 10px", fontSize: 13 }}>
             Close
           </Button>
         </div>
@@ -1541,6 +1530,7 @@ function App() {
   const [requests, setRequests] = useState([]);
   const [messages, setMessages] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
+
   const [adminLoggedIn, setAdminLoggedIn] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEYS.admin) || "false");
@@ -1556,6 +1546,7 @@ function App() {
   const [filterMode, setFilterMode] = useState("all");
   const [requestFilter, setRequestFilter] = useState("all");
   const [adminSongFilter, setAdminSongFilter] = useState("all");
+
   const [playerSong, setPlayerSong] = useState(null);
   const [playerMinimized, setPlayerMinimized] = useState(false);
   const [playerCurrentTime, setPlayerCurrentTime] = useState(0);
@@ -1573,6 +1564,7 @@ function App() {
 
   const trackedOpenSongIdsRef = useRef(new Set());
   const lastTrackedPlaySongIdRef = useRef(null);
+  const shouldAutoplayOnSongChangeRef = useRef(false);
 
   const isMobile = windowWidth < 900;
   const audioRef = useRef(null);
@@ -1638,11 +1630,7 @@ function App() {
   }
 
   function startEditSong(song) {
-    if (
-      editingSongId &&
-      hasUnsavedSongChanges &&
-      editingSongId !== song.id
-    ) {
+    if (editingSongId && hasUnsavedSongChanges && editingSongId !== song.id) {
       const confirmed = window.confirm(
         "You have unsaved changes. Switch songs and lose those changes?"
       );
@@ -1745,7 +1733,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-    }, []);
+  }, []);
 
   useEffect(() => {
     async function loadRequestsAndMessages() {
@@ -1794,7 +1782,7 @@ function App() {
     }
 
     loadRequestsAndMessages();
-    }, []);
+  }, []);
 
   useEffect(() => {
     const requestsChannel = supabase
@@ -1913,7 +1901,7 @@ function App() {
       supabase.removeChannel(likesChannel);
       supabase.removeChannel(analyticsChannel);
     };
-    }, []);
+  }, []);
 
   useEffect(() => {
     try {
@@ -1946,7 +1934,7 @@ function App() {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-    }, []);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -2028,6 +2016,26 @@ function App() {
     audio.volume = isMuted ? 0 : volume;
     audio.muted = isMuted;
   }, [volume, isMuted]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !playerSong?.audioUrl) return;
+
+    audio.load();
+    setPlayerCurrentTime(0);
+    setPlayerDuration(0);
+
+    if (shouldAutoplayOnSongChangeRef.current) {
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch((error) => {
+          console.warn("Autoplay blocked:", error);
+        });
+      }
+    }
+
+    shouldAutoplayOnSongChangeRef.current = false;
+  }, [playerSong]);
 
   const publicSongs = useMemo(
     () =>
@@ -2475,7 +2483,7 @@ function App() {
     alert("Private message sent!");
   };
 
-    const toggleRequestStatus = async (id) => {
+  const toggleRequestStatus = async (id) => {
     const request = requests.find((r) => r.id === id);
     if (!request) return;
 
@@ -2503,7 +2511,7 @@ function App() {
       .from("song_requests")
       .update({
         linked_song_id: songId,
-        status: "done",
+        status: songId ? "done" : "pending",
       })
       .eq("id", requestId);
 
@@ -2515,7 +2523,7 @@ function App() {
     setRequests((prev) =>
       prev.map((r) =>
         r.id === requestId
-          ? { ...r, linkedSongId: songId, status: "done" }
+          ? { ...r, linkedSongId: songId, status: songId ? "done" : "pending" }
           : r
       )
     );
@@ -2571,6 +2579,7 @@ function App() {
     const next = publicSongs[index + 1];
     if (!next) return;
 
+    shouldAutoplayOnSongChangeRef.current = isPlaying;
     setPlayerSong(next);
     lastTrackedPlaySongIdRef.current = null;
   };
@@ -2582,6 +2591,7 @@ function App() {
     if (index <= 0) return;
 
     const prev = publicSongs[index - 1];
+    shouldAutoplayOnSongChangeRef.current = isPlaying;
     setPlayerSong(prev);
     lastTrackedPlaySongIdRef.current = null;
   };
@@ -2618,13 +2628,14 @@ function App() {
     setPlayerDuration(0);
     setIsPlaying(false);
     lastTrackedPlaySongIdRef.current = null;
+    shouldAutoplayOnSongChangeRef.current = false;
   };
 
   const handleMinimizePlayer = () => {
     setPlayerMinimized(true);
   };
 
-    const handleExpandPlayer = () => {
+  const handleExpandPlayer = () => {
     setPlayerMinimized(false);
   };
 
@@ -2646,7 +2657,7 @@ function App() {
 
     const a = document.createElement("a");
     a.href = song.audioUrl;
-    a.download = `${song.title || "song"}.mp3`;
+    a.download = getFileNameFromUrl(song.audioUrl) || `${song.title || "song"}.mp3`;
     a.click();
   };
 
@@ -2751,16 +2762,16 @@ function App() {
   };
 
   const copySongLink = async (songId) => {
-  const url = `${window.location.origin}${window.location.pathname}?song=${songId}`;
-  try {
-    await navigator.clipboard.writeText(url);
-    alert("Song link copied!");
-  } catch {
-    alert(url);
-  }
-};
+    const url = `${window.location.origin}${window.location.pathname}?song=${songId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      alert("Song link copied!");
+    } catch {
+      alert(url);
+    }
+  };
 
-return (
+  return (
     <div
       style={{
         minHeight: "100vh",
@@ -3154,6 +3165,7 @@ return (
                 <StatPill label="Total Likes" value={totalLikes} />
                 <StatPill label="Songs Uploaded" value={songs.length} />
                 <StatPill label="Pending Requests" value={pendingRequests} />
+                <StatPill label="Done Requests" value={doneRequests} />
                 <StatPill label="New Messages" value={newMessages} />
               </div>
             </Panel>
@@ -3370,7 +3382,21 @@ return (
               </div>
             </Panel>
 
-            <Panel title="Song Requests">
+            <Panel
+              title="Song Requests"
+              subtitle="Live requests with review popup and song linking."
+              right={
+                <div style={{ minWidth: 220 }}>
+                  <Select value={requestFilter} onChange={(e) => setRequestFilter(e.target.value)}>
+                    <option value="all" style={{ color: "black" }}>All requests</option>
+                    <option value="pending" style={{ color: "black" }}>Pending</option>
+                    <option value="done" style={{ color: "black" }}>Done</option>
+                    <option value="public" style={{ color: "black" }}>Public</option>
+                    <option value="private" style={{ color: "black" }}>Private</option>
+                  </Select>
+                </div>
+              }
+            >
               <div style={{ display: "grid", gap: 14 }}>
                 {filteredRequests.length === 0 ? (
                   <div style={{ color: "rgba(255,255,255,0.72)" }}>No requests yet.</div>
@@ -3390,7 +3416,9 @@ return (
                         <div style={{ color: "rgba(255,255,255,0.65)" }}>
                           by {req.name} • {timeAgo(req.createdAt)}
                         </div>
-                        <div>Status: {req.status}</div>
+                        <div style={{ color: "rgba(255,255,255,0.78)" }}>
+                          Status: {req.status} • Delivery: {req.delivery === "private" ? "Private" : "Public"}
+                        </div>
 
                         <Select
                           label="Attach uploaded song"
@@ -3408,6 +3436,13 @@ return (
                         </Select>
 
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                          <Button
+                            variant="secondary"
+                            onClick={() => setSelectedRequest(req)}
+                          >
+                            Review
+                          </Button>
+
                           <Button
                             variant={req.status === "done" ? "secondary" : "success"}
                             onClick={() => toggleRequestStatus(req.id)}
