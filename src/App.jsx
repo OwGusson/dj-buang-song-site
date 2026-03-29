@@ -2474,7 +2474,7 @@ function App() {
     setMessageForm({ from: "", message: "" });
     alert("Private message sent!");
   };
-  
+
     const toggleRequestStatus = async (id) => {
     const request = requests.find((r) => r.id === id);
     if (!request) return;
@@ -2751,16 +2751,16 @@ function App() {
   };
 
   const copySongLink = async (songId) => {
-    const url = `${window.location.origin}${window.location.pathname}?song=${songId}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      alert("Song link copied!");
-    } catch {
-      alert(url);
-    }
-  };
-  
-    return (
+  const url = `${window.location.origin}${window.location.pathname}?song=${songId}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    alert("Song link copied!");
+  } catch {
+    alert(url);
+  }
+};
+
+return (
     <div
       style={{
         minHeight: "100vh",
@@ -3505,4 +3505,4 @@ function App() {
   );
 }
 
-export default App; better?
+export default App;
