@@ -1745,7 +1745,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+    }, []);
 
   useEffect(() => {
     async function loadRequestsAndMessages() {
@@ -1794,8 +1794,9 @@ function App() {
     }
 
     loadRequestsAndMessages();
-  }, []);
-    useEffect(() => {
+    }, []);
+
+  useEffect(() => {
     const requestsChannel = supabase
       .channel("live-song-requests")
       .on(
@@ -1912,7 +1913,7 @@ function App() {
       supabase.removeChannel(likesChannel);
       supabase.removeChannel(analyticsChannel);
     };
-  }, []);
+    }, []);
 
   useEffect(() => {
     try {
@@ -1945,7 +1946,7 @@ function App() {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -2473,6 +2474,7 @@ function App() {
     setMessageForm({ from: "", message: "" });
     alert("Private message sent!");
   };
+  
     const toggleRequestStatus = async (id) => {
     const request = requests.find((r) => r.id === id);
     if (!request) return;
@@ -2622,96 +2624,885 @@ function App() {
     setPlayerMinimized(true);
   };
 
-  const handleExpandPlayer = () => {
+    const handleExpandPlayer = () => {
     setPlayerMinimized(false);
   };
 
-  return (
+  const downloadTextFile = (filename, content) => {
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadSong = (song) => {
+    if (!song.audioUrl) {
+      alert("No song file uploaded yet.");
+      return;
+    }
+
+    const a = document.createElement("a");
+    a.href = song.audioUrl;
+    a.download = `${song.title || "song"}.mp3`;
+    a.click();
+  };
+
+  const downloadLyrics = async (song) => {
+    if (!song.lyrics) {
+      alert("No lyrics added yet.");
+      return;
+    }
+
+    try {
+      const doc = new jsPDF({
+        orientation: "p",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const marginX = 18;
+      const contentWidth = pageWidth - marginX * 2;
+      const footerText = "Downloaded from www.DJ-BUANG.com";
+      const songType = getSongTypeLabel(song);
+
+      let y = 18;
+
+      try {
+        const logoData = await loadImageAsDataUrl("/hero-logo.png");
+        if (logoData) {
+          const logoWidth = 42;
+          const logoHeight = 22;
+          doc.addImage(
+            logoData,
+            "PNG",
+            (pageWidth - logoWidth) / 2,
+            y,
+            logoWidth,
+            logoHeight
+          );
+          y += 28;
+        }
+      } catch (logoError) {
+        console.warn("Could not add logo to PDF:", logoError);
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.text(song.title || "Untitled Song", pageWidth / 2, y, { align: "center" });
+      y += 10;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor(90, 90, 90);
+      doc.text(`Artist: ${song.artist || "DJ-Buang"}`, pageWidth / 2, y, { align: "center" });
+      y += 6;
+      doc.text(songType, pageWidth / 2, y, { align: "center" });
+      y += 10;
+
+      doc.setDrawColor(210, 210, 210);
+      doc.line(marginX, y, pageWidth - marginX, y);
+      y += 10;
+
+      doc.setTextColor(20, 20, 20);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+
+      const lyricsLines = doc.splitTextToSize(song.lyrics, contentWidth);
+
+      const addFooter = () => {
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(10);
+        doc.setTextColor(110, 110, 110);
+        doc.text(footerText, pageWidth / 2, pageHeight - 10, { align: "center" });
+      };
+
+      addFooter();
+
+      const lineHeight = 6.6;
+
+      for (let i = 0; i < lyricsLines.length; i += 1) {
+        if (y > pageHeight - 18) {
+          doc.addPage();
+          y = 20;
+          addFooter();
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(12);
+          doc.setTextColor(20, 20, 20);
+        }
+
+        doc.text(lyricsLines[i], marginX, y);
+        y += lineHeight;
+      }
+
+      const safeTitle = (song.title || "lyrics")
+        .replace(/[<>:"/\\|?*]+/g, "")
+        .trim();
+
+      doc.save(`${safeTitle}-lyrics.pdf`);
+    } catch (error) {
+      console.error("Could not create lyrics PDF:", error);
+      alert("Could not generate PDF.");
+    }
+  };
+
+  const copySongLink = async (songId) => {
+    const url = `${window.location.origin}${window.location.pathname}?song=${songId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      alert("Song link copied!");
+    } catch {
+      alert(url);
+    }
+  };
+  
+    return (
     <div
       style={{
         minHeight: "100vh",
-        background:
-          "radial-gradient(circle at top, #1e293b 0%, #020617 60%)",
         color: "white",
-        padding: isMobile ? 16 : 24,
+        background:
+          "radial-gradient(circle at top left, rgba(62,28,96,0.26), transparent 26%), radial-gradient(circle at top right, rgba(70,28,102,0.14), transparent 18%), linear-gradient(180deg, #04070f 0%, #070c18 52%, #090f1d 100%)",
+        fontFamily:
+          'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        paddingBottom: playerSong && playerMinimized ? (isMobile ? 240 : 180) : 0,
       }}
     >
-      <audio ref={audioRef} src={playerSong?.audioUrl || ""} />
+      <audio ref={audioRef} src={playerSong?.audioUrl || ""} preload="metadata" style={{ display: "none" }} />
 
-      {/* ADMIN ANALYTICS SUMMARY */}
-
-      {adminLoggedIn && view === "admin" && (
-        <div
-          style={{
-            marginBottom: 22,
-            display: "grid",
-            gap: 12,
-            gridTemplateColumns:
-              "repeat(auto-fit, minmax(180px, 1fr))",
-          }}
-        >
-          <StatPill label="Total Plays" value={totalPlays} />
-          <StatPill label="Total Opens" value={totalOpens} />
-          <StatPill label="Total Likes" value={totalLikes} />
-          <StatPill label="Pending Requests" value={pendingRequests} />
-          <StatPill label="Done Requests" value={doneRequests} />
-          <StatPill label="New Messages" value={newMessages} />
-        </div>
-      )}
-
-      {/* TOP PLAYED SONGS PANEL (ADMIN) */}
-
-      {adminLoggedIn && view === "admin" && (
-        <div style={{ marginBottom: 30 }}>
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: 18,
-              marginBottom: 10,
-            }}
-          >
-            Top Played Songs
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gap: 10,
-            }}
-          >
-            {topPlayedSongs.map((song) => (
+      <div style={{ maxWidth: 1250, margin: "0 auto", padding: "22px 18px 50px" }}>
+        {view === "home" && (
+          <div style={{ display: "grid", gap: 22 }}>
+            <section
+              style={{
+                ...shellCardStyle({
+                  padding: 34,
+                  background:
+                    "radial-gradient(circle at top right, rgba(92,40,140,0.18), transparent 22%), linear-gradient(180deg, rgba(5,8,18,0.98), rgba(7,11,22,0.98))",
+                }),
+              }}
+            >
               <div
-                key={song.id}
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: 10,
-                  borderRadius: 14,
-                  background: "rgba(8,12,24,0.6)",
+                  alignItems: "flex-start",
+                  gap: 18,
+                  flexWrap: "wrap",
                 }}
               >
-                <div>{song.title}</div>
+                <div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
+                    <Badge>DJ-Buang Official</Badge>
+                    <Badge>🎤 Mobile ready</Badge>
+                  </div>
+
+                  <h1
+                    style={{
+                      margin: 0,
+                      fontSize: "clamp(44px, 7vw, 74px)",
+                      lineHeight: 0.98,
+                      fontWeight: 900,
+                      letterSpacing: "-0.03em",
+                    }}
+                  >
+                    DJ-BUANG
+                  </h1>
+
+                  <p
+                    style={{
+                      maxWidth: 820,
+                      margin: "18px 0 0",
+                      fontSize: 18,
+                      lineHeight: 1.45,
+                      color: "rgba(255,255,255,0.76)",
+                    }}
+                  >
+                    I’m DJ-BUANG, also known as OwGusson — cooking up songs for the Date In Asia
+                    community, for friends, and sometimes for private requests too.
+                  </p>
+
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
+                    <Button variant="secondary" onClick={openPayPalDonation}>
+                      ♡ Support / Donate
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setRequestSent(false);
+                        setView("request");
+                      }}
+                    >
+                      🗒 Song Request
+                    </Button>
+                    <Button variant="secondary" onClick={() => setView("message")}>
+                      ✈ Private Message
+                    </Button>
+                  </div>
+                </div>
 
                 <div
                   style={{
-                    fontSize: 14,
-                    color: "#94a3b8",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-end",
+                    gap: 24,
+                    marginTop: 6,
+                    minWidth: isMobile ? "100%" : 260,
                   }}
                 >
-                  {song.plays} plays • {song.opens} opens
+                  <Button
+                    variant="secondary"
+                    onClick={() => setView(adminLoggedIn ? "admin" : "login")}
+                    style={{ minWidth: 110 }}
+                  >
+                    🔒 Admin
+                  </Button>
+
+                  <img
+                    src="/hero-logo.png"
+                    alt="DJ-BUANG logo"
+                    style={{
+                      width: isMobile ? "100%" : 300,
+                      maxWidth: "100%",
+                      height: "auto",
+                      objectFit: "contain",
+                      filter: "drop-shadow(0 10px 30px rgba(123, 92, 255, 0.35))",
+                    }}
+                  />
                 </div>
               </div>
-            ))}
+            </section>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile
+                  ? "1fr"
+                  : "minmax(0, 1.85fr) minmax(300px, 0.9fr)",
+                gap: 22,
+                alignItems: "start",
+              }}
+            >
+              <Panel
+                title={
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        letterSpacing: "0.35em",
+                        color: "rgba(255,255,255,0.62)",
+                        marginBottom: 10,
+                      }}
+                    >
+                      LIBRARY
+                    </div>
+                    <div style={{ fontSize: 28, fontWeight: 800 }}>Songs</div>
+                  </div>
+                }
+                subtitle="Mobile-friendly browsing with player preview and lyrics view."
+              >
+                <div style={{ display: "grid", gap: 14 }}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: isMobile ? "1fr" : "1fr 220px",
+                      gap: 12,
+                    }}
+                  >
+                    <Input
+                      placeholder="Search songs, requested by, or artist"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                    <Select value={filterMode} onChange={(e) => setFilterMode(e.target.value)}>
+                      <option value="all" style={{ color: "black" }}>All songs</option>
+                      <option value="featured" style={{ color: "black" }}>Featured</option>
+                      <option value="newest" style={{ color: "black" }}>Newest</option>
+                      <option value="most-liked" style={{ color: "black" }}>Most liked</option>
+                      <option value="requested" style={{ color: "black" }}>Requested songs</option>
+                      <option value="originals" style={{ color: "black" }}>DJ-BUANG originals</option>
+                    </Select>
+                  </div>
+
+                  <div style={{ display: "grid", gap: 14 }}>
+                    {filteredSongs.length > 0 ? (
+                      filteredSongs.map((song) => (
+                        <SongRow
+                          key={song.id}
+                          song={song}
+                          analytics={songAnalytics[song.id]}
+                          onLike={handleLikeSong}
+                          onOpenPlayer={handleOpenSong}
+                          onDownloadSong={downloadSong}
+                          onDownloadLyrics={downloadLyrics}
+                        />
+                      ))
+                    ) : (
+                      <div style={{ color: "rgba(255,255,255,0.70)" }}>No songs found yet.</div>
+                    )}
+                  </div>
+                </div>
+              </Panel>
+
+              <div style={{ display: "grid", gap: 22, alignContent: "start" }}>
+                <Panel title="♡ Top 3 Most Liked Songs" subtitle="The crowd favorites as they build up.">
+                  <div style={{ display: "grid", gap: 12 }}>
+                    {topLikedSongs.length > 0 ? (
+                      topLikedSongs.map((song, i) => (
+                        <div
+                          key={song.id}
+                          onClick={() => handleOpenSong(song)}
+                          style={{
+                            padding: 16,
+                            borderRadius: 18,
+                            background: "rgba(8,12,24,0.68)",
+                            border: "1px solid rgba(255,255,255,0.08)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 12,
+                              alignItems: "center",
+                            }}
+                          >
+                            <div>
+                              <div style={{ color: "rgba(255,255,255,0.56)", marginBottom: 6 }}>#{i + 1}</div>
+                              <div style={{ fontSize: 20, fontWeight: 700 }}>{song.title}</div>
+                              <div style={{ color: "rgba(255,255,255,0.70)", marginTop: 4 }}>
+                                {getSongTypeLabel(song)}
+                              </div>
+                            </div>
+                            <Badge>{song.likes} likes</Badge>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ color: "rgba(255,255,255,0.7)" }}>
+                        No likes yet — first listeners get the bragging rights.
+                      </div>
+                    )}
+                  </div>
+                </Panel>
+
+                <Panel title="◉ Connect" subtitle="Song requests, private messages, and support are open.">
+                  <div style={{ display: "grid", gap: 12 }}>
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        setRequestSent(false);
+                        setView("request");
+                      }}
+                    >
+                      🗒 Open Song Request Form
+                    </Button>
+                    <Button variant="secondary" onClick={() => setView("message")}>
+                      💬 Open Private Message Form
+                    </Button>
+                    <Button variant="secondary" onClick={openPayPalDonation}>
+                      ♡ Support on PayPal
+                    </Button>
+                  </div>
+                </Panel>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* EXISTING UI CONTINUES BELOW */}
+        {view === "request" && (
+          <Panel title="Song Request" subtitle="Send a request and it will show up in the admin panel.">
+            {requestSent && (
+              <div
+                style={{
+                  padding: 18,
+                  borderRadius: 18,
+                  background: "rgba(34,197,94,0.15)",
+                  border: "1px solid rgba(74,222,128,0.35)",
+                  marginBottom: 18,
+                  maxWidth: 760,
+                }}
+              >
+                <strong>🎶 Request received!</strong>
+                <div style={{ marginTop: 6, lineHeight: 1.5 }}>
+                  Thanks for sending a request.
+                </div>
+              </div>
+            )}
 
-      {/* (your existing layout remains unchanged) */}
+            <form onSubmit={handleRequestSubmit} style={{ display: "grid", gap: 16, maxWidth: 760 }}>
+              <Input
+                label="Name"
+                value={requestForm.name}
+                onChange={(e) => setRequestForm((prev) => ({ ...prev, name: e.target.value }))}
+              />
+              <Input
+                label="Song title / idea"
+                value={requestForm.title}
+                onChange={(e) => setRequestForm((prev) => ({ ...prev, title: e.target.value }))}
+              />
+              <TextArea
+                label="Details"
+                value={requestForm.details}
+                onChange={(e) => setRequestForm((prev) => ({ ...prev, details: e.target.value }))}
+              />
+              <Select
+                label="Delivery"
+                value={requestForm.delivery}
+                onChange={(e) => setRequestForm((prev) => ({ ...prev, delivery: e.target.value }))}
+              >
+                <option value="public" style={{ color: "black" }}>Public on the site</option>
+                <option value="private" style={{ color: "black" }}>Send to me privately</option>
+              </Select>
+              <Input
+                label="E-mail"
+                type="email"
+                value={requestForm.email}
+                onChange={(e) => setRequestForm((prev) => ({ ...prev, email: e.target.value }))}
+              />
+              <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={requestForm.notify}
+                  onChange={(e) => setRequestForm((prev) => ({ ...prev, notify: e.target.checked }))}
+                />
+                Notify me if the song is ready
+              </label>
+
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <Button type="submit" variant="primary">Send Request</Button>
+                <Button type="button" variant="secondary" onClick={() => setView("home")}>Back Home</Button>
+              </div>
+            </form>
+          </Panel>
+        )}
+
+        {view === "message" && (
+          <Panel title="Private Message" subtitle="This goes to a separate private admin area.">
+            <form onSubmit={handleMessageSubmit} style={{ display: "grid", gap: 16, maxWidth: 760 }}>
+              <Input
+                label="Your name"
+                value={messageForm.from}
+                onChange={(e) => setMessageForm((prev) => ({ ...prev, from: e.target.value }))}
+              />
+              <TextArea
+                label="Message"
+                value={messageForm.message}
+                onChange={(e) => setMessageForm((prev) => ({ ...prev, message: e.target.value }))}
+              />
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <Button type="submit" variant="primary">Send Message</Button>
+                <Button type="button" variant="secondary" onClick={() => setView("home")}>Back Home</Button>
+              </div>
+            </form>
+          </Panel>
+        )}
+
+        {view === "login" && !adminLoggedIn && (
+          <Panel title="Admin Login" subtitle="Use this to open the private admin dashboard.">
+            <form onSubmit={handleAdminLogin} style={{ display: "grid", gap: 16, maxWidth: 460 }}>
+              <Input
+                type="password"
+                label="Password"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+              />
+              {loginError ? (
+                <div
+                  style={{
+                    padding: 14,
+                    borderRadius: 16,
+                    background: "rgba(220,38,38,0.12)",
+                    border: "1px solid rgba(248,113,113,0.24)",
+                    color: "#fca5a5",
+                  }}
+                >
+                  {loginError}
+                </div>
+              ) : null}
+
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <Button type="submit" variant="primary">Login</Button>
+                <Button type="button" variant="secondary" onClick={() => setView("home")}>Back Home</Button>
+              </div>
+            </form>
+          </Panel>
+        )}
+
+        {view === "admin" && adminLoggedIn && (
+          <div style={{ display: "grid", gap: 22 }}>
+            <Panel
+              title="Admin Dashboard"
+              subtitle="Overview of requests, songs, likes, and analytics."
+              right={<Button variant="secondary" onClick={handleLogout}>Logout</Button>}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: 14,
+                }}
+              >
+                <StatPill label="Total Plays" value={totalPlays} />
+                <StatPill label="Total Opens" value={totalOpens} />
+                <StatPill label="Total Likes" value={totalLikes} />
+                <StatPill label="Songs Uploaded" value={songs.length} />
+                <StatPill label="Pending Requests" value={pendingRequests} />
+                <StatPill label="New Messages" value={newMessages} />
+              </div>
+            </Panel>
+
+            <Panel title="Top Played Songs" subtitle="Your most listened songs so far.">
+              <div style={{ display: "grid", gap: 10 }}>
+                {topPlayedSongs.map((song) => (
+                  <div
+                    key={song.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: 10,
+                      borderRadius: 14,
+                      background: "rgba(8,12,24,0.6)",
+                    }}
+                  >
+                    <div>{song.title}</div>
+                    <div style={{ fontSize: 14, color: "#94a3b8" }}>
+                      {song.plays} plays • {song.opens} opens
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+
+            <Panel title={editingSongId ? "Edit Song" : "Admin Upload Panel"}>
+              <form
+                onSubmit={handleAddSong}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                  gap: 16,
+                }}
+              >
+                <Input
+                  label="Song title"
+                  value={newSong.title}
+                  onChange={(e) => {
+                    setNewSong((p) => ({ ...p, title: e.target.value }));
+                    if (editingSongId) setHasUnsavedSongChanges(true);
+                  }}
+                />
+
+                <Input
+                  label="Artist"
+                  value={newSong.artist}
+                  onChange={(e) => {
+                    setNewSong((p) => ({ ...p, artist: e.target.value }));
+                    if (editingSongId) setHasUnsavedSongChanges(true);
+                  }}
+                />
+
+                <Input
+                  label="Requested by"
+                  value={newSong.requestedBy}
+                  onChange={(e) => {
+                    setNewSong((p) => ({ ...p, requestedBy: e.target.value }));
+                    if (editingSongId) setHasUnsavedSongChanges(true);
+                  }}
+                />
+
+                <Select
+                  label="Collection"
+                  value={newSong.visibility}
+                  onChange={(e) => {
+                    setNewSong((p) => ({ ...p, visibility: e.target.value }));
+                    if (editingSongId) setHasUnsavedSongChanges(true);
+                  }}
+                >
+                  <option value="public" style={{ color: "black" }}>Main website / Public</option>
+                  <option value="private" style={{ color: "black" }}>Private collection</option>
+                </Select>
+
+                <div>
+                  <div style={{ marginBottom: 8, fontSize: 14, color: "rgba(255,255,255,0.82)" }}>
+                    Upload cover image
+                  </div>
+                  <input
+                    id="song-cover-input"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      setNewSongFiles((prev) => ({
+                        ...prev,
+                        coverFile: e.target.files?.[0] || null,
+                      }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      borderRadius: 16,
+                      border: "1px solid rgba(255,255,255,0.10)",
+                      background: "rgba(8,12,24,0.64)",
+                      color: "white",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ marginBottom: 8, fontSize: 14, color: "rgba(255,255,255,0.82)" }}>
+                    Upload MP3 song
+                  </div>
+                  <input
+                    id="song-audio-input"
+                    type="file"
+                    accept="audio/*"
+                    onChange={(e) => {
+                      setNewSongFiles((prev) => ({
+                        ...prev,
+                        audioFile: e.target.files?.[0] || null,
+                      }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      borderRadius: 16,
+                      border: "1px solid rgba(255,255,255,0.10)",
+                      background: "rgba(8,12,24,0.64)",
+                      color: "white",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    paddingTop: 34,
+                    color: "rgba(255,255,255,0.85)",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={newSong.featured}
+                    onChange={(e) => {
+                      setNewSong((p) => ({ ...p, featured: e.target.checked }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
+                  />
+                  Featured song
+                </label>
+
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <TextArea
+                    label="Lyrics"
+                    value={newSong.lyrics}
+                    onChange={(e) => {
+                      setNewSong((p) => ({ ...p, lyrics: e.target.value }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
+                    style={{ minHeight: 180 }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: "1 / -1", display: "flex", gap: 12, flexWrap: "wrap" }}>
+                  <Button type="submit" variant="primary" disabled={isUploading}>
+                    {isUploading ? "Saving..." : editingSongId ? "Save Changes" : "Upload Song"}
+                  </Button>
+
+                  {editingSongId ? (
+                    <Button type="button" variant="secondary" onClick={cancelEditSong}>
+                      Cancel Edit
+                    </Button>
+                  ) : null}
+                </div>
+              </form>
+            </Panel>
+
+            <Panel
+              title="Song Library"
+              subtitle="Compact view of your uploaded songs, including private ones."
+              right={
+                <div style={{ minWidth: 220 }}>
+                  <Select value={adminSongFilter} onChange={(e) => setAdminSongFilter(e.target.value)}>
+                    <option value="all" style={{ color: "black" }}>All songs</option>
+                    <option value="public" style={{ color: "black" }}>Public songs</option>
+                    <option value="private" style={{ color: "black" }}>Private songs</option>
+                    <option value="requested" style={{ color: "black" }}>Requested songs</option>
+                    <option value="originals" style={{ color: "black" }}>Originals</option>
+                  </Select>
+                </div>
+              }
+            >
+              <div style={{ display: "grid", gap: 12 }}>
+                {adminSongs.length > 0 ? (
+                  adminSongs.map((song, index) => (
+                    <SongRow
+                      key={song.id}
+                      song={song}
+                      analytics={songAnalytics[song.id]}
+                      isAdmin
+                      onOpenPlayer={handleOpenSong}
+                      onDownloadSong={downloadSong}
+                      onDownloadLyrics={downloadLyrics}
+                      onDelete={handleDeleteSong}
+                      onCopyLink={copySongLink}
+                      onEdit={startEditSong}
+                      onMoveUp={(songId) => handleMoveSong(songId, "up")}
+                      onMoveDown={(songId) => handleMoveSong(songId, "down")}
+                      canMoveUp={index > 0 && !isReorderingSongs}
+                      canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
+                    />
+                  ))
+                ) : (
+                  <div style={{ color: "rgba(255,255,255,0.72)" }}>No songs uploaded yet.</div>
+                )}
+              </div>
+            </Panel>
+
+            <Panel title="Song Requests">
+              <div style={{ display: "grid", gap: 14 }}>
+                {filteredRequests.length === 0 ? (
+                  <div style={{ color: "rgba(255,255,255,0.72)" }}>No requests yet.</div>
+                ) : (
+                  filteredRequests.map((req) => (
+                    <div
+                      key={req.id}
+                      style={{
+                        padding: 16,
+                        borderRadius: 18,
+                        background: "rgba(8,12,24,0.68)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                      }}
+                    >
+                      <div style={{ display: "grid", gap: 10 }}>
+                        <strong>{req.title}</strong>
+                        <div style={{ color: "rgba(255,255,255,0.65)" }}>
+                          by {req.name} • {timeAgo(req.createdAt)}
+                        </div>
+                        <div>Status: {req.status}</div>
+
+                        <Select
+                          label="Attach uploaded song"
+                          value={req.linkedSongId || ""}
+                          onChange={(e) => linkSongToRequest(req.id, e.target.value)}
+                        >
+                          <option value="" style={{ color: "black" }}>Select a song</option>
+                          {ensureSongSortOrders(songs)
+                            .sort(compareSongsForDisplay)
+                            .map((song) => (
+                              <option key={song.id} value={song.id} style={{ color: "black" }}>
+                                {song.title} — {song.artist}
+                              </option>
+                            ))}
+                        </Select>
+
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                          <Button
+                            variant={req.status === "done" ? "secondary" : "success"}
+                            onClick={() => toggleRequestStatus(req.id)}
+                          >
+                            {req.status === "done" ? "Mark Pending" : "Mark Done"}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Panel>
+
+            <Panel title="Private Messages">
+              <div style={{ display: "grid", gap: 14 }}>
+                {messages.length === 0 ? (
+                  <div style={{ color: "rgba(255,255,255,0.72)" }}>No messages yet.</div>
+                ) : (
+                  messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      style={{
+                        padding: 16,
+                        borderRadius: 18,
+                        background: "rgba(8,12,24,0.68)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                      }}
+                    >
+                      <strong>{msg.from}</strong>
+                      <div style={{ color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+                        {formatDate(msg.createdAt)} • {msg.status}
+                      </div>
+                      <p style={{ margin: "14px 0 0", lineHeight: 1.55 }}>{msg.message}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Panel>
+          </div>
+        )}
+      </div>
+
+      {selectedRequest ? (
+        <RequestReviewModal
+          request={selectedRequest}
+          onClose={() => setSelectedRequest(null)}
+          songs={songs}
+          onOpenSong={handleOpenSong}
+        />
+      ) : null}
+
+      {playerSong && !playerMinimized ? (
+        <PlayerModal
+          song={playerSong}
+          onClose={handleClosePlayer}
+          onMinimize={handleMinimizePlayer}
+          onNext={handleNextSong}
+          onPrevious={handlePreviousSong}
+          isPlaying={isPlaying}
+          currentTime={playerCurrentTime}
+          duration={playerDuration}
+          volume={volume}
+          isMuted={isMuted}
+          onPlayPause={handlePlayPause}
+          onSeek={handleSeek}
+          onVolumeChange={handleVolumeChange}
+          onToggleMute={handleToggleMute}
+          isMobile={isMobile}
+        />
+      ) : null}
+
+      {playerSong && playerMinimized ? (
+        <MiniPlayer
+          song={playerSong}
+          onExpand={handleExpandPlayer}
+          onClose={handleClosePlayer}
+          onNext={handleNextSong}
+          onPrevious={handlePreviousSong}
+          isPlaying={isPlaying}
+          currentTime={playerCurrentTime}
+          duration={playerDuration}
+          volume={volume}
+          isMuted={isMuted}
+          onPlayPause={handlePlayPause}
+          onSeek={handleSeek}
+          onVolumeChange={handleVolumeChange}
+          onToggleMute={handleToggleMute}
+          isMobile={isMobile}
+          showVolumeSlider={showVolumeSlider}
+          onToggleVolumeSlider={() => setShowVolumeSlider((prev) => !prev)}
+        />
+      ) : null}
     </div>
   );
 }
 
-export default App;
+export default App; better?
