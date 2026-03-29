@@ -545,12 +545,12 @@ function SongRow({
           {isFeatured ? (
   <Badge
     style={{
-      background: "linear-gradient(135deg, #facc15, #f59e0b)",
-      color: "#111827",
-      border: "1px solid rgba(250,204,21,0.45)",
-      boxShadow: "0 4px 14px rgba(250,204,21,0.35)",
-      fontWeight: 800,
-    }}
+  background: "rgba(250,204,21,0.12)",
+  border: "1px solid rgba(250,204,21,0.25)",
+  color: "#fde68a",
+  fontWeight: 700,
+  backdropFilter: "blur(4px)",
+}}
   >
     ⭐ FEATURED
   </Badge>
@@ -559,12 +559,12 @@ function SongRow({
 {isNew ? (
   <Badge
     style={{
-      background: "linear-gradient(135deg, #60a5fa, #2563eb)",
-      color: "white",
-      border: "1px solid rgba(96,165,250,0.40)",
-      boxShadow: "0 4px 14px rgba(59,130,246,0.30)",
-      fontWeight: 800,
-    }}
+  background: "rgba(96,165,250,0.12)",
+  border: "1px solid rgba(96,165,250,0.28)",
+  color: "#bfdbfe",
+  fontWeight: 700,
+  backdropFilter: "blur(4px)",
+}}
   >
     🆕 NEW
   </Badge>
@@ -573,12 +573,12 @@ function SongRow({
 {isRequested ? (
   <Badge
     style={{
-      background: "linear-gradient(135deg, #fb923c, #ea580c)",
-      color: "white",
-      border: "1px solid rgba(251,146,60,0.40)",
-      boxShadow: "0 4px 14px rgba(249,115,22,0.28)",
-      fontWeight: 800,
-    }}
+  background: "rgba(249,115,22,0.12)",
+  border: "1px solid rgba(249,115,22,0.28)",
+  color: "#fdba74",
+  fontWeight: 700,
+  backdropFilter: "blur(4px)",
+}}
   >
     🔥 REQUESTED
   </Badge>
