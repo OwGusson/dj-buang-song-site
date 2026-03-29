@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { jsPDF } from "jspdf";
 import { supabase } from "./supabase";
 import {
   makeSongId,
@@ -137,6 +138,38 @@ function getFileNameFromUrl(url = "") {
   }
 }
 
+function loadImageAsDataUrl(src) {
+  return new Promise((resolve, reject) => {
+    if (!src) {
+      resolve(null);
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas context not available"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
 function getSongTypeLabel(song) {
   if ((song.requestedBy || "").trim()) {
     return `Requested by ${song.requestedBy.trim()}`;
@@ -155,10 +188,10 @@ function isOriginalSong(song) {
 
 function shellCardStyle(extra = {}) {
   return {
-    background: "linear-gradient(180deg, rgba(23,33,58,0.92), rgba(16,24,45,0.96))",
+    background: "linear-gradient(180deg, rgba(13,18,34,0.96), rgba(8,12,24,0.98))",
     border: "1px solid rgba(255,255,255,0.08)",
     borderRadius: 26,
-    boxShadow: "0 18px 60px rgba(0,0,0,0.28)",
+    boxShadow: "0 18px 60px rgba(0,0,0,0.34)",
     ...extra,
   };
 }
@@ -228,7 +261,7 @@ function Input({ label, ...props }) {
           padding: "14px 16px",
           borderRadius: 16,
           border: "1px solid rgba(255,255,255,0.10)",
-          background: "rgba(10,15,28,0.65)",
+          background: "rgba(8,12,24,0.64)",
           color: "white",
           outline: "none",
           fontSize: 16,
@@ -256,7 +289,7 @@ function TextArea({ label, ...props }) {
           padding: "14px 16px",
           borderRadius: 16,
           border: "1px solid rgba(255,255,255,0.10)",
-          background: "rgba(10,15,28,0.65)",
+          background: "rgba(8,12,24,0.64)",
           color: "white",
           outline: "none",
           resize: "vertical",
@@ -285,7 +318,7 @@ function Select({ label, children, ...props }) {
           padding: "14px 16px",
           borderRadius: 16,
           border: "1px solid rgba(255,255,255,0.10)",
-          background: "rgba(10,15,28,0.65)",
+          background: "rgba(8,12,24,0.64)",
           color: "white",
           fontSize: 16,
           boxSizing: "border-box",
@@ -387,7 +420,7 @@ function SongRow({
         gap: 14,
         padding: 14,
         borderRadius: 20,
-        background: "rgba(10,15,28,0.50)",
+        background: "rgba(8,12,24,0.64)",
         border: "1px solid rgba(255,255,255,0.08)",
         alignItems: "center",
         cursor: "pointer",
@@ -470,7 +503,7 @@ function SongRow({
             }}
             style={{ padding: "9px 14px", fontSize: 14 }}
           >
-            ⬇ Lyrics
+            ⬇ Lyrics PDF
           </Button>
 
           {isAdmin ? (
@@ -659,7 +692,6 @@ function AudioControls({
     </div>
   );
 }
-
 function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
   if (!request) return null;
 
@@ -715,7 +747,7 @@ function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
             style={{
               padding: 14,
               borderRadius: 16,
-              background: "rgba(10,15,28,0.45)",
+              background: "rgba(8,12,24,0.60)",
               border: "1px solid rgba(255,255,255,0.08)",
             }}
           >
@@ -727,7 +759,7 @@ function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
             style={{
               padding: 14,
               borderRadius: 16,
-              background: "rgba(10,15,28,0.45)",
+              background: "rgba(8,12,24,0.60)",
               border: "1px solid rgba(255,255,255,0.08)",
             }}
           >
@@ -741,7 +773,7 @@ function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
             style={{
               padding: 14,
               borderRadius: 16,
-              background: "rgba(10,15,28,0.45)",
+              background: "rgba(8,12,24,0.60)",
               border: "1px solid rgba(255,255,255,0.08)",
             }}
           >
@@ -762,7 +794,7 @@ function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
               style={{
                 padding: 14,
                 borderRadius: 16,
-                background: "rgba(10,15,28,0.45)",
+                background: "rgba(8,12,24,0.60)",
                 border: "1px solid rgba(255,255,255,0.08)",
               }}
             >
@@ -774,7 +806,7 @@ function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
               style={{
                 padding: 14,
                 borderRadius: 16,
-                background: "rgba(10,15,28,0.45)",
+                background: "rgba(8,12,24,0.60)",
                 border: "1px solid rgba(255,255,255,0.08)",
               }}
             >
@@ -786,7 +818,7 @@ function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
               style={{
                 padding: 14,
                 borderRadius: 16,
-                background: "rgba(10,15,28,0.45)",
+                background: "rgba(8,12,24,0.60)",
                 border: "1px solid rgba(255,255,255,0.08)",
               }}
             >
@@ -798,7 +830,7 @@ function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
               style={{
                 padding: 14,
                 borderRadius: 16,
-                background: "rgba(10,15,28,0.45)",
+                background: "rgba(8,12,24,0.60)",
                 border: "1px solid rgba(255,255,255,0.08)",
               }}
             >
@@ -811,7 +843,7 @@ function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
             style={{
               padding: 14,
               borderRadius: 16,
-              background: "rgba(10,15,28,0.45)",
+              background: "rgba(8,12,24,0.60)",
               border: "1px solid rgba(255,255,255,0.08)",
             }}
           >
@@ -1015,7 +1047,7 @@ function PlayerModal({
 
             <div
               style={{
-                background: "rgba(10,15,28,0.55)",
+                background: "rgba(8,12,24,0.60)",
                 border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 18,
                 padding: 16,
@@ -1159,7 +1191,7 @@ function PlayerModal({
 
               <div
                 style={{
-                  background: "rgba(10,15,28,0.55)",
+                  background: "rgba(8,12,24,0.60)",
                   border: "1px solid rgba(255,255,255,0.08)",
                   borderRadius: 18,
                   padding: 16,
@@ -1220,7 +1252,7 @@ function MiniPlayer({
         ...shellCardStyle({
           padding: isMobile ? 12 : 10,
           borderRadius: 18,
-          background: "linear-gradient(180deg, rgba(18,25,46,0.96), rgba(11,17,34,0.98))",
+          background: "linear-gradient(180deg, rgba(12,17,31,0.98), rgba(8,11,21,0.99))",
         }),
       }}
     >
@@ -1685,8 +1717,7 @@ function App() {
 
     loadRequestsAndMessages();
   }, []);
-
-  useEffect(() => {
+    useEffect(() => {
     const requestsChannel = supabase
       .channel("live-song-requests")
       .on(
@@ -2680,12 +2711,105 @@ Thanks for the request!
     a.click();
   };
 
-  const downloadLyrics = (song) => {
+  const downloadLyrics = async (song) => {
     if (!song.lyrics) {
       alert("No lyrics added yet.");
       return;
     }
-    downloadTextFile(`${song.title}-lyrics.txt`, song.lyrics);
+
+    try {
+      const doc = new jsPDF({
+        orientation: "p",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const marginX = 18;
+      const contentWidth = pageWidth - marginX * 2;
+
+      const footerText = "Downloaded from www.DJ-BUANG.com";
+      const songType = getSongTypeLabel(song);
+
+      let y = 18;
+
+      try {
+        const logoData = await loadImageAsDataUrl("/hero-logo.png");
+        if (logoData) {
+          const logoWidth = 42;
+          const logoHeight = 22;
+          doc.addImage(
+            logoData,
+            "PNG",
+            (pageWidth - logoWidth) / 2,
+            y,
+            logoWidth,
+            logoHeight
+          );
+          y += 28;
+        }
+      } catch (logoError) {
+        console.warn("Could not add logo to PDF:", logoError);
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.text(song.title || "Untitled Song", pageWidth / 2, y, { align: "center" });
+      y += 10;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor(90, 90, 90);
+      doc.text(`Artist: ${song.artist || "DJ-Buang"}`, pageWidth / 2, y, { align: "center" });
+      y += 6;
+      doc.text(songType, pageWidth / 2, y, { align: "center" });
+      y += 10;
+
+      doc.setDrawColor(210, 210, 210);
+      doc.line(marginX, y, pageWidth - marginX, y);
+      y += 10;
+
+      doc.setTextColor(20, 20, 20);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+
+      const lyricsLines = doc.splitTextToSize(song.lyrics, contentWidth);
+
+      const addFooter = () => {
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(10);
+        doc.setTextColor(110, 110, 110);
+        doc.text(footerText, pageWidth / 2, pageHeight - 10, { align: "center" });
+      };
+
+      addFooter();
+
+      const lineHeight = 6.6;
+
+      for (let i = 0; i < lyricsLines.length; i += 1) {
+        if (y > pageHeight - 18) {
+          doc.addPage();
+          y = 20;
+          addFooter();
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(12);
+          doc.setTextColor(20, 20, 20);
+        }
+
+        doc.text(lyricsLines[i], marginX, y);
+        y += lineHeight;
+      }
+
+      const safeTitle = (song.title || "lyrics")
+        .replace(/[<>:"/\\|?*]+/g, "")
+        .trim();
+
+      doc.save(`${safeTitle}-lyrics.pdf`);
+    } catch (error) {
+      console.error("Could not create lyrics PDF:", error);
+      alert("Could not generate PDF.");
+    }
   };
 
   const currentAudioName = editingOriginalSong?.audioUrl
@@ -2698,7 +2822,7 @@ Thanks for the request!
         minHeight: "100vh",
         color: "white",
         background:
-          "radial-gradient(circle at top left, rgba(58,31,102,0.42), transparent 28%), radial-gradient(circle at top right, rgba(93,40,126,0.22), transparent 20%), linear-gradient(180deg, #050a18 0%, #07112a 55%, #081226 100%)",
+          "radial-gradient(circle at top left, rgba(62,28,96,0.26), transparent 26%), radial-gradient(circle at top right, rgba(70,28,102,0.14), transparent 18%), linear-gradient(180deg, #04070f 0%, #070c18 52%, #090f1d 100%)",
         fontFamily:
           'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         paddingBottom: playerSong && playerMinimized ? (isMobile ? 240 : 180) : 0,
@@ -2714,7 +2838,7 @@ Thanks for the request!
                 ...shellCardStyle({
                   padding: 34,
                   background:
-                    "radial-gradient(circle at top right, rgba(103,48,163,0.25), transparent 22%), linear-gradient(180deg, rgba(4,8,20,0.97), rgba(10,16,34,0.95))",
+                    "radial-gradient(circle at top right, rgba(92,40,140,0.18), transparent 22%), linear-gradient(180deg, rgba(5,8,18,0.98), rgba(7,11,22,0.98))",
                 }),
               }}
             >
@@ -2807,7 +2931,7 @@ Thanks for the request!
                       maxWidth: "100%",
                       height: "auto",
                       objectFit: "contain",
-                      filter: "drop-shadow(0 10px 30px rgba(123, 92, 255, 0.45))",
+                      filter: "drop-shadow(0 10px 30px rgba(123, 92, 255, 0.35))",
                     }}
                   />
                 </div>
@@ -2912,7 +3036,7 @@ Thanks for the request!
                           style={{
                             padding: 16,
                             borderRadius: 18,
-                            background: "rgba(10,15,28,0.52)",
+                            background: "rgba(8,12,24,0.68)",
                             border: "1px solid rgba(255,255,255,0.08)",
                             cursor: "pointer",
                           }}
@@ -3227,7 +3351,7 @@ Thanks for the request!
                         style={{
                           padding: 12,
                           borderRadius: 14,
-                          background: "rgba(10,15,28,0.45)",
+                          background: "rgba(8,12,24,0.60)",
                           border: "1px solid rgba(255,255,255,0.08)",
                         }}
                       >
@@ -3241,7 +3365,7 @@ Thanks for the request!
                         style={{
                           padding: 12,
                           borderRadius: 14,
-                          background: "rgba(10,15,28,0.45)",
+                          background: "rgba(8,12,24,0.60)",
                           border: "1px solid rgba(255,255,255,0.08)",
                         }}
                       >
@@ -3259,7 +3383,7 @@ Thanks for the request!
                         style={{
                           padding: 12,
                           borderRadius: 14,
-                          background: "rgba(10,15,28,0.45)",
+                          background: "rgba(8,12,24,0.60)",
                           border: "1px solid rgba(255,255,255,0.08)",
                         }}
                       >
@@ -3273,7 +3397,7 @@ Thanks for the request!
                         style={{
                           padding: 12,
                           borderRadius: 14,
-                          background: "rgba(10,15,28,0.45)",
+                          background: "rgba(8,12,24,0.60)",
                           border: "1px solid rgba(255,255,255,0.08)",
                         }}
                       >
@@ -3369,7 +3493,7 @@ Thanks for the request!
                       padding: "12px 14px",
                       borderRadius: 16,
                       border: "1px solid rgba(255,255,255,0.10)",
-                      background: "rgba(10,15,28,0.65)",
+                      background: "rgba(8,12,24,0.64)",
                       color: "white",
                       boxSizing: "border-box",
                     }}
@@ -3401,7 +3525,7 @@ Thanks for the request!
                       padding: "12px 14px",
                       borderRadius: 16,
                       border: "1px solid rgba(255,255,255,0.10)",
-                      background: "rgba(10,15,28,0.65)",
+                      background: "rgba(8,12,24,0.64)",
                       color: "white",
                       boxSizing: "border-box",
                     }}
@@ -3542,7 +3666,7 @@ Thanks for the request!
                       style={{
                         padding: 16,
                         borderRadius: 18,
-                        background: "rgba(10,15,28,0.52)",
+                        background: "rgba(8,12,24,0.68)",
                         border: "1px solid rgba(255,255,255,0.08)",
                       }}
                     >
@@ -3631,7 +3755,7 @@ Thanks for the request!
                           borderRadius: 18,
                           background: isReady
                             ? "rgba(20,83,45,0.28)"
-                            : "rgba(10,15,28,0.52)",
+                            : "rgba(8,12,24,0.68)",
                           border: isReady
                             ? "1px solid rgba(134,239,172,0.35)"
                             : "1px solid rgba(255,255,255,0.08)",
