@@ -430,7 +430,10 @@ function SongRow({
   canMoveDown = false,
 }) {
   const songTypeLabel = getSongTypeLabel(song);
-  const songAnalytics = analytics || { opens: 0, plays: 0 };
+const songAnalytics = analytics || { opens: 0, plays: 0 };
+const isNew = isNewSong(song);
+const isRequested = isRequestedSong(song);
+const isFeatured = !!song.featured;
 
   return (
     <div
@@ -471,19 +474,23 @@ function SongRow({
 
       <div>
         <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            flexWrap: "wrap",
-            marginBottom: 4,
-          }}
-        >
-          <h3 style={{ margin: 0, fontSize: 19 }}>{song.title}</h3>
-          {song.featured ? <Badge>Featured</Badge> : null}
-          <Badge>{song.visibility === "public" ? "Public" : "Private"}</Badge>
-          {isAdmin ? <Badge>Order {song.sortOrder}</Badge> : null}
-        </div>
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+    marginBottom: 4,
+  }}
+>
+  <h3 style={{ margin: 0, fontSize: 19 }}>{song.title}</h3>
+
+  {isFeatured ? <Badge>⭐ FEATURED</Badge> : null}
+  {isNew ? <Badge>🆕 NEW</Badge> : null}
+  {isRequested ? <Badge>🔥 REQUESTED</Badge> : null}
+
+  <Badge>{song.visibility === "public" ? "Public" : "Private"}</Badge>
+  {isAdmin ? <Badge>Order {song.sortOrder}</Badge> : null}
+</div>
 
         <div style={{ color: "rgba(255,255,255,0.72)", marginBottom: 12, fontSize: 14 }}>
           {song.artist} • {songTypeLabel} • Added {formatDate(song.createdAt)}
@@ -2152,8 +2159,14 @@ const spotlightSongIds = useMemo(() => {
 }, [featuredSpotlightSongs, newestSpotlightSongs]);
 
 const remainingSongs = useMemo(() => {
+  if (filterMode !== "all") {
+    return filteredSongs;
+  }
+
   return filteredSongs.filter((song) => !spotlightSongIds.has(song.id));
-}, [filteredSongs, spotlightSongIds]);
+}, [filteredSongs, spotlightSongIds, filterMode]);
+
+const showSpotlights = filterMode === "all";
 
   const topPlayedSongs = useMemo(() => {
     return [...songs]
@@ -2998,7 +3011,7 @@ resetSongForm();
                   </div>
 
                   <div style={{ display: "grid", gap: 14 }}>
-  {featuredSpotlightSongs.length > 0 ? (
+  {showSpotlights && featuredSpotlightSongs.length > 0 ? (
     <div style={{ display: "grid", gap: 12 }}>
       <div
         style={{
@@ -3009,7 +3022,7 @@ resetSongForm();
           marginTop: 4,
         }}
       >
-        Featured Spotlight
+        ⭐ Featured Spotlight
       </div>
 
       {featuredSpotlightSongs.map((song) => (
@@ -3026,7 +3039,7 @@ resetSongForm();
     </div>
   ) : null}
 
-  {newestSpotlightSongs.length > 0 ? (
+  {showSpotlights && newestSpotlightSongs.length > 0 ? (
   <div style={{ display: "grid", gap: 12 }}>
     <div
       style={{
@@ -3037,7 +3050,7 @@ resetSongForm();
         marginTop: 10,
       }}
     >
-      Newest Drops
+      🆕 Newest Drops
     </div>
 
     {newestSpotlightSongs.map((song) => (
@@ -3065,7 +3078,7 @@ resetSongForm();
         marginTop: 10,
       }}
     >
-      More Songs
+      🎵 More Songs
     </div>
 
     {remainingSongs.map((song) => (
@@ -3133,17 +3146,26 @@ resetSongForm();
                 <Panel title="◉ Connect" subtitle="Song requests, private messages, and support are open.">
                   <div style={{ display: "grid", gap: 12 }}>
                     <Button
-                      variant="primary"
-                      onClick={() => {
-                        setRequestSent(false);
-                        setView("request");
-                      }}
-                    >
-                      🗒 Open Song Request Form
-                    </Button>
-                    <Button variant="secondary" onClick={() => setView("message")}>
-                      💬 Open Private Message Form
-                    </Button>
+  variant="primary"
+  onClick={() => {
+    setRequestSent(false);
+    setMessageSuccess("");
+    setUploadSuccess("");
+    setView("request");
+  }}
+>
+  🗒 Open Song Request Form
+</Button>
+<Button
+  variant="secondary"
+  onClick={() => {
+    setMessageSuccess("");
+    setUploadSuccess("");
+    setView("message");
+  }}
+>
+  💬 Open Private Message Form
+</Button>
                     <Button variant="secondary" onClick={openPayPalDonation}>
                       ♡ Support on PayPal
                     </Button>
@@ -3314,7 +3336,7 @@ resetSongForm();
               </div>
             </Panel>
 
-            <Panel title="Top Played Songs" subtitle="Your most listened songs so far.">
+            <Panel title="Top 3 Played Songs" subtitle="Your most listened songs so far.">
               <div style={{ display: "grid", gap: 10 }}>
                 {topPlayedSongs.map((song) => (
                   <div
