@@ -2118,6 +2118,30 @@ const [messageForm, setMessageForm] = useState({
   const topLikedSongs = useMemo(() => {
     return [...publicSongs].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 3);
   }, [publicSongs]);
+  const featuredSpotlightSongs = useMemo(() => {
+  return [...publicSongs]
+    .filter((song) => song.featured)
+    .sort(compareSongsForDisplay)
+    .slice(0, 2);
+}, [publicSongs]);
+
+const newestSpotlightSongs = useMemo(() => {
+  return [...publicSongs]
+    .filter((song) => isNewSong(song))
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 2);
+}, [publicSongs]);
+
+const spotlightSongIds = useMemo(() => {
+  return new Set([
+    ...featuredSpotlightSongs.map((song) => song.id),
+    ...newestSpotlightSongs.map((song) => song.id),
+  ]);
+}, [featuredSpotlightSongs, newestSpotlightSongs]);
+
+const remainingSongs = useMemo(() => {
+  return filteredSongs.filter((song) => !spotlightSongIds.has(song.id));
+}, [filteredSongs, spotlightSongIds]);
 
   const topPlayedSongs = useMemo(() => {
     return [...songs]
@@ -2949,22 +2973,92 @@ resetSongForm();
                   </div>
 
                   <div style={{ display: "grid", gap: 14 }}>
-                    {filteredSongs.length > 0 ? (
-                      filteredSongs.map((song) => (
-                        <SongRow
-                          key={song.id}
-                          song={song}
-                          analytics={songAnalytics[song.id]}
-                          onLike={handleLikeSong}
-                          onOpenPlayer={handleOpenSong}
-                          onDownloadSong={downloadSong}
-                          onDownloadLyrics={downloadLyrics}
-                        />
-                      ))
-                    ) : (
-                      <div style={{ color: "rgba(255,255,255,0.70)" }}>No songs found yet.</div>
-                    )}
-                  </div>
+  {featuredSpotlightSongs.length > 0 ? (
+    <div style={{ display: "grid", gap: 12 }}>
+      <div
+        style={{
+          fontSize: 13,
+          letterSpacing: "0.24em",
+          color: "rgba(255,255,255,0.58)",
+          textTransform: "uppercase",
+          marginTop: 4,
+        }}
+      >
+        Featured Spotlight
+      </div>
+
+      {featuredSpotlightSongs.map((song) => (
+        <SongRow
+          key={`featured-${song.id}`}
+          song={song}
+          analytics={songAnalytics[song.id]}
+          onLike={handleLikeSong}
+          onOpenPlayer={handleOpenSong}
+          onDownloadSong={downloadSong}
+          onDownloadLyrics={downloadLyrics}
+        />
+      ))}
+    </div>
+  ) : null}
+
+  {newestSpotlightSongs.length > 0 ? (
+  <div style={{ display: "grid", gap: 12 }}>
+    <div
+      style={{
+        fontSize: 13,
+        letterSpacing: "0.24em",
+        color: "rgba(255,255,255,0.58)",
+        textTransform: "uppercase",
+        marginTop: 10,
+      }}
+    >
+      Newest Drops
+    </div>
+
+    {newestSpotlightSongs.map((song) => (
+      <SongRow
+        key={`newest-${song.id}`}
+        song={song}
+        analytics={songAnalytics[song.id]}
+        onLike={handleLikeSong}
+        onOpenPlayer={handleOpenSong}
+        onDownloadSong={downloadSong}
+        onDownloadLyrics={downloadLyrics}
+      />
+    ))}
+  </div>
+) : null}
+
+{remainingSongs.length > 0 ? (
+  <div style={{ display: "grid", gap: 12 }}>
+    <div
+      style={{
+        fontSize: 13,
+        letterSpacing: "0.24em",
+        color: "rgba(255,255,255,0.58)",
+        textTransform: "uppercase",
+        marginTop: 10,
+      }}
+    >
+      More Songs
+    </div>
+
+    {remainingSongs.map((song) => (
+      <SongRow
+        key={song.id}
+        song={song}
+        analytics={songAnalytics[song.id]}
+        onLike={handleLikeSong}
+        onOpenPlayer={handleOpenSong}
+        onDownloadSong={downloadSong}
+        onDownloadLyrics={downloadLyrics}
+      />
+    ))}
+  </div>
+) : (
+  <div style={{ color: "rgba(255,255,255,0.70)" }}>No more songs found.</div>
+)}
+</div>
                 </div>
               </Panel>
 
