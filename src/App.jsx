@@ -1792,19 +1792,19 @@ function App() {
         .order("created_at", { ascending: false });
 
       if (!messagesError && messagesData) {
-        setMessages(
-          messagesData.map((m) => ({
-            id: m.id,
-            from: m.sender_name,
-            replyContact: m.sender_email || "",
-            message: m.message,
-            status: m.status,
-            createdAt: m.created_at,
-          }))
-        );
-      } else if (messagesError) {
-        console.error("Could not load messages:", messagesError);
-      }
+  setMessages(
+    messagesData.map((m) => ({
+      id: m.id,
+      from: m.sender_name,
+      replyContact: m.sender_email || "",
+      message: m.message,
+      status: m.status,
+      createdAt: m.created_at,
+    }))
+  );
+} else if (messagesError) {
+  console.error("Could not load messages:", messagesError);
+}
     }
 
     loadRequestsAndMessages();
@@ -1854,17 +1854,17 @@ function App() {
             .order("created_at", { ascending: false });
 
           if (!error && data) {
-            setMessages(
-              data.map((m) => ({
-                id: m.id,
-                from: m.sender_name,
-                replyContact: m.sender_email || "",
-                message: m.message,
-                status: m.status,
-                createdAt: m.created_at,
-              }))
-            );
-          }
+  setMessages(
+    data.map((m) => ({
+      id: m.id,
+      from: m.sender_name,
+      replyContact: m.sender_email || "",
+      message: m.message,
+      status: m.status,
+      createdAt: m.created_at,
+    }))
+  );
+}
         }
       )
       .subscribe();
@@ -2421,25 +2421,49 @@ function App() {
   };
 
   const handleDeleteMessage = async (messageId) => {
-    const messageToDelete = messages.find((msg) => msg.id === messageId);
-    if (!messageToDelete) return;
+  const messageToDelete = messages.find((msg) => msg.id === messageId);
+  if (!messageToDelete) return;
 
-    const confirmed = window.confirm(`Delete private message from "${messageToDelete.from}"?`);
-    if (!confirmed) return;
+  const confirmed = window.confirm(`Delete private message from "${messageToDelete.from}"?`);
+  if (!confirmed) return;
 
-    const { error } = await supabase.from("private_messages").delete().eq("id", messageId);
+  const { error } = await supabase.from("private_messages").delete().eq("id", messageId);
 
-    if (error) {
-      console.error("Could not delete private message:", error);
-      alert("Could not delete private message.");
-      return;
-    }
+  if (error) {
+    console.error("Could not delete private message:", error);
+    alert("Could not delete private message.");
+    return;
+  }
 
-    setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
-  };
+  setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+};
 
-  const handleMoveSong = async (songId, direction) => {
-    if (isReorderingSongs) return;
+const toggleMessageStatus = async (messageId) => {
+  const currentMessage = messages.find((msg) => msg.id === messageId);
+  if (!currentMessage) return;
+
+  const nextStatus = currentMessage.status === "new" ? "read" : "new";
+
+  const { error } = await supabase
+    .from("private_messages")
+    .update({ status: nextStatus })
+    .eq("id", messageId);
+
+  if (error) {
+    console.error("Could not update private message status:", error);
+    alert("Could not update message status.");
+    return;
+  }
+
+  setMessages((prev) =>
+    prev.map((msg) =>
+      msg.id === messageId ? { ...msg, status: nextStatus } : msg
+    )
+  );
+};
+
+const handleMoveSong = async (songId, direction) => {
+  if (isReorderingSongs) return;
 
     const visibleList = [...adminSongs];
     const currentIndex = visibleList.findIndex((song) => song.id === songId);
@@ -3711,7 +3735,14 @@ function App() {
                 {messages.length === 0 ? (
                   <div style={{ color: "rgba(255,255,255,0.72)" }}>No messages yet.</div>
                 ) : (
-                  messages.map((msg) => (
+                  [...messages]
+  .sort((a, b) => {
+    if (a.status !== b.status) {
+      return a.status === "new" ? -1 : 1;
+    }
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  })
+  .map((msg) => (
                     <div
                       key={msg.id}
                       style={{
@@ -3740,13 +3771,23 @@ function App() {
                           </div>
                         </div>
 
-                        <Button
-                          variant="danger"
-                          onClick={() => handleDeleteMessage(msg.id)}
-                          style={{ padding: "9px 14px", fontSize: 14 }}
-                        >
-                          Delete
-                        </Button>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+  <Button
+    variant={msg.status === "new" ? "success" : "secondary"}
+    onClick={() => toggleMessageStatus(msg.id)}
+    style={{ padding: "9px 14px", fontSize: 14 }}
+  >
+    {msg.status === "new" ? "Mark Read" : "Mark New"}
+  </Button>
+
+  <Button
+    variant="danger"
+    onClick={() => handleDeleteMessage(msg.id)}
+    style={{ padding: "9px 14px", fontSize: 14 }}
+  >
+    Delete
+  </Button>
+</div>
                       </div>
 
                       <p style={{ margin: "14px 0 0", lineHeight: 1.55 }}>{msg.message}</p>
