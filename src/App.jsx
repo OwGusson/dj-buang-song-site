@@ -2080,13 +2080,19 @@ const [messageForm, setMessageForm] = useState({
       list = list.filter((song) => isOriginalSong(song));
       list.sort(compareSongsForDisplay);
     } else if (filterMode === "newest") {
-      list.sort((a, b) => {
-        if (!!b.featured !== !!a.featured) {
-          return b.featured ? 1 : -1;
-        }
-        return new Date(b.createdAt) - new Date(a.createdAt);
-      });
-    } else {
+  const newestSongs = list.filter((song) => isNewSong(song));
+
+  if (newestSongs.length > 0) {
+    list = newestSongs;
+  }
+
+  list.sort((a, b) => {
+    if (!!b.featured !== !!a.featured) {
+      return b.featured ? 1 : -1;
+    }
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+} else {
       list.sort(compareSongsForDisplay);
     }
 
