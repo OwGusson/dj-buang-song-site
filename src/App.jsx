@@ -1595,11 +1595,13 @@ function App() {
   });
 
   const [requestSent, setRequestSent] = useState(false);
+const [uploadSuccess, setUploadSuccess] = useState("");
+const [messageSuccess, setMessageSuccess] = useState("");
 
-  const [messageForm, setMessageForm] = useState({
-    from: "",
-    message: "",
-  });
+const [messageForm, setMessageForm] = useState({
+  from: "",
+  message: "",
+});
 
   function resetSongForm() {
     setNewSong({
@@ -2124,7 +2126,7 @@ function App() {
         if (b.opens !== a.opens) return b.opens - a.opens;
         return compareSongsForDisplay(a, b);
       })
-      .slice(0, 5);
+      .slice(0, 3);
   }, [songs, songAnalytics]);
 
   const filteredRequests = useMemo(() => {
@@ -2271,24 +2273,24 @@ function App() {
       await saveSongToCloudflare(item);
 
       if (editingSongId) {
-        setSongs((prev) =>
-          prev.map((song) => (song.id === editingSongId ? item : song))
-        );
+  setSongs((prev) =>
+    prev.map((song) => (song.id === editingSongId ? item : song))
+  );
 
-        await autoCleanReplacedFiles({
-          oldSong: editingOriginalSong,
-          newCoverUrl: uploadedCoverUrl,
-          newAudioUrl: uploadedAudioUrl,
-        });
+  await autoCleanReplacedFiles({
+    oldSong: editingOriginalSong,
+    newCoverUrl: uploadedCoverUrl,
+    newAudioUrl: uploadedAudioUrl,
+  });
 
-        alert("Song updated!");
-      } else {
-        setSongs((prev) => [...prev, item]);
-        alert("Song uploaded!");
-      }
+  setUploadSuccess(`✅ "${item.title}" was updated successfully.`);
+} else {
+  setSongs((prev) => [...prev, item]);
+  setUploadSuccess(`🎵 "${item.title}" was uploaded successfully.`);
+}
 
-      setHasUnsavedSongChanges(false);
-      resetSongForm();
+setHasUnsavedSongChanges(false);
+resetSongForm();
     } catch (error) {
       alert(error.message || "Save failed");
     } finally {
@@ -2480,7 +2482,7 @@ function App() {
 
     setMessages((prev) => [newMessage, ...prev]);
     setMessageForm({ from: "", message: "" });
-    alert("Private message sent!");
+    setMessageSuccess("✉️ Private message sent successfully.");
   };
 
   const toggleRequestStatus = async (id) => {
@@ -3096,7 +3098,22 @@ function App() {
 
         {view === "message" && (
           <Panel title="Private Message" subtitle="This goes to a separate private admin area.">
-            <form onSubmit={handleMessageSubmit} style={{ display: "grid", gap: 16, maxWidth: 760 }}>
+  {messageSuccess && (
+    <div
+      style={{
+        padding: 18,
+        borderRadius: 18,
+        background: "rgba(34,197,94,0.15)",
+        border: "1px solid rgba(74,222,128,0.35)",
+        marginBottom: 18,
+        maxWidth: 760,
+      }}
+    >
+      <strong>{messageSuccess}</strong>
+    </div>
+  )}
+
+  <form onSubmit={handleMessageSubmit} style={{ display: "grid", gap: 16, maxWidth: 760 }}>
               <Input
                 label="Your name"
                 value={messageForm.from}
@@ -3154,12 +3171,14 @@ function App() {
               right={<Button variant="secondary" onClick={handleLogout}>Logout</Button>}
             >
               <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                  gap: 14,
-                }}
-              >
+  style={{
+    display: "grid",
+    gridTemplateColumns: isMobile
+      ? "repeat(2, minmax(0, 1fr))"
+      : "repeat(7, minmax(0, 1fr))",
+    gap: 14,
+  }}
+>
                 <StatPill label="Total Plays" value={totalPlays} />
                 <StatPill label="Total Opens" value={totalOpens} />
                 <StatPill label="Total Likes" value={totalLikes} />
