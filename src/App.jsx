@@ -2650,12 +2650,12 @@ function App() {
               "repeat(auto-fit, minmax(180px, 1fr))",
           }}
         >
-          <StatCard label="Total Plays" value={totalPlays} />
-          <StatCard label="Total Opens" value={totalOpens} />
-          <StatCard label="Total Likes" value={totalLikes} />
-          <StatCard label="Pending Requests" value={pendingRequests} />
-          <StatCard label="Done Requests" value={doneRequests} />
-          <StatCard label="New Messages" value={newMessages} />
+          <StatPill label="Total Plays" value={totalPlays} />
+          <StatPill label="Total Opens" value={totalOpens} />
+          <StatPill label="Total Likes" value={totalLikes} />
+          <StatPill label="Pending Requests" value={pendingRequests} />
+          <StatPill label="Done Requests" value={doneRequests} />
+          <StatPill label="New Messages" value={newMessages} />
         </div>
       )}
 
