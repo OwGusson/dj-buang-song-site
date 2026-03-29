@@ -472,6 +472,7 @@ function SongRow({
   onDownloadSong,
   onDownloadLyrics,
   isAdmin,
+  isMobile = false,
   onDelete,
   onCopyLink,
   onEdit,
@@ -491,9 +492,9 @@ function SongRow({
       onClick={() => onOpenPlayer(song)}
       style={{
   display: "grid",
-  gridTemplateColumns: "96px 1fr",
-  gap: 14,
-  padding: 14,
+  gridTemplateColumns: isMobile ? "72px 1fr" : "96px 1fr",
+  gap: isMobile ? 10 : 14,
+  padding: isMobile ? 10 : 14,
   borderRadius: 20,
   background: isFeatured
     ? "linear-gradient(180deg, rgba(33,24,8,0.88), rgba(8,12,24,0.92))"
@@ -510,14 +511,14 @@ function SongRow({
     >
       <div
         style={{
-          width: "100%",
-          height: 76,
-          borderRadius: 16,
-          overflow: "hidden",
-          background: "linear-gradient(135deg, rgba(89,55,150,0.8), rgba(41,73,120,0.8))",
-          display: "grid",
-          placeItems: "center",
-        }}
+  width: "100%",
+  height: isMobile ? 64 : 76,
+  borderRadius: isMobile ? 14 : 16,
+  overflow: "hidden",
+  background: "linear-gradient(135deg, rgba(89,55,150,0.8), rgba(41,73,120,0.8))",
+  display: "grid",
+  placeItems: "center",
+}}
       >
         {song.coverUrl ? (
           <img
@@ -540,7 +541,7 @@ function SongRow({
             marginBottom: 4,
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 19 }}>{song.title}</h3>
+          <h3 style={{ margin: 0, fontSize: isMobile ? 16 : 19, lineHeight: 1.25 }}>{song.title}</h3>
 
           {isFeatured ? (
   <Badge
@@ -607,11 +608,25 @@ function SongRow({
 ) : null}
         </div>
 
-        <div style={{ color: "rgba(255,255,255,0.72)", marginBottom: 12, fontSize: 14 }}>
-          {song.artist} • {songTypeLabel} • Added {formatDate(song.createdAt)}
-        </div>
+        <div
+  style={{
+    color: "rgba(255,255,255,0.72)",
+    marginBottom: isMobile ? 10 : 12,
+    fontSize: isMobile ? 13 : 14,
+    lineHeight: 1.45,
+  }}
+>
+  {song.artist} • {songTypeLabel} • Added {formatDate(song.createdAt)}
+</div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <div
+  style={{
+    display: "flex",
+    gap: isMobile ? 6 : 8,
+    flexWrap: "wrap",
+    alignItems: "center",
+  }}
+>
           <Badge>{song.likes} 👍</Badge>
 
           {isAdmin ? (
@@ -3117,26 +3132,31 @@ const handleMoveSong = async (songId, direction) => {
                 </div>
 
                 <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "flex-end",
-                    gap: 24,
-                    marginTop: 6,
-                    minWidth: isMobile ? "100%" : 260,
-                  }}
-                >
+  style={{
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-end",
+    gap: isMobile ? 14 : 24,
+    marginTop: 6,
+    minWidth: isMobile ? "100%" : 260,
+  }}
+>
                   <Button
-                    variant="secondary"
-                    onClick={() => {
-                      setMessageSuccess("");
-                      setUploadSuccess("");
-                      setView(adminLoggedIn ? "admin" : "login");
-                    }}
-                    style={{ minWidth: 110 }}
-                  >
-                    🔒 Admin
-                  </Button>
+  variant="secondary"
+  onClick={() => {
+    setMessageSuccess("");
+    setUploadSuccess("");
+    setView(adminLoggedIn ? "admin" : "login");
+  }}
+  style={{
+    minWidth: isMobile ? "auto" : 110,
+    padding: isMobile ? "8px 12px" : undefined,
+    fontSize: isMobile ? 13 : 16,
+    alignSelf: isMobile ? "flex-end" : "unset",
+  }}
+>
+  🔒 Admin
+</Button>
 
                   <img
                     src="/hero-logo.png"
@@ -3215,14 +3235,15 @@ const handleMoveSong = async (songId, direction) => {
 
                         {featuredSpotlightSongs.map((song) => (
                           <SongRow
-                            key={`featured-${song.id}`}
-                            song={song}
-                            analytics={songAnalytics[song.id]}
-                            onLike={handleLikeSong}
-                            onOpenPlayer={handleOpenSong}
-                            onDownloadSong={downloadSong}
-                            onDownloadLyrics={downloadLyrics}
-                          />
+  key={`featured-${song.id}`}
+  song={song}
+  analytics={songAnalytics[song.id]}
+  onLike={handleLikeSong}
+  onOpenPlayer={handleOpenSong}
+  onDownloadSong={downloadSong}
+  onDownloadLyrics={downloadLyrics}
+  isMobile={isMobile}
+/>
                         ))}
                       </div>
                     ) : null}
@@ -3237,14 +3258,15 @@ const handleMoveSong = async (songId, direction) => {
 
                         {newestSpotlightSongs.map((song) => (
                           <SongRow
-                            key={`newest-${song.id}`}
-                            song={song}
-                            analytics={songAnalytics[song.id]}
-                            onLike={handleLikeSong}
-                            onOpenPlayer={handleOpenSong}
-                            onDownloadSong={downloadSong}
-                            onDownloadLyrics={downloadLyrics}
-                          />
+  key={`newest-${song.id}`}
+  song={song}
+  analytics={songAnalytics[song.id]}
+  onLike={handleLikeSong}
+  onOpenPlayer={handleOpenSong}
+  onDownloadSong={downloadSong}
+  onDownloadLyrics={downloadLyrics}
+  isMobile={isMobile}
+/>
                         ))}
                       </div>
                     ) : null}
@@ -3258,14 +3280,15 @@ const handleMoveSong = async (songId, direction) => {
 
                         {remainingSongs.map((song) => (
                           <SongRow
-                            key={song.id}
-                            song={song}
-                            analytics={songAnalytics[song.id]}
-                            onLike={handleLikeSong}
-                            onOpenPlayer={handleOpenSong}
-                            onDownloadSong={downloadSong}
-                            onDownloadLyrics={downloadLyrics}
-                          />
+  key={song.id}
+  song={song}
+  analytics={songAnalytics[song.id]}
+  onLike={handleLikeSong}
+  onOpenPlayer={handleOpenSong}
+  onDownloadSong={downloadSong}
+  onDownloadLyrics={downloadLyrics}
+  isMobile={isMobile}
+/>
                         ))}
                       </div>
                     ) : (
@@ -3752,21 +3775,22 @@ const handleMoveSong = async (songId, direction) => {
                 {adminSongs.length > 0 ? (
                   adminSongs.map((song, index) => (
                     <SongRow
-                      key={song.id}
-                      song={song}
-                      analytics={songAnalytics[song.id]}
-                      isAdmin
-                      onOpenPlayer={handleOpenSong}
-                      onDownloadSong={downloadSong}
-                      onDownloadLyrics={downloadLyrics}
-                      onDelete={handleDeleteSong}
-                      onCopyLink={copySongLink}
-                      onEdit={startEditSong}
-                      onMoveUp={(songId) => handleMoveSong(songId, "up")}
-                      onMoveDown={(songId) => handleMoveSong(songId, "down")}
-                      canMoveUp={index > 0 && !isReorderingSongs}
-                      canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
-                    />
+  key={song.id}
+  song={song}
+  analytics={songAnalytics[song.id]}
+  isAdmin
+  isMobile={isMobile}
+  onOpenPlayer={handleOpenSong}
+  onDownloadSong={downloadSong}
+  onDownloadLyrics={downloadLyrics}
+  onDelete={handleDeleteSong}
+  onCopyLink={copySongLink}
+  onEdit={startEditSong}
+  onMoveUp={(songId) => handleMoveSong(songId, "up")}
+  onMoveDown={(songId) => handleMoveSong(songId, "down")}
+  canMoveUp={index > 0 && !isReorderingSongs}
+  canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
+/>
                   ))
                 ) : (
                   <div style={{ color: "rgba(255,255,255,0.72)" }}>No songs uploaded yet.</div>
