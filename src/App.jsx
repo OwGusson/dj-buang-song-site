@@ -3074,17 +3074,19 @@ const handleMoveSong = async (songId, direction) => {
                   </h1>
 
                   <p
-                    style={{
-                      maxWidth: 820,
-                      margin: "18px 0 0",
-                      fontSize: 18,
-                      lineHeight: 1.45,
-                      color: "rgba(255,255,255,0.76)",
-                    }}
-                  >
-                    I’m DJ-BUANG, also known as OwGusson — cooking up songs for the Date In Asia
-                    community, for friends, and sometimes for private requests too.
-                  </p>
+  style={{
+    maxWidth: 820,
+    margin: "18px 0 0",
+    fontSize: 18,
+    lineHeight: 1.45,
+    color: "rgba(255,255,255,0.76)",
+  }}
+>
+  I’m DJ-BUANG, also known as OwGusson — making songs for the Date In Asia community, friends, and the occasional private request along the way.
+  <br />
+  <br />
+  Feel free to explore the library, give your favorite tracks a thumbs-up, and download songs or lyrics if something speaks to you. If you enjoy the music and want to support what I do, it’s always appreciated — but most of all, I’m just glad you’re here listening.
+</p>
 
                   <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
                     <Button variant="secondary" onClick={openPayPalDonation}>
