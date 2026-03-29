@@ -50,6 +50,7 @@ function clearOldDemoDataOnce() {
 
 function normalizeSong(song) {
   const requestedBy = (song.requestedBy || song.genre || "").trim();
+  const parsedSortOrder = Number(song.sortOrder);
 
   return {
     id: song.id || `song-${Date.now()}-${Math.random()}`,
@@ -64,7 +65,33 @@ function normalizeSong(song) {
     visibility: song.visibility || "public",
     status: song.status || "published",
     createdAt: song.createdAt || new Date().toISOString(),
+    sortOrder: Number.isFinite(parsedSortOrder) ? parsedSortOrder : null,
   };
+}
+
+function ensureSongSortOrders(songList) {
+  return songList.map((song, index) => {
+    const normalized = normalizeSong(song);
+    return {
+      ...normalized,
+      sortOrder: Number.isFinite(normalized.sortOrder) ? normalized.sortOrder : index + 1,
+    };
+  });
+}
+
+function compareSongsForDisplay(a, b) {
+  if (!!b.featured !== !!a.featured) {
+    return b.featured ? 1 : -1;
+  }
+
+  const aOrder = Number.isFinite(Number(a.sortOrder)) ? Number(a.sortOrder) : Number.MAX_SAFE_INTEGER;
+  const bOrder = Number.isFinite(Number(b.sortOrder)) ? Number(b.sortOrder) : Number.MAX_SAFE_INTEGER;
+
+  if (aOrder !== bOrder) {
+    return aOrder - bOrder;
+  }
+
+  return new Date(b.createdAt) - new Date(a.createdAt);
 }
 
 function formatDate(dateString) {
@@ -344,6 +371,10 @@ function SongRow({
   onDelete,
   onCopyLink,
   onEdit,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp = false,
+  canMoveDown = false,
 }) {
   const songTypeLabel = getSongTypeLabel(song);
 
@@ -397,6 +428,7 @@ function SongRow({
           <h3 style={{ margin: 0, fontSize: 19 }}>{song.title}</h3>
           {song.featured ? <Badge>Featured</Badge> : null}
           <Badge>{song.visibility === "public" ? "Public" : "Private"}</Badge>
+          {isAdmin ? <Badge>Order {song.sortOrder}</Badge> : null}
         </div>
 
         <div style={{ color: "rgba(255,255,255,0.72)", marginBottom: 12, fontSize: 14 }}>
@@ -463,6 +495,30 @@ function SongRow({
                 style={{ padding: "9px 14px", fontSize: 14 }}
               >
                 Edit
+              </Button>
+
+              <Button
+                variant="secondary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoveUp(song.id);
+                }}
+                disabled={!canMoveUp}
+                style={{ padding: "9px 14px", fontSize: 14 }}
+              >
+                ↑ Up
+              </Button>
+
+              <Button
+                variant="secondary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoveDown(song.id);
+                }}
+                disabled={!canMoveDown}
+                style={{ padding: "9px 14px", fontSize: 14 }}
+              >
+                ↓ Down
               </Button>
 
               <Button
@@ -1419,6 +1475,7 @@ function App() {
   const [playerDuration, setPlayerDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isReorderingSongs, setIsReorderingSongs] = useState(false);
   const [volume, setVolume] = useState(1);
   const [previousVolume, setPreviousVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
@@ -1542,7 +1599,7 @@ function App() {
         const cloudSongs = await fetchSongsFromCloudflare();
 
         if (!cancelled) {
-          const normalizedSongs = cloudSongs.map(normalizeSong);
+          const normalizedSongs = ensureSongSortOrders(cloudSongs);
 
           const { data: likesData, error: likesError } = await supabase
             .from("song_likes")
@@ -1567,7 +1624,7 @@ function App() {
         console.warn("Could not load songs from Cloudflare, falling back to local cache:", error);
 
         if (!cancelled) {
-          const localSongs = getStored(STORAGE_KEYS.songs, DEFAULT_SONGS).map(normalizeSong);
+          const localSongs = ensureSongSortOrders(getStored(STORAGE_KEYS.songs, DEFAULT_SONGS));
           setSongs(localSongs);
         }
       }
@@ -1743,6 +1800,7 @@ function App() {
         visibility: song.visibility,
         status: song.status,
         createdAt: song.createdAt,
+        sortOrder: song.sortOrder,
       }));
       localStorage.setItem(STORAGE_KEYS.songs, JSON.stringify(safeSongs));
     } catch (error) {
@@ -1824,9 +1882,9 @@ function App() {
 
   const publicSongs = useMemo(
     () =>
-      songs
-        .map(normalizeSong)
-        .filter((song) => song.status !== "hidden" && song.visibility === "public"),
+      ensureSongSortOrders(songs)
+        .filter((song) => song.status !== "hidden" && song.visibility === "public")
+        .sort(compareSongsForDisplay),
     [songs]
   );
 
@@ -1845,24 +1903,24 @@ function App() {
 
     if (filterMode === "featured") {
       list = list.filter((song) => song.featured);
-      list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      list.sort(compareSongsForDisplay);
     } else if (filterMode === "most-liked") {
       list.sort((a, b) => {
         if (!!b.featured !== !!a.featured) {
           return b.featured ? 1 : -1;
         }
-        return (b.likes || 0) - (a.likes || 0);
+        if ((b.likes || 0) !== (a.likes || 0)) {
+          return (b.likes || 0) - (a.likes || 0);
+        }
+        return compareSongsForDisplay(a, b);
       });
     } else if (filterMode === "requested") {
       list = list.filter((song) => isRequestedSong(song));
-      list.sort((a, b) => {
-        if (!!b.featured !== !!a.featured) {
-          return b.featured ? 1 : -1;
-        }
-        return new Date(b.createdAt) - new Date(a.createdAt);
-      });
+      list.sort(compareSongsForDisplay);
     } else if (filterMode === "originals") {
       list = list.filter((song) => isOriginalSong(song));
+      list.sort(compareSongsForDisplay);
+    } else if (filterMode === "newest") {
       list.sort((a, b) => {
         if (!!b.featured !== !!a.featured) {
           return b.featured ? 1 : -1;
@@ -1870,19 +1928,14 @@ function App() {
         return new Date(b.createdAt) - new Date(a.createdAt);
       });
     } else {
-      list.sort((a, b) => {
-        if (!!b.featured !== !!a.featured) {
-          return b.featured ? 1 : -1;
-        }
-        return new Date(b.createdAt) - new Date(a.createdAt);
-      });
+      list.sort(compareSongsForDisplay);
     }
 
     return list;
   }, [publicSongs, search, filterMode]);
 
   const adminSongs = useMemo(() => {
-    let list = [...songs].map(normalizeSong);
+    let list = ensureSongSortOrders(songs);
 
     if (adminSongFilter === "public") {
       list = list.filter((song) => song.visibility === "public");
@@ -1894,7 +1947,7 @@ function App() {
       list = list.filter((song) => isOriginalSong(song));
     }
 
-    return list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return list.sort(compareSongsForDisplay);
   }, [songs, adminSongFilter]);
 
   const topLikedSongs = useMemo(() => {
@@ -2019,6 +2072,11 @@ function App() {
         uploadedAudioUrl = await uploadFileToCloudflare(newSongFiles.audioFile);
       }
 
+      const currentMaxSortOrder = songs.reduce((max, song) => {
+        const value = Number(song.sortOrder);
+        return Number.isFinite(value) ? Math.max(max, value) : max;
+      }, 0);
+
       const item = normalizeSong({
         id: editingSongId || makeSongId(),
         title: newSong.title.trim(),
@@ -2032,6 +2090,7 @@ function App() {
         visibility: newSong.visibility,
         createdAt: editingOriginalSong?.createdAt || new Date().toISOString(),
         status: editingOriginalSong?.status || "published",
+        sortOrder: editingOriginalSong?.sortOrder ?? currentMaxSortOrder + 1,
       });
 
       await saveSongToCloudflare(item);
@@ -2049,7 +2108,7 @@ function App() {
 
         alert("Song updated!");
       } else {
-        setSongs((prev) => [item, ...prev]);
+        setSongs((prev) => [...prev, item]);
         alert("Song uploaded!");
       }
 
@@ -2094,6 +2153,54 @@ function App() {
       }
     } catch (error) {
       alert(error.message || "Failed to delete song");
+    }
+  };
+
+  const handleMoveSong = async (songId, direction) => {
+    if (isReorderingSongs) return;
+
+    const visibleList = [...adminSongs];
+    const currentIndex = visibleList.findIndex((song) => song.id === songId);
+    if (currentIndex === -1) return;
+
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= visibleList.length) return;
+
+    const currentSong = visibleList[currentIndex];
+    const targetSong = visibleList[targetIndex];
+
+    const currentSortOrder = Number.isFinite(Number(currentSong.sortOrder))
+      ? Number(currentSong.sortOrder)
+      : currentIndex + 1;
+    const targetSortOrder = Number.isFinite(Number(targetSong.sortOrder))
+      ? Number(targetSong.sortOrder)
+      : targetIndex + 1;
+
+    const updatedCurrentSong = { ...currentSong, sortOrder: targetSortOrder };
+    const updatedTargetSong = { ...targetSong, sortOrder: currentSortOrder };
+
+    const previousSongs = songs;
+
+    setSongs((prev) =>
+      prev.map((song) => {
+        if (song.id === updatedCurrentSong.id) return updatedCurrentSong;
+        if (song.id === updatedTargetSong.id) return updatedTargetSong;
+        return song;
+      })
+    );
+
+    try {
+      setIsReorderingSongs(true);
+      await Promise.all([
+        saveSongToCloudflare(updatedCurrentSong),
+        saveSongToCloudflare(updatedTargetSong),
+      ]);
+    } catch (error) {
+      console.error("Could not reorder songs:", error);
+      setSongs(previousSongs);
+      alert("Could not reorder songs.");
+    } finally {
+      setIsReorderingSongs(false);
     }
   };
 
@@ -3162,6 +3269,20 @@ Thanks for the request!
                         <div>{getSongTypeLabel(editingOriginalSong)}</div>
                       </div>
 
+                      <div
+                        style={{
+                          padding: 12,
+                          borderRadius: 14,
+                          background: "rgba(10,15,28,0.45)",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                        }}
+                      >
+                        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.68)", marginBottom: 6 }}>
+                          Current order
+                        </div>
+                        <div>#{editingOriginalSong.sortOrder ?? "—"}</div>
+                      </div>
+
                       <div style={{ fontSize: 13, color: "rgba(255,255,255,0.68)" }}>
                         Leave the file inputs empty to keep the current cover and audio.
                       </div>
@@ -3370,9 +3491,24 @@ Thanks for the request!
                 </div>
               }
             >
+              <div
+                style={{
+                  marginBottom: 14,
+                  padding: 12,
+                  borderRadius: 14,
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  color: "rgba(255,255,255,0.74)",
+                  fontSize: 14,
+                }}
+              >
+                Use <strong>Up</strong> and <strong>Down</strong> to control song order.
+                Featured songs still stay above non-featured songs.
+              </div>
+
               <div style={{ display: "grid", gap: 12 }}>
                 {adminSongs.length > 0 ? (
-                  adminSongs.map((song) => (
+                  adminSongs.map((song, index) => (
                     <SongRow
                       key={song.id}
                       song={song}
@@ -3383,6 +3519,10 @@ Thanks for the request!
                       onDelete={handleDeleteSong}
                       onCopyLink={copySongLink}
                       onEdit={startEditSong}
+                      onMoveUp={(songId) => handleMoveSong(songId, "up")}
+                      onMoveDown={(songId) => handleMoveSong(songId, "down")}
+                      canMoveUp={index > 0 && !isReorderingSongs}
+                      canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
                     />
                   ))
                 ) : (
@@ -3603,9 +3743,8 @@ Thanks for the request!
                                   Select a song
                                 </option>
 
-                                {songs
-                                  .map(normalizeSong)
-                                  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                                {ensureSongSortOrders(songs)
+                                  .sort(compareSongsForDisplay)
                                   .map((song) => (
                                     <option key={song.id} value={song.id} style={{ color: "black" }}>
                                       {song.title} — {song.artist}
