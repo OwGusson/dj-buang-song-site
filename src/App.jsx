@@ -265,7 +265,7 @@ function Button({ children, variant = "secondary", type = "button", ...props }) 
   );
 }
 
-function Input({ label, ...props }) {
+function Input({ label, helper, ...props }) {
   return (
     <label style={{ display: "block" }}>
       {label ? (
@@ -288,6 +288,11 @@ function Input({ label, ...props }) {
           ...props.style,
         }}
       />
+      {helper ? (
+        <div style={{ marginTop: 8, fontSize: 13, color: "rgba(255,255,255,0.62)", lineHeight: 1.45 }}>
+          {helper}
+        </div>
+      ) : null}
     </label>
   );
 }
@@ -430,10 +435,10 @@ function SongRow({
   canMoveDown = false,
 }) {
   const songTypeLabel = getSongTypeLabel(song);
-const songAnalytics = analytics || { opens: 0, plays: 0 };
-const isNew = isNewSong(song);
-const isRequested = isRequestedSong(song);
-const isFeatured = !!song.featured;
+  const songAnalytics = analytics || { opens: 0, plays: 0 };
+  const isNew = isNewSong(song);
+  const isRequested = isRequestedSong(song);
+  const isFeatured = !!song.featured;
 
   return (
     <div
@@ -474,23 +479,23 @@ const isFeatured = !!song.featured;
 
       <div>
         <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    flexWrap: "wrap",
-    marginBottom: 4,
-  }}
->
-  <h3 style={{ margin: 0, fontSize: 19 }}>{song.title}</h3>
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+            marginBottom: 4,
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: 19 }}>{song.title}</h3>
 
-  {isFeatured ? <Badge>⭐ FEATURED</Badge> : null}
-  {isNew ? <Badge>🆕 NEW</Badge> : null}
-  {isRequested ? <Badge>🔥 REQUESTED</Badge> : null}
+          {isFeatured ? <Badge>⭐ FEATURED</Badge> : null}
+          {isNew ? <Badge>🆕 NEW</Badge> : null}
+          {isRequested ? <Badge>🔥 REQUESTED</Badge> : null}
 
-  <Badge>{song.visibility === "public" ? "Public" : "Private"}</Badge>
-  {isAdmin ? <Badge>Order {song.sortOrder}</Badge> : null}
-</div>
+          <Badge>{song.visibility === "public" ? "Public" : "Private"}</Badge>
+          {isAdmin ? <Badge>Order {song.sortOrder}</Badge> : null}
+        </div>
 
         <div style={{ color: "rgba(255,255,255,0.72)", marginBottom: 12, fontSize: 14 }}>
           {song.artist} • {songTypeLabel} • Added {formatDate(song.createdAt)}
@@ -1612,13 +1617,14 @@ function App() {
   });
 
   const [requestSent, setRequestSent] = useState(false);
-const [uploadSuccess, setUploadSuccess] = useState("");
-const [messageSuccess, setMessageSuccess] = useState("");
+  const [uploadSuccess, setUploadSuccess] = useState("");
+  const [messageSuccess, setMessageSuccess] = useState("");
 
-const [messageForm, setMessageForm] = useState({
-  from: "",
-  message: "",
-});
+  const [messageForm, setMessageForm] = useState({
+    from: "",
+    replyContact: "",
+    message: "",
+  });
 
   function resetSongForm() {
     setNewSong({
@@ -1790,6 +1796,7 @@ const [messageForm, setMessageForm] = useState({
           messagesData.map((m) => ({
             id: m.id,
             from: m.sender_name,
+            replyContact: m.sender_email || "",
             message: m.message,
             status: m.status,
             createdAt: m.created_at,
@@ -1851,6 +1858,7 @@ const [messageForm, setMessageForm] = useState({
               data.map((m) => ({
                 id: m.id,
                 from: m.sender_name,
+                replyContact: m.sender_email || "",
                 message: m.message,
                 status: m.status,
                 createdAt: m.created_at,
@@ -2097,19 +2105,19 @@ const [messageForm, setMessageForm] = useState({
       list = list.filter((song) => isOriginalSong(song));
       list.sort(compareSongsForDisplay);
     } else if (filterMode === "newest") {
-  const newestSongs = list.filter((song) => isNewSong(song));
+      const newestSongs = list.filter((song) => isNewSong(song));
 
-  if (newestSongs.length > 0) {
-    list = newestSongs;
-  }
+      if (newestSongs.length > 0) {
+        list = newestSongs;
+      }
 
-  list.sort((a, b) => {
-    if (!!b.featured !== !!a.featured) {
-      return b.featured ? 1 : -1;
-    }
-    return new Date(b.createdAt) - new Date(a.createdAt);
-  });
-} else {
+      list.sort((a, b) => {
+        if (!!b.featured !== !!a.featured) {
+          return b.featured ? 1 : -1;
+        }
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+    } else {
       list.sort(compareSongsForDisplay);
     }
 
@@ -2135,38 +2143,39 @@ const [messageForm, setMessageForm] = useState({
   const topLikedSongs = useMemo(() => {
     return [...publicSongs].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 3);
   }, [publicSongs]);
+
   const featuredSpotlightSongs = useMemo(() => {
-  return [...publicSongs]
-    .filter((song) => song.featured)
-    .sort(compareSongsForDisplay)
-    .slice(0, 2);
-}, [publicSongs]);
+    return [...publicSongs]
+      .filter((song) => song.featured)
+      .sort(compareSongsForDisplay)
+      .slice(0, 2);
+  }, [publicSongs]);
 
-const newestSpotlightSongs = useMemo(() => {
-  const featuredIds = new Set(featuredSpotlightSongs.map((song) => song.id));
+  const newestSpotlightSongs = useMemo(() => {
+    const featuredIds = new Set(featuredSpotlightSongs.map((song) => song.id));
 
-  return [...publicSongs]
-    .filter((song) => isNewSong(song) && !featuredIds.has(song.id))
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    .slice(0, 2);
-}, [publicSongs, featuredSpotlightSongs]);
+    return [...publicSongs]
+      .filter((song) => isNewSong(song) && !featuredIds.has(song.id))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 2);
+  }, [publicSongs, featuredSpotlightSongs]);
 
-const spotlightSongIds = useMemo(() => {
-  return new Set([
-    ...featuredSpotlightSongs.map((song) => song.id),
-    ...newestSpotlightSongs.map((song) => song.id),
-  ]);
-}, [featuredSpotlightSongs, newestSpotlightSongs]);
+  const spotlightSongIds = useMemo(() => {
+    return new Set([
+      ...featuredSpotlightSongs.map((song) => song.id),
+      ...newestSpotlightSongs.map((song) => song.id),
+    ]);
+  }, [featuredSpotlightSongs, newestSpotlightSongs]);
 
-const remainingSongs = useMemo(() => {
-  if (filterMode !== "all") {
-    return filteredSongs;
-  }
+  const remainingSongs = useMemo(() => {
+    if (filterMode !== "all") {
+      return filteredSongs;
+    }
 
-  return filteredSongs.filter((song) => !spotlightSongIds.has(song.id));
-}, [filteredSongs, spotlightSongIds, filterMode]);
+    return filteredSongs.filter((song) => !spotlightSongIds.has(song.id));
+  }, [filteredSongs, spotlightSongIds, filterMode]);
 
-const showSpotlights = filterMode === "all";
+  const showSpotlights = filterMode === "all";
 
   const topPlayedSongs = useMemo(() => {
     return [...songs]
@@ -2328,24 +2337,24 @@ const showSpotlights = filterMode === "all";
       await saveSongToCloudflare(item);
 
       if (editingSongId) {
-  setSongs((prev) =>
-    prev.map((song) => (song.id === editingSongId ? item : song))
-  );
+        setSongs((prev) =>
+          prev.map((song) => (song.id === editingSongId ? item : song))
+        );
 
-  await autoCleanReplacedFiles({
-    oldSong: editingOriginalSong,
-    newCoverUrl: uploadedCoverUrl,
-    newAudioUrl: uploadedAudioUrl,
-  });
+        await autoCleanReplacedFiles({
+          oldSong: editingOriginalSong,
+          newCoverUrl: uploadedCoverUrl,
+          newAudioUrl: uploadedAudioUrl,
+        });
 
-  setUploadSuccess(`✅ "${item.title}" was updated successfully.`);
-} else {
-  setSongs((prev) => [...prev, item]);
-  setUploadSuccess(`🎵 "${item.title}" was uploaded successfully.`);
-}
+        setUploadSuccess(`✅ "${item.title}" was updated successfully.`);
+      } else {
+        setSongs((prev) => [...prev, item]);
+        setUploadSuccess(`🎵 "${item.title}" was uploaded successfully.`);
+      }
 
-setHasUnsavedSongChanges(false);
-resetSongForm();
+      setHasUnsavedSongChanges(false);
+      resetSongForm();
     } catch (error) {
       alert(error.message || "Save failed");
     } finally {
@@ -2387,6 +2396,46 @@ resetSongForm();
     } catch (error) {
       alert(error.message || "Failed to delete song");
     }
+  };
+
+  const handleDeleteRequest = async (requestId) => {
+    const requestToDelete = requests.find((req) => req.id === requestId);
+    if (!requestToDelete) return;
+
+    const confirmed = window.confirm(`Delete request "${requestToDelete.title}" from ${requestToDelete.name}?`);
+    if (!confirmed) return;
+
+    const { error } = await supabase.from("song_requests").delete().eq("id", requestId);
+
+    if (error) {
+      console.error("Could not delete request:", error);
+      alert("Could not delete request.");
+      return;
+    }
+
+    setRequests((prev) => prev.filter((req) => req.id !== requestId));
+
+    if (selectedRequest?.id === requestId) {
+      setSelectedRequest(null);
+    }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    const messageToDelete = messages.find((msg) => msg.id === messageId);
+    if (!messageToDelete) return;
+
+    const confirmed = window.confirm(`Delete private message from "${messageToDelete.from}"?`);
+    if (!confirmed) return;
+
+    const { error } = await supabase.from("private_messages").delete().eq("id", messageId);
+
+    if (error) {
+      console.error("Could not delete private message:", error);
+      alert("Could not delete private message.");
+      return;
+    }
+
+    setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
   };
 
   const handleMoveSong = async (songId, direction) => {
@@ -2506,12 +2555,25 @@ resetSongForm();
 
   const handleMessageSubmit = async (e) => {
     e.preventDefault();
-    if (!messageForm.from.trim() || !messageForm.message.trim()) return;
+
+    const trimmedName = messageForm.from.trim();
+    const trimmedReplyContact = messageForm.replyContact.trim();
+    const trimmedMessage = messageForm.message.trim();
+
+    if (!trimmedName) {
+      alert("Please enter your name or username.");
+      return;
+    }
+
+    if (!trimmedMessage) {
+      alert("Please enter a message.");
+      return;
+    }
 
     const payload = {
-      sender_name: messageForm.from.trim(),
-      sender_email: "",
-      message: messageForm.message.trim(),
+      sender_name: trimmedName,
+      sender_email: trimmedReplyContact,
+      message: trimmedMessage,
       status: "new",
     };
 
@@ -2530,13 +2592,14 @@ resetSongForm();
     const newMessage = {
       id: data.id,
       from: data.sender_name,
+      replyContact: data.sender_email || "",
       message: data.message,
       status: data.status,
       createdAt: data.created_at,
     };
 
     setMessages((prev) => [newMessage, ...prev]);
-    setMessageForm({ from: "", message: "" });
+    setMessageForm({ from: "", replyContact: "", message: "" });
     setMessageSuccess("✉️ Private message sent successfully.");
   };
 
@@ -2694,16 +2757,6 @@ resetSongForm();
 
   const handleExpandPlayer = () => {
     setPlayerMinimized(false);
-  };
-
-  const downloadTextFile = (filename, content) => {
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const downloadSong = (song) => {
@@ -2899,26 +2952,26 @@ resetSongForm();
                       ♡ Support / Donate
                     </Button>
                     <Button
-  variant="secondary"
-  onClick={() => {
-    setRequestSent(false);
-    setMessageSuccess("");
-    setUploadSuccess("");
-    setView("request");
-  }}
->
-  🗒 Song Request
-</Button>
-<Button
-  variant="secondary"
-  onClick={() => {
-    setMessageSuccess("");
-    setUploadSuccess("");
-    setView("message");
-  }}
->
-  ✈ Private Message
-</Button>
+                      variant="secondary"
+                      onClick={() => {
+                        setRequestSent(false);
+                        setMessageSuccess("");
+                        setUploadSuccess("");
+                        setView("request");
+                      }}
+                    >
+                      🗒 Song Request
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setMessageSuccess("");
+                        setUploadSuccess("");
+                        setView("message");
+                      }}
+                    >
+                      ✈ Private Message
+                    </Button>
                   </div>
                 </div>
 
@@ -2933,16 +2986,16 @@ resetSongForm();
                   }}
                 >
                   <Button
-  variant="secondary"
-  onClick={() => {
-    setMessageSuccess("");
-    setUploadSuccess("");
-    setView(adminLoggedIn ? "admin" : "login");
-  }}
-  style={{ minWidth: 110 }}
->
-  🔒 Admin
-</Button>
+                    variant="secondary"
+                    onClick={() => {
+                      setMessageSuccess("");
+                      setUploadSuccess("");
+                      setView(adminLoggedIn ? "admin" : "login");
+                    }}
+                    style={{ minWidth: 110 }}
+                  >
+                    🔒 Admin
+                  </Button>
 
                   <img
                     src="/hero-logo.png"
@@ -3011,92 +3064,92 @@ resetSongForm();
                   </div>
 
                   <div style={{ display: "grid", gap: 14 }}>
-  {showSpotlights && featuredSpotlightSongs.length > 0 ? (
-    <div style={{ display: "grid", gap: 12 }}>
-      <div
-        style={{
-          fontSize: 13,
-          letterSpacing: "0.24em",
-          color: "rgba(255,255,255,0.58)",
-          textTransform: "uppercase",
-          marginTop: 4,
-        }}
-      >
-        ⭐ Featured Spotlight
-      </div>
+                    {showSpotlights && featuredSpotlightSongs.length > 0 ? (
+                      <div style={{ display: "grid", gap: 12 }}>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            letterSpacing: "0.24em",
+                            color: "rgba(255,255,255,0.58)",
+                            textTransform: "uppercase",
+                            marginTop: 4,
+                          }}
+                        >
+                          ⭐ Featured Spotlight
+                        </div>
 
-      {featuredSpotlightSongs.map((song) => (
-        <SongRow
-          key={`featured-${song.id}`}
-          song={song}
-          analytics={songAnalytics[song.id]}
-          onLike={handleLikeSong}
-          onOpenPlayer={handleOpenSong}
-          onDownloadSong={downloadSong}
-          onDownloadLyrics={downloadLyrics}
-        />
-      ))}
-    </div>
-  ) : null}
+                        {featuredSpotlightSongs.map((song) => (
+                          <SongRow
+                            key={`featured-${song.id}`}
+                            song={song}
+                            analytics={songAnalytics[song.id]}
+                            onLike={handleLikeSong}
+                            onOpenPlayer={handleOpenSong}
+                            onDownloadSong={downloadSong}
+                            onDownloadLyrics={downloadLyrics}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
 
-  {showSpotlights && newestSpotlightSongs.length > 0 ? (
-  <div style={{ display: "grid", gap: 12 }}>
-    <div
-      style={{
-        fontSize: 13,
-        letterSpacing: "0.24em",
-        color: "rgba(255,255,255,0.58)",
-        textTransform: "uppercase",
-        marginTop: 10,
-      }}
-    >
-      🆕 Newest Drops
-    </div>
+                    {showSpotlights && newestSpotlightSongs.length > 0 ? (
+                      <div style={{ display: "grid", gap: 12 }}>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            letterSpacing: "0.24em",
+                            color: "rgba(255,255,255,0.58)",
+                            textTransform: "uppercase",
+                            marginTop: 10,
+                          }}
+                        >
+                          🆕 Newest Drops
+                        </div>
 
-    {newestSpotlightSongs.map((song) => (
-      <SongRow
-        key={`newest-${song.id}`}
-        song={song}
-        analytics={songAnalytics[song.id]}
-        onLike={handleLikeSong}
-        onOpenPlayer={handleOpenSong}
-        onDownloadSong={downloadSong}
-        onDownloadLyrics={downloadLyrics}
-      />
-    ))}
-  </div>
-) : null}
+                        {newestSpotlightSongs.map((song) => (
+                          <SongRow
+                            key={`newest-${song.id}`}
+                            song={song}
+                            analytics={songAnalytics[song.id]}
+                            onLike={handleLikeSong}
+                            onOpenPlayer={handleOpenSong}
+                            onDownloadSong={downloadSong}
+                            onDownloadLyrics={downloadLyrics}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
 
-{remainingSongs.length > 0 ? (
-  <div style={{ display: "grid", gap: 12 }}>
-    <div
-      style={{
-        fontSize: 13,
-        letterSpacing: "0.24em",
-        color: "rgba(255,255,255,0.58)",
-        textTransform: "uppercase",
-        marginTop: 10,
-      }}
-    >
-      🎵 More Songs
-    </div>
+                    {remainingSongs.length > 0 ? (
+                      <div style={{ display: "grid", gap: 12 }}>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            letterSpacing: "0.24em",
+                            color: "rgba(255,255,255,0.58)",
+                            textTransform: "uppercase",
+                            marginTop: 10,
+                          }}
+                        >
+                          🎵 More Songs
+                        </div>
 
-    {remainingSongs.map((song) => (
-      <SongRow
-        key={song.id}
-        song={song}
-        analytics={songAnalytics[song.id]}
-        onLike={handleLikeSong}
-        onOpenPlayer={handleOpenSong}
-        onDownloadSong={downloadSong}
-        onDownloadLyrics={downloadLyrics}
-      />
-    ))}
-  </div>
-) : (
-  <div style={{ color: "rgba(255,255,255,0.70)" }}>No more songs found.</div>
-)}
-</div>
+                        {remainingSongs.map((song) => (
+                          <SongRow
+                            key={song.id}
+                            song={song}
+                            analytics={songAnalytics[song.id]}
+                            onLike={handleLikeSong}
+                            onOpenPlayer={handleOpenSong}
+                            onDownloadSong={downloadSong}
+                            onDownloadLyrics={downloadLyrics}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ color: "rgba(255,255,255,0.70)" }}>No more songs found.</div>
+                    )}
+                  </div>
                 </div>
               </Panel>
 
@@ -3146,26 +3199,26 @@ resetSongForm();
                 <Panel title="◉ Connect" subtitle="Song requests, private messages, and support are open.">
                   <div style={{ display: "grid", gap: 12 }}>
                     <Button
-  variant="primary"
-  onClick={() => {
-    setRequestSent(false);
-    setMessageSuccess("");
-    setUploadSuccess("");
-    setView("request");
-  }}
->
-  🗒 Open Song Request Form
-</Button>
-<Button
-  variant="secondary"
-  onClick={() => {
-    setMessageSuccess("");
-    setUploadSuccess("");
-    setView("message");
-  }}
->
-  💬 Open Private Message Form
-</Button>
+                      variant="primary"
+                      onClick={() => {
+                        setRequestSent(false);
+                        setMessageSuccess("");
+                        setUploadSuccess("");
+                        setView("request");
+                      }}
+                    >
+                      🗒 Open Song Request Form
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setMessageSuccess("");
+                        setUploadSuccess("");
+                        setView("message");
+                      }}
+                    >
+                      💬 Open Private Message Form
+                    </Button>
                     <Button variant="secondary" onClick={openPayPalDonation}>
                       ♡ Support on PayPal
                     </Button>
@@ -3245,32 +3298,41 @@ resetSongForm();
 
         {view === "message" && (
           <Panel title="Private Message" subtitle="This goes to a separate private admin area.">
-  {messageSuccess && (
-    <div
-      style={{
-        padding: 18,
-        borderRadius: 18,
-        background: "rgba(34,197,94,0.15)",
-        border: "1px solid rgba(74,222,128,0.35)",
-        marginBottom: 18,
-        maxWidth: 760,
-      }}
-    >
-      <strong>{messageSuccess}</strong>
-    </div>
-  )}
+            {messageSuccess && (
+              <div
+                style={{
+                  padding: 18,
+                  borderRadius: 18,
+                  background: "rgba(34,197,94,0.15)",
+                  border: "1px solid rgba(74,222,128,0.35)",
+                  marginBottom: 18,
+                  maxWidth: 760,
+                }}
+              >
+                <strong>{messageSuccess}</strong>
+              </div>
+            )}
 
-  <form onSubmit={handleMessageSubmit} style={{ display: "grid", gap: 16, maxWidth: 760 }}>
+            <form onSubmit={handleMessageSubmit} style={{ display: "grid", gap: 16, maxWidth: 760 }}>
               <Input
-                label="Your name"
+                label="Name or username"
                 value={messageForm.from}
                 onChange={(e) => setMessageForm((prev) => ({ ...prev, from: e.target.value }))}
               />
+
+              <Input
+                label="Reply contact (optional)"
+                helper="Leave your email, Discord, or DIA username if you want DJ-BUANG to reply."
+                value={messageForm.replyContact}
+                onChange={(e) => setMessageForm((prev) => ({ ...prev, replyContact: e.target.value }))}
+              />
+
               <TextArea
                 label="Message"
                 value={messageForm.message}
                 onChange={(e) => setMessageForm((prev) => ({ ...prev, message: e.target.value }))}
               />
+
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <Button type="submit" variant="primary">Send Message</Button>
                 <Button type="button" variant="secondary" onClick={() => setView("home")}>Back Home</Button>
@@ -3318,14 +3380,14 @@ resetSongForm();
               right={<Button variant="secondary" onClick={handleLogout}>Logout</Button>}
             >
               <div
-  style={{
-    display: "grid",
-    gridTemplateColumns: isMobile
-      ? "repeat(2, minmax(0, 1fr))"
-      : "repeat(7, minmax(0, 1fr))",
-    gap: 14,
-  }}
->
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile
+                    ? "repeat(2, minmax(0, 1fr))"
+                    : "repeat(7, minmax(0, 1fr))",
+                  gap: 14,
+                }}
+              >
                 <StatPill label="Total Plays" value={totalPlays} />
                 <StatPill label="Total Opens" value={totalOpens} />
                 <StatPill label="Total Likes" value={totalLikes} />
@@ -3360,21 +3422,21 @@ resetSongForm();
             </Panel>
 
             <Panel title={editingSongId ? "Edit Song" : "Admin Upload Panel"}>
-  {uploadSuccess && (
-    <div
-      style={{
-        padding: 18,
-        borderRadius: 18,
-        background: "rgba(34,197,94,0.15)",
-        border: "1px solid rgba(74,222,128,0.35)",
-        marginBottom: 18,
-      }}
-    >
-      <strong>{uploadSuccess}</strong>
-    </div>
-  )}
+              {uploadSuccess && (
+                <div
+                  style={{
+                    padding: 18,
+                    borderRadius: 18,
+                    background: "rgba(34,197,94,0.15)",
+                    border: "1px solid rgba(74,222,128,0.35)",
+                    marginBottom: 18,
+                  }}
+                >
+                  <strong>{uploadSuccess}</strong>
+                </div>
+              )}
 
-  <form
+              <form
                 onSubmit={handleAddSong}
                 style={{
                   display: "grid",
@@ -3629,6 +3691,13 @@ resetSongForm();
                           >
                             {req.status === "done" ? "Mark Pending" : "Mark Done"}
                           </Button>
+
+                          <Button
+                            variant="danger"
+                            onClick={() => handleDeleteRequest(req.id)}
+                          >
+                            Delete
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -3652,10 +3721,34 @@ resetSongForm();
                         border: "1px solid rgba(255,255,255,0.08)",
                       }}
                     >
-                      <strong>{msg.from}</strong>
-                      <div style={{ color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
-                        {formatDate(msg.createdAt)} • {msg.status}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          alignItems: "flex-start",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div style={{ display: "grid", gap: 6 }}>
+                          <strong>{msg.from}</strong>
+                          <div style={{ color: "rgba(255,255,255,0.65)" }}>
+                            {formatDate(msg.createdAt)} • {msg.status}
+                          </div>
+                          <div style={{ color: "rgba(255,255,255,0.78)" }}>
+                            Reply contact: {msg.replyContact ? msg.replyContact : "No reply contact left"}
+                          </div>
+                        </div>
+
+                        <Button
+                          variant="danger"
+                          onClick={() => handleDeleteMessage(msg.id)}
+                          style={{ padding: "9px 14px", fontSize: 14 }}
+                        >
+                          Delete
+                        </Button>
                       </div>
+
                       <p style={{ margin: "14px 0 0", lineHeight: 1.55 }}>{msg.message}</p>
                     </div>
                   ))
