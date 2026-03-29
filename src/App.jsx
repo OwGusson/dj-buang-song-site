@@ -95,6 +95,16 @@ function compareSongsForDisplay(a, b) {
   return new Date(b.createdAt) - new Date(a.createdAt);
 }
 
+function isNewSong(song) {
+  if (!song?.id) return false;
+
+  const timestamp = Number(String(song.id).replace(/^song-/, "").split("-")[0]);
+  if (!Number.isFinite(timestamp)) return false;
+
+  const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
+  return Date.now() - timestamp <= FOURTEEN_DAYS;
+}
+
 function formatDate(dateString) {
   try {
     const d = new Date(dateString);
@@ -2126,11 +2136,13 @@ const [messageForm, setMessageForm] = useState({
 }, [publicSongs]);
 
 const newestSpotlightSongs = useMemo(() => {
+  const featuredIds = new Set(featuredSpotlightSongs.map((song) => song.id));
+
   return [...publicSongs]
-    .filter((song) => isNewSong(song))
+    .filter((song) => isNewSong(song) && !featuredIds.has(song.id))
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 2);
-}, [publicSongs]);
+}, [publicSongs, featuredSpotlightSongs]);
 
 const spotlightSongIds = useMemo(() => {
   return new Set([
@@ -2874,17 +2886,26 @@ resetSongForm();
                       ♡ Support / Donate
                     </Button>
                     <Button
-                      variant="secondary"
-                      onClick={() => {
-                        setRequestSent(false);
-                        setView("request");
-                      }}
-                    >
-                      🗒 Song Request
-                    </Button>
-                    <Button variant="secondary" onClick={() => setView("message")}>
-                      ✈ Private Message
-                    </Button>
+  variant="secondary"
+  onClick={() => {
+    setRequestSent(false);
+    setMessageSuccess("");
+    setUploadSuccess("");
+    setView("request");
+  }}
+>
+  🗒 Song Request
+</Button>
+<Button
+  variant="secondary"
+  onClick={() => {
+    setMessageSuccess("");
+    setUploadSuccess("");
+    setView("message");
+  }}
+>
+  ✈ Private Message
+</Button>
                   </div>
                 </div>
 
@@ -2899,12 +2920,16 @@ resetSongForm();
                   }}
                 >
                   <Button
-                    variant="secondary"
-                    onClick={() => setView(adminLoggedIn ? "admin" : "login")}
-                    style={{ minWidth: 110 }}
-                  >
-                    🔒 Admin
-                  </Button>
+  variant="secondary"
+  onClick={() => {
+    setMessageSuccess("");
+    setUploadSuccess("");
+    setView(adminLoggedIn ? "admin" : "login");
+  }}
+  style={{ minWidth: 110 }}
+>
+  🔒 Admin
+</Button>
 
                   <img
                     src="/hero-logo.png"
@@ -3313,7 +3338,21 @@ resetSongForm();
             </Panel>
 
             <Panel title={editingSongId ? "Edit Song" : "Admin Upload Panel"}>
-              <form
+  {uploadSuccess && (
+    <div
+      style={{
+        padding: 18,
+        borderRadius: 18,
+        background: "rgba(34,197,94,0.15)",
+        border: "1px solid rgba(74,222,128,0.35)",
+        marginBottom: 18,
+      }}
+    >
+      <strong>{uploadSuccess}</strong>
+    </div>
+  )}
+
+  <form
                 onSubmit={handleAddSong}
                 style={{
                   display: "grid",
