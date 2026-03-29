@@ -3070,11 +3070,38 @@ const handleMoveSong = async (songId, direction) => {
                   flexWrap: "wrap",
                 }}
               >
-                <div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
-                    <Badge>DJ-Buang Official</Badge>
-                    <Badge>🎤 Mobile ready</Badge>
-                  </div>
+                <div style={{ width: isMobile ? "100%" : "auto" }}>
+                  <div
+  style={{
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    marginBottom: 18,
+    alignItems: "center",
+    justifyContent: "space-between",
+  }}
+>
+  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+    <Badge>DJ-Buang Official</Badge>
+    <Badge>🎤 Mobile ready</Badge>
+  </div>
+
+  <Button
+    variant="secondary"
+    onClick={() => {
+      setMessageSuccess("");
+      setUploadSuccess("");
+      setView(adminLoggedIn ? "admin" : "login");
+    }}
+    style={{
+      minWidth: "auto",
+      padding: isMobile ? "8px 12px" : "10px 14px",
+      fontSize: isMobile ? 13 : 14,
+    }}
+  >
+    🔒 Admin
+  </Button>
+</div>
 
                   <h1
                     style={{
@@ -3141,22 +3168,6 @@ const handleMoveSong = async (songId, direction) => {
     minWidth: isMobile ? "100%" : 260,
   }}
 >
-                  <Button
-  variant="secondary"
-  onClick={() => {
-    setMessageSuccess("");
-    setUploadSuccess("");
-    setView(adminLoggedIn ? "admin" : "login");
-  }}
-  style={{
-    minWidth: isMobile ? "auto" : 110,
-    padding: isMobile ? "8px 12px" : undefined,
-    fontSize: isMobile ? 13 : 16,
-    alignSelf: isMobile ? "flex-end" : "unset",
-  }}
->
-  🔒 Admin
-</Button>
 
                   <img
                     src="/hero-logo.png"
