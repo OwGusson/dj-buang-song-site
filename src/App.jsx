@@ -355,7 +355,7 @@ function Select({ label, children, ...props }) {
   );
 }
 
-function Badge({ children }) {
+function Badge({ children, style = {} }) {
   return (
     <span
       style={{
@@ -369,6 +369,7 @@ function Badge({ children }) {
         fontSize: 13,
         color: "rgba(255,255,255,0.88)",
         whiteSpace: "nowrap",
+        ...style,
       }}
     >
       {children}
@@ -417,6 +418,51 @@ function Panel({ title, subtitle, right, children }) {
     </section>
   );
 }
+function SectionHeading({ icon, title, tone = "default" }) {
+  const tones = {
+    featured: {
+      color: "#fde68a",
+      background: "linear-gradient(135deg, rgba(250,204,21,0.18), rgba(251,191,36,0.08))",
+      border: "1px solid rgba(250,204,21,0.28)",
+      boxShadow: "0 8px 24px rgba(250,204,21,0.12)",
+    },
+    new: {
+      color: "#93c5fd",
+      background: "linear-gradient(135deg, rgba(59,130,246,0.18), rgba(96,165,250,0.08))",
+      border: "1px solid rgba(96,165,250,0.26)",
+      boxShadow: "0 8px 24px rgba(59,130,246,0.12)",
+    },
+    default: {
+      color: "#d8b4fe",
+      background: "linear-gradient(135deg, rgba(168,85,247,0.16), rgba(192,132,252,0.07))",
+      border: "1px solid rgba(192,132,252,0.20)",
+      boxShadow: "0 8px 24px rgba(168,85,247,0.10)",
+    },
+  };
+
+  const toneStyle = tones[tone] || tones.default;
+
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 14px",
+        borderRadius: 16,
+        fontSize: 13,
+        fontWeight: 800,
+        letterSpacing: "0.18em",
+        textTransform: "uppercase",
+        width: "fit-content",
+        ...toneStyle,
+      }}
+    >
+      <span style={{ fontSize: 15 }}>{icon}</span>
+      <span>{title}</span>
+    </div>
+  );
+}
 
 function SongRow({
   song,
@@ -444,16 +490,23 @@ function SongRow({
     <div
       onClick={() => onOpenPlayer(song)}
       style={{
-        display: "grid",
-        gridTemplateColumns: "96px 1fr",
-        gap: 14,
-        padding: 14,
-        borderRadius: 20,
-        background: "rgba(8,12,24,0.64)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        alignItems: "center",
-        cursor: "pointer",
-      }}
+  display: "grid",
+  gridTemplateColumns: "96px 1fr",
+  gap: 14,
+  padding: 14,
+  borderRadius: 20,
+  background: isFeatured
+    ? "linear-gradient(180deg, rgba(33,24,8,0.88), rgba(8,12,24,0.92))"
+    : "rgba(8,12,24,0.64)",
+  border: isFeatured
+    ? "1px solid rgba(250,204,21,0.22)"
+    : "1px solid rgba(255,255,255,0.08)",
+  boxShadow: isFeatured
+    ? "0 10px 28px rgba(250,204,21,0.08)"
+    : "none",
+  alignItems: "center",
+  cursor: "pointer",
+}}
     >
       <div
         style={{
@@ -489,12 +542,69 @@ function SongRow({
         >
           <h3 style={{ margin: 0, fontSize: 19 }}>{song.title}</h3>
 
-          {isFeatured ? <Badge>⭐ FEATURED</Badge> : null}
-          {isNew ? <Badge>🆕 NEW</Badge> : null}
-          {isRequested ? <Badge>🔥 REQUESTED</Badge> : null}
+          {isFeatured ? (
+  <Badge
+    style={{
+      background: "linear-gradient(135deg, #facc15, #f59e0b)",
+      color: "#111827",
+      border: "1px solid rgba(250,204,21,0.45)",
+      boxShadow: "0 4px 14px rgba(250,204,21,0.35)",
+      fontWeight: 800,
+    }}
+  >
+    ⭐ FEATURED
+  </Badge>
+) : null}
 
-          <Badge>{song.visibility === "public" ? "Public" : "Private"}</Badge>
-          {isAdmin ? <Badge>Order {song.sortOrder}</Badge> : null}
+{isNew ? (
+  <Badge
+    style={{
+      background: "linear-gradient(135deg, #60a5fa, #2563eb)",
+      color: "white",
+      border: "1px solid rgba(96,165,250,0.40)",
+      boxShadow: "0 4px 14px rgba(59,130,246,0.30)",
+      fontWeight: 800,
+    }}
+  >
+    🆕 NEW
+  </Badge>
+) : null}
+
+{isRequested ? (
+  <Badge
+    style={{
+      background: "linear-gradient(135deg, #fb923c, #ea580c)",
+      color: "white",
+      border: "1px solid rgba(251,146,60,0.40)",
+      boxShadow: "0 4px 14px rgba(249,115,22,0.28)",
+      fontWeight: 800,
+    }}
+  >
+    🔥 REQUESTED
+  </Badge>
+) : null}
+
+          <Badge
+  style={{
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.10)",
+    color: "rgba(255,255,255,0.78)",
+  }}
+>
+  {song.visibility === "public" ? "Public" : "Private"}
+</Badge>
+
+{isAdmin ? (
+  <Badge
+    style={{
+      background: "rgba(255,255,255,0.05)",
+      border: "1px solid rgba(255,255,255,0.10)",
+      color: "rgba(255,255,255,0.72)",
+    }}
+  >
+    Order {song.sortOrder}
+  </Badge>
+) : null}
         </div>
 
         <div style={{ color: "rgba(255,255,255,0.72)", marginBottom: 12, fontSize: 14 }}>
@@ -1621,10 +1731,11 @@ function App() {
   const [messageSuccess, setMessageSuccess] = useState("");
 
   const [messageForm, setMessageForm] = useState({
-    from: "",
-    replyContact: "",
-    message: "",
-  });
+  from: "",
+  replyPlatform: "",
+  replyContact: "",
+  message: "",
+});
 
   function resetSongForm() {
     setNewSong({
@@ -2583,6 +2694,7 @@ const handleMoveSong = async (songId, direction) => {
     const trimmedName = messageForm.from.trim();
     const trimmedReplyContact = messageForm.replyContact.trim();
     const trimmedMessage = messageForm.message.trim();
+    const trimmedReplyPlatform = messageForm.replyPlatform.trim();
 
     if (!trimmedName) {
       alert("Please enter your name or username.");
@@ -2595,11 +2707,14 @@ const handleMoveSong = async (songId, direction) => {
     }
 
     const payload = {
-      sender_name: trimmedName,
-      sender_email: trimmedReplyContact,
-      message: trimmedMessage,
-      status: "new",
-    };
+  sender_name: trimmedName,
+  sender_email:
+    trimmedReplyPlatform && trimmedReplyContact
+      ? `${trimmedReplyPlatform}: ${trimmedReplyContact}`
+      : trimmedReplyContact,
+  message: trimmedMessage,
+  status: "new",
+};
 
     const { data, error } = await supabase
       .from("private_messages")
@@ -2623,7 +2738,7 @@ const handleMoveSong = async (songId, direction) => {
     };
 
     setMessages((prev) => [newMessage, ...prev]);
-    setMessageForm({ from: "", replyContact: "", message: "" });
+    setMessageForm({ from: "", replyPlatform: "", replyContact: "", message: "" });
     setMessageSuccess("✉️ Private message sent successfully.");
   };
 
@@ -3090,17 +3205,11 @@ const handleMoveSong = async (songId, direction) => {
                   <div style={{ display: "grid", gap: 14 }}>
                     {showSpotlights && featuredSpotlightSongs.length > 0 ? (
                       <div style={{ display: "grid", gap: 12 }}>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            letterSpacing: "0.24em",
-                            color: "rgba(255,255,255,0.58)",
-                            textTransform: "uppercase",
-                            marginTop: 4,
-                          }}
-                        >
-                          ⭐ Featured Spotlight
-                        </div>
+                        <SectionHeading
+  icon="⭐"
+  title="Featured Spotlight"
+  tone="featured"
+/>
 
                         {featuredSpotlightSongs.map((song) => (
                           <SongRow
@@ -3118,17 +3227,11 @@ const handleMoveSong = async (songId, direction) => {
 
                     {showSpotlights && newestSpotlightSongs.length > 0 ? (
                       <div style={{ display: "grid", gap: 12 }}>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            letterSpacing: "0.24em",
-                            color: "rgba(255,255,255,0.58)",
-                            textTransform: "uppercase",
-                            marginTop: 10,
-                          }}
-                        >
-                          🆕 Newest Drops
-                        </div>
+                        <SectionHeading
+  icon="🆕"
+  title="Newest Drops"
+  tone="new"
+/>
 
                         {newestSpotlightSongs.map((song) => (
                           <SongRow
@@ -3146,17 +3249,10 @@ const handleMoveSong = async (songId, direction) => {
 
                     {remainingSongs.length > 0 ? (
                       <div style={{ display: "grid", gap: 12 }}>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            letterSpacing: "0.24em",
-                            color: "rgba(255,255,255,0.58)",
-                            textTransform: "uppercase",
-                            marginTop: 10,
-                          }}
-                        >
-                          🎵 More Songs
-                        </div>
+                        <SectionHeading
+  icon="🎵"
+  title="More Songs"
+/>
 
                         {remainingSongs.map((song) => (
                           <SongRow
@@ -3186,12 +3282,13 @@ const handleMoveSong = async (songId, direction) => {
                           key={song.id}
                           onClick={() => handleOpenSong(song)}
                           style={{
-                            padding: 16,
-                            borderRadius: 18,
-                            background: "rgba(8,12,24,0.68)",
-                            border: "1px solid rgba(255,255,255,0.08)",
-                            cursor: "pointer",
-                          }}
+  padding: 18,
+  borderRadius: 20,
+  background: "linear-gradient(180deg, rgba(10,14,28,0.90), rgba(7,11,22,0.94))",
+  border: "1px solid rgba(255,255,255,0.09)",
+  boxShadow: "0 12px 28px rgba(0,0,0,0.22)",
+  cursor: "pointer",
+}}
                         >
                           <div
                             style={{
@@ -3202,7 +3299,16 @@ const handleMoveSong = async (songId, direction) => {
                             }}
                           >
                             <div>
-                              <div style={{ color: "rgba(255,255,255,0.56)", marginBottom: 6 }}>#{i + 1}</div>
+                              <div
+  style={{
+    color: i === 0 ? "#fde68a" : i === 1 ? "#cbd5e1" : "#fdba74",
+    marginBottom: 8,
+    fontWeight: 800,
+    letterSpacing: "0.08em",
+  }}
+>
+  #{i + 1}
+</div>
                               <div style={{ fontSize: 20, fontWeight: 700 }}>{song.title}</div>
                               <div style={{ color: "rgba(255,255,255,0.70)", marginTop: 4 }}>
                                 {getSongTypeLabel(song)}
@@ -3344,12 +3450,30 @@ const handleMoveSong = async (songId, direction) => {
                 onChange={(e) => setMessageForm((prev) => ({ ...prev, from: e.target.value }))}
               />
 
-              <Input
-                label="Reply contact (optional)"
-                helper="Leave your email, Discord, or DIA username if you want DJ-BUANG to reply."
-                value={messageForm.replyContact}
-                onChange={(e) => setMessageForm((prev) => ({ ...prev, replyContact: e.target.value }))}
-              />
+              <Select
+  label="Reply platform (optional)"
+  value={messageForm.replyPlatform}
+  onChange={(e) => setMessageForm((prev) => ({ ...prev, replyPlatform: e.target.value }))}
+>
+  <option value="" style={{ color: "black" }}>Select platform</option>
+  <option value="email" style={{ color: "black" }}>E-mail</option>
+  <option value="discord" style={{ color: "black" }}>Discord</option>
+  <option value="dia" style={{ color: "black" }}>DIA username</option>
+</Select>
+<Input
+  label="Reply contact (optional)"
+  helper={
+    messageForm.replyPlatform === "email"
+      ? "Enter your e-mail address if you want DJ-BUANG to reply."
+      : messageForm.replyPlatform === "discord"
+      ? "Enter your Discord username if you want DJ-BUANG to reply."
+      : messageForm.replyPlatform === "dia"
+      ? "Enter your DIA username if you want DJ-BUANG to reply."
+      : "Choose a reply platform above, then enter your contact if you want DJ-BUANG to reply."
+  }
+  value={messageForm.replyContact}
+  onChange={(e) => setMessageForm((prev) => ({ ...prev, replyContact: e.target.value }))}
+/>
 
               <TextArea
                 label="Message"
@@ -3763,11 +3887,24 @@ const handleMoveSong = async (songId, direction) => {
                       >
                         <div style={{ display: "grid", gap: 6 }}>
                           <strong>{msg.from}</strong>
-                          <div style={{ color: "rgba(255,255,255,0.65)" }}>
-                            {formatDate(msg.createdAt)} • {msg.status}
-                          </div>
+                          <div style={{ color: "rgba(255,255,255,0.65)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+  <span>{formatDate(msg.createdAt)}</span>
+  <Badge
+    style={{
+      background: msg.status === "new" ? "rgba(34,197,94,0.18)" : "rgba(255,255,255,0.06)",
+      border: msg.status === "new"
+        ? "1px solid rgba(74,222,128,0.30)"
+        : "1px solid rgba(255,255,255,0.10)",
+      color: msg.status === "new" ? "#bbf7d0" : "rgba(255,255,255,0.78)",
+      fontWeight: 800,
+      padding: "5px 10px",
+    }}
+  >
+    {msg.status === "new" ? "NEW" : "READ"}
+  </Badge>
+</div>
                           <div style={{ color: "rgba(255,255,255,0.78)" }}>
-                            Reply contact: {msg.replyContact ? msg.replyContact : "No reply contact left"}
+                            Reply via: {msg.replyContact ? msg.replyContact : "No reply contact left"}
                           </div>
                         </div>
 
