@@ -2502,10 +2502,10 @@ function App() {
           newCoverUrl: uploadedCoverUrl,
           newAudioUrl: uploadedAudioUrl,
         });
-        setUploadSuccess(`✅ "$${item.title}" was updated successfully.`);
+        setUploadSuccess(`✅ "${item.title}" was updated successfully.`);
       } else {
         setSongs((prev) => [...prev, item]);
-        setUploadSuccess(`🎵 "$${item.title}" was uploaded successfully.`);
+        setUploadSuccess(`🎵 "${item.title}" was uploaded successfully.`);
       }
 
       setHasUnsavedSongChanges(false);
@@ -2521,7 +2521,7 @@ function App() {
     const songToDelete = songs.find((song) => song.id === id);
     if (!songToDelete) return;
 
-    const confirmed = window.confirm(`Delete "$${songToDelete.title}"?`);
+    const confirmed = window.confirm(`Delete "${songToDelete.title}"?`);
     if (!confirmed) return;
 
     try {
@@ -2561,8 +2561,8 @@ function App() {
     if (!requestToDelete) return;
 
     const confirmed = window.confirm(
-      `Delete request "$${requestToDelete.title}" from $${requestToDelete.name}?`
-    );
+  `Delete request "${requestToDelete.title}" from ${requestToDelete.name}?`
+);
     if (!confirmed) return;
 
     const { error } = await supabase.from("song_requests").delete().eq("id", requestId);
@@ -2582,7 +2582,7 @@ function App() {
     const messageToDelete = messages.find((msg) => msg.id === messageId);
     if (!messageToDelete) return;
 
-    const confirmed = window.confirm(`Delete private message from "$${messageToDelete.from}"?`);
+    const confirmed = window.confirm(`Delete private message from "${messageToDelete.from}"?`);
     if (!confirmed) return;
 
     const { error } = await supabase.from("private_messages").delete().eq("id", messageId);
@@ -2749,9 +2749,9 @@ function App() {
     const payload = {
       sender_name: trimmedName,
       sender_email:
-        trimmedReplyPlatform && trimmedReplyContact
-          ? `$${trimmedReplyPlatform}: $${trimmedReplyContact}`
-          : trimmedReplyContact,
+  trimmedReplyPlatform && trimmedReplyContact
+    ? `${trimmedReplyPlatform}: ${trimmedReplyContact}`
+    : trimmedReplyContact,
       message: trimmedMessage,
       status: "new",
     };
@@ -2931,7 +2931,7 @@ function App() {
 
     const a = document.createElement("a");
     a.href = song.audioUrl;
-    a.download = getFileNameFromUrl(song.audioUrl) || `$${song.title || "song"}.mp3`;
+    a.download = getFileNameFromUrl(song.audioUrl) || `${song.title || "song"}.mp3`;
     a.click();
   };
 
@@ -2976,7 +2976,7 @@ function App() {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
       doc.setTextColor(90, 90, 90);
-      doc.text(`Artist: $${song.artist || "DJ-Buang"}`, pageWidth / 2, y, { align: "center" });
+      doc.text(`Artist: ${song.artist || "DJ-Buang"}`, pageWidth / 2, y, { align: "center" });
       y += 6;
       doc.text(songType, pageWidth / 2, y, { align: "center" });
       y += 10;
@@ -3015,7 +3015,7 @@ function App() {
       }
 
       const safeTitle = (song.title || "lyrics").replace(/[<>:"/\\|?*]+/g, "").trim();
-      doc.save(`$${safeTitle}-lyrics.pdf`);
+      doc.save(`${safeTitle}-lyrics.pdf`);
     } catch (error) {
       console.error("Could not create lyrics PDF:", error);
       alert("Could not generate PDF.");
@@ -3023,7 +3023,7 @@ function App() {
   };
 
   const copySongLink = async (songId) => {
-    const url = `$${window.location.origin}$${window.location.pathname}?song=$${songId}`;
+    const url = `${window.location.origin}${window.location.pathname}?song=${songId}`;
     try {
       await navigator.clipboard.writeText(url);
       alert("Song link copied!");
@@ -3056,7 +3056,7 @@ function App() {
             <section
               style={{
                 ...shellCardStyle({
-                  padding: isMobile ? 22 : 34,
+                  padding: isMobile ? "20px 16px" : 34,
                   background:
                     "radial-gradient(circle at top right, rgba(92,40,140,0.18), transparent 22%), linear-gradient(180deg, rgba(5,8,18,0.98), rgba(7,11,22,0.98))",
                 }),
@@ -3064,12 +3064,15 @@ function App() {
             >
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  gap: 18,
-                  flexWrap: "wrap",
-                }}
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: 18,
+  flexWrap: "wrap",
+  width: "100%",
+  maxWidth: "100%",
+  overflowX: "hidden",
+}}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
@@ -3086,7 +3089,8 @@ function App() {
                       style={{
                         display: "flex",
                         gap: 10,
-                        flexWrap: isMobile ? "nowrap" : "wrap",
+                        flexWrap: "nowrap",
+overflow: "hidden",
                         alignItems: "center",
                         minWidth: 0,
                         flex: 1,
@@ -3205,7 +3209,7 @@ function App() {
                     alignItems: isMobile ? "stretch" : "flex-end",
                     gap: isMobile ? 14 : 18,
                     marginTop: 6,
-                    minWidth: isMobile ? "100%" : 260,
+                    minWidth: isMobile ? 0 : 260,
                   }}
                 >
                   {!isMobile ? (
