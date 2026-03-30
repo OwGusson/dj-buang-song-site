@@ -247,7 +247,7 @@ function Button({ children, variant = "secondary", type = "button", ...props }) 
       type={type}
       {...props}
       style={{
-        padding: "12px 18px",
+        padding: window.innerWidth < 640 ? "10px 14px" : "12px 18px",
         borderRadius: 16,
         fontWeight: 600,
         cursor: props.disabled ? "not-allowed" : "pointer",
@@ -3056,7 +3056,7 @@ function App() {
             <section
               style={{
                 ...shellCardStyle({
-                  padding: 34,
+                  padding: isMobile ? 22 : 34,
                   background:
                     "radial-gradient(circle at top right, rgba(92,40,140,0.18), transparent 22%), linear-gradient(180deg, rgba(5,8,18,0.98), rgba(7,11,22,0.98))",
                 }),
@@ -3079,7 +3079,7 @@ function App() {
                       justifyContent: "space-between",
                       gap: 12,
                       flexWrap: "nowrap",
-                      marginBottom: 18,
+                      marginBottom: isMobile ? 10 : 18,
                     }}
                   >
                     <div
@@ -3135,7 +3135,7 @@ function App() {
                   <h1
                     style={{
                       margin: 0,
-                      fontSize: "clamp(44px, 7vw, 74px)",
+                      fontSize: isMobile ? "42px" : "clamp(44px, 7vw, 74px)",
                       lineHeight: 0.98,
                       fontWeight: 900,
                       letterSpacing: "-0.03em",
@@ -3148,7 +3148,7 @@ function App() {
                     style={{
                       maxWidth: 820,
                       margin: "18px 0 0",
-                      fontSize: 18,
+                      fontSize: isMobile ? 16 : 18,
                       lineHeight: 1.45,
                       color: "rgba(255,255,255,0.76)",
                     }}
@@ -3163,7 +3163,14 @@ function App() {
                     all, I’m just glad you’re here listening.
                   </p>
 
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
+                  <div
+  style={{
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    marginTop: isMobile ? 14 : 24,
+  }}
+>
                     <Button variant="secondary" onClick={openPayPalDonation}>
                       ♡ Support / Donate
                     </Button>
