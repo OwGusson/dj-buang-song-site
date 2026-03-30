@@ -3071,36 +3071,65 @@ function App() {
                   flexWrap: "wrap",
                 }}
               >
-                <div>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
                       display: "flex",
-                      gap: 10,
-                      flexWrap: "wrap",
-                      marginBottom: 18,
-                      alignItems: "center",
+                      alignItems: "flex-start",
                       justifyContent: "space-between",
+                      gap: 12,
+                      flexWrap: "nowrap",
+                      marginBottom: 18,
                     }}
                   >
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <Badge>DJ-Buang Official</Badge>
-                      <Badge>🎤 Mobile ready</Badge>
-                    </div>
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        setMessageSuccess("");
-                        setUploadSuccess("");
-                        setView(adminLoggedIn ? "admin" : "login");
-                      }}
+                    <div
                       style={{
-                        minWidth: "auto",
-                        padding: isMobile ? "8px 12px" : "10px 14px",
-                        fontSize: isMobile ? 13 : 14,
+                        display: "flex",
+                        gap: 10,
+                        flexWrap: isMobile ? "nowrap" : "wrap",
+                        alignItems: "center",
+                        minWidth: 0,
+                        flex: 1,
                       }}
                     >
-                      🔒 Admin
-                    </Button>
+                      <Badge
+                        style={{
+                          flex: isMobile ? "1 1 auto" : "0 0 auto",
+                          justifyContent: "center",
+                          minWidth: 0,
+                        }}
+                      >
+                        DJ-Buang Official
+                      </Badge>
+                      <Badge
+                        style={{
+                          flex: isMobile ? "1 1 auto" : "0 0 auto",
+                          justifyContent: "center",
+                          minWidth: 0,
+                        }}
+                      >
+                        🎤 Mobile ready
+                      </Badge>
+                      {isMobile ? (
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            setMessageSuccess("");
+                            setUploadSuccess("");
+                            setView(adminLoggedIn ? "admin" : "login");
+                          }}
+                          style={{
+                            minWidth: "auto",
+                            padding: "8px 12px",
+                            fontSize: 13,
+                            marginLeft: "auto",
+                            flexShrink: 0,
+                          }}
+                        >
+                          🔒 Admin
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
 
                   <h1
@@ -3166,12 +3195,26 @@ function App() {
                   style={{
                     display: "flex",
                     flexDirection: "column",
-                    alignItems: "flex-end",
-                    gap: isMobile ? 14 : 24,
+                    alignItems: isMobile ? "stretch" : "flex-end",
+                    gap: isMobile ? 14 : 18,
                     marginTop: 6,
                     minWidth: isMobile ? "100%" : 260,
                   }}
                 >
+                  {!isMobile ? (
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setMessageSuccess("");
+                        setUploadSuccess("");
+                        setView(adminLoggedIn ? "admin" : "login");
+                      }}
+                      style={{ minWidth: "auto", padding: "10px 14px", fontSize: 14 }}
+                    >
+                      🔒 Admin
+                    </Button>
+                  ) : null}
+
                   <img
                     src="/hero-logo.png"
                     alt="DJ-BUANG logo"
@@ -3180,6 +3223,7 @@ function App() {
                       maxWidth: "100%",
                       height: "auto",
                       objectFit: "contain",
+                      alignSelf: isMobile ? "center" : "flex-end",
                       filter: "drop-shadow(0 10px 30px rgba(123, 92, 255, 0.35))",
                     }}
                   />
