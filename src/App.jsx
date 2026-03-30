@@ -251,7 +251,7 @@ function Button({ children, variant = "secondary", type = "button", ...props }) 
         borderRadius: 16,
         fontWeight: 600,
         cursor: props.disabled ? "not-allowed" : "pointer",
-        fontSize: 16,
+        fontSize: window.innerWidth < 640 ? 15 : 16,
         transition: "0.2s ease",
         opacity: props.disabled ? 0.7 : 1,
         ...variants[variant],
