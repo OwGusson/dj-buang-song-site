@@ -1017,6 +1017,69 @@ async function incrementSongAnalytics(songId, field) {
   return normalizeAnalyticsRow(data);
 }
 
+async function fetchSongsFromSupabaseBackup() {
+  const { data, error } = await supabase
+    .from("songs_backup")
+    .select("*")
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data || []).map((row) => ({
+    id: row.song_id,
+    title: row.title,
+    artist: row.artist,
+    requestedBy: row.requested_by || "",
+    coverUrl: row.cover_url || "",
+    audioUrl: row.audio_url || "",
+    lyrics: row.lyrics || "",
+    likes: Number(row.likes || 0),
+    featured: !!row.featured,
+    visibility: row.visibility || "public",
+    status: row.status || "published",
+    createdAt: row.created_at,
+    sortOrder: Number(row.sort_order || 0),
+  }));
+}
+
+async function backupSongToSupabase(song) {
+  const payload = {
+    song_id: song.id,
+    title: song.title,
+    artist: song.artist,
+    requested_by: song.requestedBy || "",
+    cover_url: song.coverUrl || "",
+    audio_url: song.audioUrl || "",
+    lyrics: song.lyrics || "",
+    likes: Number(song.likes || 0),
+    featured: !!song.featured,
+    visibility: song.visibility || "public",
+    status: song.status || "published",
+    created_at: song.createdAt,
+    sort_order: Number(song.sortOrder || 0),
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase.from("songs_backup").upsert(payload, {
+    onConflict: "song_id",
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
+async function deleteSongFromSupabaseBackup(songId) {
+  const { error } = await supabase.from("songs_backup").delete().eq("song_id", songId);
+
+  if (error) {
+    throw error;
+  }
+}
+
 function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
   if (!request) return null;
 
@@ -1810,9 +1873,26 @@ function App() {
           }
 
           setSongs(songsWithLiveLikes);
+
+          for (const song of songsWithLiveLikes) {
+            backupSongToSupabase(song).catch((error) => {
+              console.warn("Could not back up song to Supabase:", error);
+            });
+          }
         }
       } catch (error) {
-        console.warn("Could not load songs from Cloudflare, falling back to local cache:", error);
+        console.warn("Could not load songs from Cloudflare, trying Supabase backup:", error);
+
+        try {
+          const backupSongs = await fetchSongsFromSupabaseBackup();
+          if (!cancelled && backupSongs.length > 0) {
+            setSongs(ensureSongSortOrders(backupSongs));
+            return;
+          }
+        } catch (backupError) {
+          console.warn("Could not load songs from Supabase backup:", backupError);
+        }
+
         if (!cancelled) {
           const localSongs = ensureSongSortOrders(getStored(STORAGE_KEYS.songs, DEFAULT_SONGS));
           setSongs(localSongs);
@@ -2411,6 +2491,9 @@ function App() {
       });
 
       await saveSongToCloudflare(item);
+      await backupSongToSupabase(item).catch((error) => {
+        console.warn("Could not back up song to Supabase:", error);
+      });
 
       if (editingSongId) {
         setSongs((prev) => prev.map((song) => (song.id === editingSongId ? item : song)));
@@ -2443,6 +2526,9 @@ function App() {
 
     try {
       await deleteSongFromCloudflare(id);
+      await deleteSongFromSupabaseBackup(id).catch((error) => {
+        console.warn("Could not delete Supabase song backup:", error);
+      });
       setSongs((prev) => prev.filter((song) => song.id !== id));
       await autoCleanDeletedSongFiles(songToDelete);
 
