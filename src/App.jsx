@@ -1032,44 +1032,35 @@ export default function App() {
               >
                 <div>
                   <div
-  style={{
-    display: "flex",
-    gap: 10,
-    flexWrap: "nowrap",
-    marginBottom: 18,
-    alignItems: "center",
-    justifyContent: "space-between",
-  }}
->
-  <div
-    style={{
-      display: "flex",
-      gap: 10,
-      flexWrap: "nowrap",
-      minWidth: 0,
-    }}
-  >
-    <Badge>DJ-Buang Official</Badge>
-    <Badge>🎤 Mobile ready</Badge>
-  </div>
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      flexWrap: "wrap",
+                      marginBottom: 18,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Badge>DJ-Buang Official</Badge>
+                    <Badge>🎤 Mobile ready</Badge>
 
-  <Button
-    variant="secondary"
-    onClick={() => {
-      setMessageSuccess("");
-      setUploadSuccess("");
-      setView(adminLoggedIn ? "admin" : "login");
-    }}
-    style={{
-      minWidth: "auto",
-      padding: isMobile ? "8px 12px" : "10px 14px",
-      fontSize: isMobile ? 13 : 14,
-      flexShrink: 0,
-    }}
-  >
-    🔒 Admin
-  </Button>
-</div>
+                    {isMobile ? (
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setMessageSuccess("");
+                          setUploadSuccess("");
+                          setView(adminLoggedIn ? "admin" : "login");
+                        }}
+                        style={{
+                          padding: "8px 12px",
+                          fontSize: 13,
+                          marginLeft: "auto",
+                        }}
+                      >
+                        🔒 Admin
+                      </Button>
+                    ) : null}
+                  </div>
 
                   <h1
                     style={{
@@ -1335,7 +1326,6 @@ export default function App() {
               </div>
             </form>
           </Panel>
-      
         )}
 
         {view === "admin" && adminLoggedIn && (
