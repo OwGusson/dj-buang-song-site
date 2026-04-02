@@ -1440,63 +1440,67 @@ async function summarizeSongEvents(songId) {
    SONG ANALYTICS: EVENT TRACKING
 ================================ */
 
-async function trackSongEvent(songId, eventType, extra = {}) {
-  if (!songId) return;
+async function trackSongEvent(songId, eventType, options = {}) {
+  if (!songId || !eventType) return null;
 
-  try {
-    const listenerId = getListenerId();
+  const payload = {
+    song_id: songId,
+    event_type: eventType,
+    listener_id: options.listenerId || null,
+    progress_percent:
+      typeof options.progressPercent === "number"
+        ? options.progressPercent
+        : null,
+    created_at: new Date().toISOString(),
+  };
 
-    /* ================================
-       INSERT RAW EVENT
-    ================================ */
+  const { error: insertError } = await supabase
+    .from("song_events")
+    .insert([payload]);
 
-    await supabase.from("song_events").insert({
-      song_id: songId,
-      event_type: eventType,
-      listener_id: listenerId,
-      progress_percent: extra.progressPercent ?? null,
-    });
-
-    /* ================================
-       UPDATE SUMMARY COUNTERS
-    ================================ */
-
-    const columnMap = {
-      open: "opens",
-      play_start: "plays",
-      play_25: "play_25_count",
-      download_song: "song_downloads",
-      download_lyrics: "lyrics_downloads",
-    };
-
-    const column = columnMap[eventType];
-
-    if (!column) return;
-
-    const { data: existing } = await supabase
-      .from("song_analytics")
-      .select("*")
-      .eq("song_id", songId)
-      .single();
-
-    if (!existing) {
-      await supabase.from("song_analytics").insert({
-        song_id: songId,
-        [column]: 1,
-      });
-      return;
-    }
-
-    await supabase
-      .from("song_analytics")
-      .update({
-        [column]: (existing[column] || 0) + 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("song_id", songId);
-  } catch (err) {
-    console.warn("trackSongEvent failed:", err.message);
+  if (insertError) {
+    throw insertError;
   }
+
+  const { data, error } = await supabase
+    .from("song_analytics")
+    .select("*")
+    .eq("song_id", songId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return normalizeAnalyticsRow(
+    data || {
+      song_id: songId,
+      opens: 0,
+      plays: 0,
+      unique_opens: 0,
+      unique_listeners: 0,
+      play_25_count: 0,
+      song_downloads: 0,
+      lyrics_downloads: 0,
+      updated_at: new Date().toISOString(),
+    }
+  );
+}
+
+async function incrementSongAnalytics(songId, field, options = {}) {
+  const fieldToEventTypeMap = {
+    opens: ANALYTICS_EVENT_TYPES.open,
+    plays: ANALYTICS_EVENT_TYPES.playStart,
+    play_25: ANALYTICS_EVENT_TYPES.play25,
+    download_song: ANALYTICS_EVENT_TYPES.downloadSong,
+    download_lyrics: ANALYTICS_EVENT_TYPES.downloadLyrics,
+  };
+
+  const eventType = fieldToEventTypeMap[field];
+
+  if (!eventType) return null;
+
+  return trackSongEvent(songId, eventType, options);
 }
 
 async function incrementSongAnalytics(songId, field, options = {}) {
