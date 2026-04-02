@@ -1,5 +1,3 @@
-/* ===== APP.JSX PART 1/12: IMPORTS + GLOBAL CONSTANTS + STORAGE HELPERS ===== */
-
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
 import { supabase } from "./supabase";
@@ -60,10 +58,6 @@ function clearOldDemoDataOnce() {
     console.warn("Could not clear old demo data:", error);
   }
 }
-
-/* ===== END APP.JSX PART 1/12 ===== */
-
-/* ===== APP.JSX PART 2/12: SONG NORMALIZATION + SORTING + FORMAT HELPERS ===== */
 
 /* ================================
    SONG NORMALIZATION
@@ -240,9 +234,6 @@ async function loadImageAsDataUrl(imageUrl) {
   }
 }
 
-/* ===== END APP.JSX PART 2/12 ===== */
-
-/* ===== APP.JSX PART 3/12: SHARED UI COMPONENTS ===== */
 
 /* ================================
    UI STYLE HELPERS
@@ -629,10 +620,6 @@ function SectionHeading({ icon, title, tone = "default" }) {
   );
 }
 
-/* ===== END APP.JSX PART 3/12 ===== */
-
-/* ===== APP.JSX PART 4/12: SONG / CONTENT COMPONENTS ===== */
-
 /* ================================
    SONG ROW (LIBRARY LIST ITEM)
 ================================ */
@@ -887,10 +874,6 @@ function SongRow({
   );
 }
 
-/* ===== END APP.JSX PART 4/12 ===== */
-
-/* ===== APP.JSX PART 5/12: PLAYER COMPONENTS ===== */
-
 /* ================================
    MINI PLAYER (BOTTOM BAR)
 ================================ */
@@ -1081,10 +1064,6 @@ function PlayerModal({
     </div>
   );
 }
-
-/* ===== END APP.JSX PART 5/12 ===== */
-
-/* ===== APP.JSX PART 6/12: API + STORAGE FUNCTIONS ===== */
 
 /* ================================
    CLOUDFLARE FILE UPLOAD
@@ -1322,10 +1301,6 @@ async function deleteSongFromSupabaseBackup(songId) {
   }
 }
 
-/* ===== END APP.JSX PART 6/12 ===== */
-
-/* ===== APP.JSX PART 7/12: APP STATE + REFS + LOCAL HELPERS ===== */
-
 function App() {
   const [songs, setSongs] = useState(() => {
     clearOldDemoDataOnce();
@@ -1488,10 +1463,6 @@ function App() {
   function cancelEditSong() {
     resetSongForm();
   }
-
-/* ===== END APP.JSX PART 7/12 ===== */
-
-/* ===== APP.JSX PART 8/12: EFFECTS ===== */
 
   useEffect(() => {
     let cancelled = false;
@@ -1898,10 +1869,6 @@ function App() {
     shouldAutoplayOnSongChangeRef.current = false;
   }, [playerSong]);
 
-/* ===== END APP.JSX PART 8/12 ===== */
-
-/* ===== APP.JSX PART 9/12: MEMO LOGIC + COMPUTED VALUES ===== */
-
   const publicSongs = useMemo(
     () =>
       ensureSongSortOrders(songs)
@@ -2076,10 +2043,6 @@ function App() {
     (sum, row) => sum + Number(row.plays || 0),
     0
   );
-
-/* ===== END APP.JSX PART 9/12 ===== */
-
-/* ===== APP.JSX PART 10/12: DATA / ADMIN HANDLERS ===== */
 
   const handleLikeSong = async (songId) => {
     const likedKey = `liked_${songId}`;
@@ -2571,10 +2534,6 @@ function App() {
       )
     );
   };
-
-/* ===== END APP.JSX PART 10/12 ===== */
-
-/* ===== APP.JSX PART 11/12: PLAYER / DOWNLOAD HANDLERS + PUBLIC JSX ===== */
 
   const openPayPalDonation = () => {
     window.open(PAYPAL_URL, "_blank", "noopener,noreferrer");
@@ -3672,109 +3631,71 @@ function App() {
           </Panel>
         )}
 
-        {view === "login" && !adminLoggedIn && (
-          <Panel
-            title="Admin Login"
-            subtitle="Use this to open the private admin dashboard."
-          >
-            <form
-              onSubmit={handleAdminLogin}
-              style={{ display: "grid", gap: 16, maxWidth: 460 }}
-            >
-              <Input
-                type="password"
-                label="Password"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-              />
-
-              {loginError ? (
-                <div
-                  style={{
-                    padding: 14,
-                    borderRadius: 16,
-                    background: "rgba(220,38,38,0.12)",
-                    border: "1px solid rgba(248,113,113,0.24)",
-                    color: "#fca5a5",
-                  }}
-                >
-                  {loginError}
-                </div>
-              ) : null}
-
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <Button type="submit" variant="primary">
-                  Login
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setView("home")}
-                >
-                  Back Home
-                </Button>
-              </div>
-            </form>
-          </Panel>
-        )}
-
-/* ===== END APP.JSX PART 11/12 ===== */
-
-/* ===== APP.JSX PART 12/12: ADMIN PANEL + PLAYER UI + EXPORT ===== */
-
         {view === "admin" && adminLoggedIn && (
           <Panel
             title="Admin Dashboard"
             subtitle="Manage songs, requests, and private messages."
+            right={
+              <Button variant="secondary" onClick={handleLogout}>
+                Logout
+              </Button>
+            }
           >
-            {/* MOBILE TAB NAV */}
-            {isMobile && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  marginBottom: 18,
-                  flexWrap: "wrap",
-                }}
+            {/* ADMIN TAB NAV */}
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                marginBottom: 18,
+                flexWrap: "wrap",
+              }}
+            >
+              <Button
+                variant={adminSection === "dashboard" ? "primary" : "secondary"}
+                onClick={() => setAdminSection("dashboard")}
               >
-                <Button
-                  variant={adminSection === "dashboard" ? "primary" : "secondary"}
-                  onClick={() => setAdminSection("dashboard")}
-                >
-                  Dashboard
-                </Button>
+                Dashboard
+              </Button>
 
-                <Button
-                  variant={adminSection === "songs" ? "primary" : "secondary"}
-                  onClick={() => setAdminSection("songs")}
-                >
-                  Songs
-                </Button>
+              <Button
+                variant={adminSection === "songs" ? "primary" : "secondary"}
+                onClick={() => setAdminSection("songs")}
+              >
+                Songs
+              </Button>
 
-                <Button
-                  variant={adminSection === "requests" ? "primary" : "secondary"}
-                  onClick={() => setAdminSection("requests")}
-                >
-                  Requests ({pendingRequests})
-                </Button>
+              <Button
+                variant={adminSection === "requests" ? "primary" : "secondary"}
+                onClick={() => setAdminSection("requests")}
+              >
+                Requests ({pendingRequests})
+              </Button>
 
-                <Button
-                  variant={adminSection === "messages" ? "primary" : "secondary"}
-                  onClick={() => setAdminSection("messages")}
-                >
-                  Messages ({newMessages})
-                </Button>
-              </div>
-            )}
+              <Button
+                variant={adminSection === "messages" ? "primary" : "secondary"}
+                onClick={() => setAdminSection("messages")}
+              >
+                Messages ({newMessages})
+              </Button>
+            </div>
 
-            {/* DASHBOARD OVERVIEW */}
+            {/* DASHBOARD */}
             {adminSection === "dashboard" && (
               <div style={{ display: "grid", gap: 16 }}>
-                <Badge>Total songs: {songs.length}</Badge>
-                <Badge>Total likes: {totalLikes}</Badge>
-                <Badge>Total opens: {totalOpens}</Badge>
-                <Badge>Total plays: {totalPlays}</Badge>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isMobile
+                      ? "repeat(2, minmax(0, 1fr))"
+                      : "repeat(4, minmax(0, 1fr))",
+                    gap: 14,
+                  }}
+                >
+                  <StatPill label="Songs" value={songs.length} />
+                  <StatPill label="Likes" value={totalLikes} />
+                  <StatPill label="Opens" value={totalOpens} />
+                  <StatPill label="Plays" value={totalPlays} />
+                </div>
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                   <Button
@@ -3801,150 +3722,178 @@ function App() {
               </div>
             )}
 
-            {/* SONG MANAGEMENT */}
+            {/* SONGS */}
             {adminSection === "songs" && (
               <div style={{ display: "grid", gap: 14 }}>
-                {adminSongs.map((song) => (
-                  <SongRow
-                    key={song.id}
-                    song={song}
-                    analytics={songAnalytics[song.id]}
-                    onLike={handleLikeSong}
-                    onOpenPlayer={handleOpenSong}
-                    onDownloadSong={downloadSong}
-                    onDownloadLyrics={downloadLyrics}
-                    onCopyLink={copySongLink}
-                    isMobile={isMobile}
-                    isAdmin
-                    onEdit={() => startEditSong(song)}
-                    onDelete={() => handleDeleteSong(song)}
-                    onMoveUp={() => handleMoveSong(song, "up")}
-                    onMoveDown={() => handleMoveSong(song, "down")}
-                  />
-                ))}
+                {adminSongs.length > 0 ? (
+                  adminSongs.map((song, index) => (
+                    <SongRow
+                      key={song.id}
+                      song={song}
+                      analytics={songAnalytics[song.id]}
+                      onLike={handleLikeSong}
+                      onOpenPlayer={handleOpenSong}
+                      onDownloadSong={downloadSong}
+                      onDownloadLyrics={downloadLyrics}
+                      onCopyLink={copySongLink}
+                      isMobile={isMobile}
+                      isAdmin
+                      onEdit={() => startEditSong(song)}
+                      onDelete={() => handleDeleteSong(song)}
+                      onMoveUp={() => handleMoveSong(song, "up")}
+                      onMoveDown={() => handleMoveSong(song, "down")}
+                      canMoveUp={index > 0 && !isReorderingSongs}
+                      canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
+                    />
+                  ))
+                ) : (
+                  <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                    No songs yet.
+                  </div>
+                )}
               </div>
             )}
 
-            {/* REQUEST MANAGEMENT */}
+            {/* REQUESTS */}
             {adminSection === "requests" && (
               <div style={{ display: "grid", gap: 12 }}>
-                {filteredRequests.map((req) => (
-                  <div
-                    key={req.id}
-                    style={{
-                      padding: 16,
-                      borderRadius: 18,
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    <strong>{req.title}</strong>
-
+                {filteredRequests.length > 0 ? (
+                  filteredRequests.map((req) => (
                     <div
+                      key={req.id}
                       style={{
-                        fontSize: 13,
-                        opacity: 0.7,
-                        marginTop: 6,
+                        padding: 16,
+                        borderRadius: 18,
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(255,255,255,0.08)",
                       }}
                     >
-                      Requested by {req.name}
+                      <strong>{req.title}</strong>
+
+                      <div
+                        style={{
+                          fontSize: 13,
+                          opacity: 0.7,
+                          marginTop: 6,
+                        }}
+                      >
+                        Requested by {req.name} • {timeAgo(req.createdAt)}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: 13,
+                          opacity: 0.7,
+                          marginTop: 6,
+                        }}
+                      >
+                        Status: {req.status} • Delivery:{" "}
+                        {req.delivery === "private" ? "Private" : "Public"}
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          marginTop: 12,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <Button
+                          variant="secondary"
+                          onClick={() => setSelectedRequest(req)}
+                        >
+                          Review
+                        </Button>
+
+                        <Button
+                          variant="secondary"
+                          onClick={() => toggleRequestStatus(req.id)}
+                        >
+                          {req.status === "done" ? "Mark Pending" : "Mark Done"}
+                        </Button>
+
+                        <Button
+                          variant="danger"
+                          onClick={() => handleDeleteRequest(req.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 8,
-                        marginTop: 10,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <Button
-                        variant="secondary"
-                        onClick={() => setSelectedRequest(req)}
-                      >
-                        Review
-                      </Button>
-
-                      <Button
-                        variant="secondary"
-                        onClick={() => toggleRequestStatus(req.id)}
-                      >
-                        Toggle Status
-                      </Button>
-
-                      <Button
-                        variant="secondary"
-                        onClick={() => handleDeleteRequest(req.id)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
+                  ))
+                ) : (
+                  <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                    No requests yet.
                   </div>
-                ))}
+                )}
               </div>
             )}
 
-            {/* MESSAGE MANAGEMENT */}
+            {/* MESSAGES */}
             {adminSection === "messages" && (
               <div style={{ display: "grid", gap: 12 }}>
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    style={{
-                      padding: 16,
-                      borderRadius: 18,
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    <strong>{msg.from}</strong>
-
+                {messages.length > 0 ? (
+                  messages.map((msg) => (
                     <div
+                      key={msg.id}
                       style={{
-                        fontSize: 13,
-                        opacity: 0.7,
-                        marginTop: 6,
+                        padding: 16,
+                        borderRadius: 18,
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(255,255,255,0.08)",
                       }}
                     >
-                      {msg.replyContact || "No reply contact"}
-                    </div>
+                      <strong>{msg.from}</strong>
 
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 8,
-                        marginTop: 10,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <Button
-                        variant="secondary"
-                        onClick={() => toggleMessageStatus(msg.id)}
+                      <div
+                        style={{
+                          fontSize: 13,
+                          opacity: 0.7,
+                          marginTop: 6,
+                        }}
                       >
-                        Toggle Status
-                      </Button>
+                        {msg.replyContact || "No reply contact"}
+                      </div>
 
-                      <Button
-                        variant="secondary"
-                        onClick={() => handleDeleteMessage(msg.id)}
+                      <p style={{ margin: "12px 0 0", lineHeight: 1.5 }}>
+                        {msg.message}
+                      </p>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          marginTop: 12,
+                          flexWrap: "wrap",
+                        }}
                       >
-                        Delete
-                      </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={() => toggleMessageStatus(msg.id)}
+                        >
+                          {msg.status === "new" ? "Mark Read" : "Mark New"}
+                        </Button>
+
+                        <Button
+                          variant="danger"
+                          onClick={() => handleDeleteMessage(msg.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                    No messages yet.
                   </div>
-                ))}
+                )}
               </div>
             )}
-
-            <div style={{ marginTop: 20 }}>
-              <Button variant="secondary" onClick={handleLogout}>
-                Logout
-              </Button>
-            </div>
           </Panel>
         )}
 
-        {/* REQUEST REVIEW MODAL */}
         <RequestReviewModal
           request={selectedRequest}
           onClose={() => setSelectedRequest(null)}
@@ -3952,7 +3901,7 @@ function App() {
           onOpenSong={handleOpenSong}
         />
 
-                {/* PLAYER UI */}
+        {/* PLAYER UI */}
         {playerSong && !playerMinimized ? (
           <PlayerModal
             song={playerSong}
@@ -3980,5 +3929,3 @@ function App() {
 }
 
 export default App;
-
-/* ===== END APP.JSX PART 12/12 ===== */
