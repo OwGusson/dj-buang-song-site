@@ -1134,10 +1134,18 @@ function MiniPlayer({
 function PlayerModal({
   song,
   isPlaying,
+  currentTime,
+  duration,
+  volume,
+  isMuted,
   onPlayPause,
   onClose,
+  onMinimize,
   onNext,
   onPrev,
+  onSeek,
+  onVolumeChange,
+  onToggleMute,
 }) {
   /* ================================
      PLAYER MODAL: GUARDS + FLAGS
@@ -1148,6 +1156,9 @@ function PlayerModal({
   const isMobile =
     typeof window !== "undefined" ? window.innerWidth < 900 : false;
 
+  const progressPercent =
+    duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
+
   /* ================================
      PLAYER MODAL: RENDER
   ================================ */
@@ -1157,75 +1168,256 @@ function PlayerModal({
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.75)",
+        background: "rgba(0,0,0,0.78)",
         display: "grid",
         placeItems: "center",
         zIndex: 1000,
-        padding: isMobile ? 18 : 32,
+        padding: isMobile ? 14 : 24,
       }}
     >
       <div
         style={{
-          width: "min(520px, 100%)",
-          padding: isMobile ? 22 : 30,
-          borderRadius: 26,
+          width: "min(980px, 100%)",
+          maxHeight: "92vh",
+          overflow: "hidden",
+          borderRadius: isMobile ? 22 : 28,
           background:
-            "linear-gradient(180deg, rgba(10,14,28,0.98), rgba(6,10,22,0.98))",
+            "linear-gradient(180deg, rgba(10,14,28,0.985), rgba(6,10,22,0.985))",
           border: "1px solid rgba(255,255,255,0.08)",
           boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "340px minmax(0, 1fr)",
         }}
       >
         {/* ================================
-            PLAYER MODAL: TITLE
-        ================================ */}
-
-        <h2
-          style={{
-            marginTop: 0,
-            marginBottom: 6,
-            fontSize: isMobile ? 20 : 26,
-          }}
-        >
-          {song.title}
-        </h2>
-
-        {/* ================================
-            PLAYER MODAL: ARTIST
-        ================================ */}
-
-        <p
-          style={{
-            margin: 0,
-            opacity: 0.7,
-            fontSize: isMobile ? 14 : 15,
-          }}
-        >
-          {song.artist}
-        </p>
-
-        {/* ================================
-            PLAYER MODAL: CONTROLS
+            PLAYER MODAL: LEFT SIDE
         ================================ */}
 
         <div
           style={{
-            display: "flex",
-            gap: 10,
-            marginTop: 22,
-            flexWrap: "wrap",
+            padding: isMobile ? 18 : 24,
+            borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.06)",
+            borderBottom: isMobile
+              ? "1px solid rgba(255,255,255,0.06)"
+              : "none",
+            display: "grid",
+            gap: 16,
+            alignContent: "start",
           }}
         >
-          <Button onClick={onPrev}>⏮</Button>
+          {/* COVER */}
+          <div
+            style={{
+              width: "100%",
+              aspectRatio: "1 / 1",
+              borderRadius: 22,
+              overflow: "hidden",
+              background:
+                "linear-gradient(135deg, rgba(89,55,150,0.8), rgba(41,73,120,0.8))",
+              display: "grid",
+              placeItems: "center",
+              boxShadow: "0 18px 40px rgba(0,0,0,0.28)",
+            }}
+          >
+            {song.coverUrl ? (
+              <img
+                src={song.coverUrl}
+                alt={song.title}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+            ) : (
+              <span style={{ fontSize: 64 }}>🎵</span>
+            )}
+          </div>
 
-          <Button onClick={onPlayPause}>
-            {isPlaying ? "Pause" : "Play"}
-          </Button>
+          {/* TITLE / ARTIST */}
+          <div>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: isMobile ? 24 : 28,
+                lineHeight: 1.1,
+              }}
+            >
+              {song.title}
+            </h2>
 
-          <Button onClick={onNext}>⏭</Button>
+            <p
+              style={{
+                margin: "8px 0 0",
+                opacity: 0.72,
+                fontSize: isMobile ? 14 : 15,
+              }}
+            >
+              {song.artist}
+            </p>
 
-          <Button variant="ghost" onClick={onClose}>
-            Close
-          </Button>
+            {song.requestedBy ? (
+              <p
+                style={{
+                  margin: "10px 0 0",
+                  fontSize: 13,
+                  color: "rgba(255,255,255,0.62)",
+                }}
+              >
+                Requested by: {song.requestedBy}
+              </p>
+            ) : null}
+          </div>
+
+          {/* PROGRESS */}
+          <div style={{ display: "grid", gap: 8 }}>
+            <input
+              type="range"
+              min={0}
+              max={duration || 0}
+              step={0.1}
+              value={currentTime}
+              onChange={(e) => onSeek(Number(e.target.value))}
+              style={{
+                width: "100%",
+                cursor: "pointer",
+              }}
+            />
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 12,
+                fontSize: 13,
+                color: "rgba(255,255,255,0.68)",
+              }}
+            >
+              <span>{formatTime(currentTime)}</span>
+              <span>{Math.round(progressPercent)}%</span>
+              <span>{formatTime(duration)}</span>
+            </div>
+          </div>
+
+          {/* CONTROLS */}
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+            }}
+          >
+            <Button onClick={onPrev}>⏮</Button>
+
+            <Button onClick={onPlayPause}>
+              {isPlaying ? "Pause" : "Play"}
+            </Button>
+
+            <Button onClick={onNext}>⏭</Button>
+
+            <Button variant="ghost" onClick={onMinimize}>
+              Minimize
+            </Button>
+
+            <Button variant="ghost" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+
+          {/* VOLUME */}
+          <div style={{ display: "grid", gap: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                flexWrap: "wrap",
+              }}
+            >
+              <Button variant="ghost" onClick={onToggleMute}>
+                {isMuted || volume === 0 ? "🔇 Muted" : "🔊 Volume"}
+              </Button>
+
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "rgba(255,255,255,0.68)",
+                }}
+              >
+                {Math.round((isMuted ? 0 : volume) * 100)}%
+              </div>
+            </div>
+
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={isMuted ? 0 : volume}
+              onChange={(e) => onVolumeChange(Number(e.target.value))}
+              style={{
+                width: "100%",
+                cursor: "pointer",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* ================================
+            PLAYER MODAL: RIGHT SIDE / LYRICS
+        ================================ */}
+
+        <div
+          style={{
+            padding: isMobile ? 18 : 24,
+            overflowY: "auto",
+            display: "grid",
+            alignContent: "start",
+            gap: 14,
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: 13,
+                letterSpacing: "0.24em",
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,0.48)",
+                marginBottom: 8,
+              }}
+            >
+              Lyrics
+            </div>
+
+            {song.lyrics ? (
+              <div
+                style={{
+                  whiteSpace: "pre-wrap",
+                  lineHeight: 1.7,
+                  fontSize: isMobile ? 14 : 15,
+                  color: "rgba(255,255,255,0.88)",
+                  padding: isMobile ? 14 : 18,
+                  borderRadius: 20,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                {song.lyrics}
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: isMobile ? 14 : 18,
+                  borderRadius: 20,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  color: "rgba(255,255,255,0.62)",
+                }}
+              >
+                No lyrics added yet.
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -1462,31 +1654,9 @@ async function trackSongEvent(songId, eventType, options = {}) {
     throw insertError;
   }
 
-  const { data, error } = await supabase
-    .from("song_analytics")
-    .select("*")
-    .eq("song_id", songId)
-    .maybeSingle();
-
-  if (error) {
-    throw error;
-  }
-
-  return normalizeAnalyticsRow(
-    data || {
-      song_id: songId,
-      opens: 0,
-      plays: 0,
-      unique_opens: 0,
-      unique_listeners: 0,
-      play_25_count: 0,
-      song_downloads: 0,
-      lyrics_downloads: 0,
-      updated_at: new Date().toISOString(),
-    }
-  );
+  return summarizeSongEvents(songId);
 }
-
+ 
 async function incrementSongAnalytics(songId, field, options = {}) {
   const fieldToEventTypeMap = {
     opens: ANALYTICS_EVENT_TYPES.open,
@@ -1503,21 +1673,6 @@ async function incrementSongAnalytics(songId, field, options = {}) {
   return trackSongEvent(songId, eventType, options);
 }
 
-async function incrementSongAnalytics(songId, field, options = {}) {
-  const fieldToEventTypeMap = {
-    opens: ANALYTICS_EVENT_TYPES.open,
-    plays: ANALYTICS_EVENT_TYPES.playStart,
-    play_25: ANALYTICS_EVENT_TYPES.play25,
-    download_song: ANALYTICS_EVENT_TYPES.downloadSong,
-    download_lyrics: ANALYTICS_EVENT_TYPES.downloadLyrics,
-  };
-
-  const eventType = fieldToEventTypeMap[field];
-
-  if (!eventType) return null;
-
-  return trackSongEvent(songId, eventType, options);
-}
 
 /* ================================
    SUPABASE BACKUP SONG STORAGE
@@ -4763,16 +4918,23 @@ function App() {
         ================================ */}
 
         {playerSong && !playerMinimized ? (
-          <PlayerModal
-            song={playerSong}
-            isPlaying={isPlaying}
-            onPlayPause={handlePlayPause}
-            onClose={handleClosePlayer}
-            onMinimize={handleMinimizePlayer}
-            onNext={handleNextSong}
-            onPrev={handlePreviousSong}
-          />
-        ) : null}
+  <PlayerModal
+    song={playerSong}
+    isPlaying={isPlaying}
+    currentTime={playerCurrentTime}
+    duration={playerDuration}
+    volume={volume}
+    isMuted={isMuted}
+    onPlayPause={handlePlayPause}
+    onClose={handleClosePlayer}
+    onMinimize={handleMinimizePlayer}
+    onNext={handleNextSong}
+    onPrev={handlePreviousSong}
+    onSeek={handleSeek}
+    onVolumeChange={handleVolumeChange}
+    onToggleMute={handleToggleMute}
+  />
+) : null}
 
         {playerSong && playerMinimized ? (
           <MiniPlayer
