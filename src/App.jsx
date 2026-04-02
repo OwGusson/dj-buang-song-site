@@ -1140,12 +1140,10 @@ function MiniPlayer({
 
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: isMobile
-            ? "46px 58px minmax(88px, 1fr) 58px 46px"
-            : "52px 52px 96px 52px 52px minmax(120px, 160px)",
-          gap: isMobile ? 8 : 10,
+          display: "flex",
           alignItems: "center",
+          gap: isMobile ? 8 : 10,
+          flexWrap: "nowrap",
         }}
       >
         <Button
@@ -1153,8 +1151,9 @@ function MiniPlayer({
           onClick={onExpand}
           style={{
             padding: isMobile ? "10px 0" : "10px 12px",
-            width: "100%",
-            minWidth: 0,
+            width: isMobile ? 46 : 52,
+            minWidth: isMobile ? 46 : 52,
+            flexShrink: 0,
           }}
         >
           ⤢
@@ -1165,8 +1164,9 @@ function MiniPlayer({
           onClick={onPrev}
           style={{
             padding: isMobile ? "10px 0" : "10px 12px",
-            width: "100%",
-            minWidth: 0,
+            width: isMobile ? 52 : 52,
+            minWidth: isMobile ? 52 : 52,
+            flexShrink: 0,
           }}
         >
           ⏮
@@ -1177,8 +1177,8 @@ function MiniPlayer({
           onClick={onPlayPause}
           style={{
             padding: isMobile ? "10px 0" : "10px 16px",
-            width: "100%",
-            minWidth: 0,
+            minWidth: isMobile ? 92 : 96,
+            flex: 1,
           }}
         >
           {isPlaying ? "Pause" : "Play"}
@@ -1189,8 +1189,9 @@ function MiniPlayer({
           onClick={onNext}
           style={{
             padding: isMobile ? "10px 0" : "10px 12px",
-            width: "100%",
-            minWidth: 0,
+            width: isMobile ? 52 : 52,
+            minWidth: isMobile ? 52 : 52,
+            flexShrink: 0,
           }}
         >
           ⏭
@@ -1201,8 +1202,9 @@ function MiniPlayer({
           onClick={onToggleVolumeSlider}
           style={{
             padding: isMobile ? "10px 0" : "10px 12px",
-            width: "100%",
-            minWidth: 0,
+            width: isMobile ? 46 : 52,
+            minWidth: isMobile ? 46 : 52,
+            flexShrink: 0,
           }}
         >
           🔊
@@ -1218,13 +1220,12 @@ function MiniPlayer({
               value={volume}
               onChange={(e) => onVolumeChange(Number(e.target.value))}
               style={{
-                width: "100%",
+                width: 140,
                 cursor: "pointer",
+                flexShrink: 0,
               }}
             />
-          ) : (
-            <div />
-          )
+          ) : null
         ) : null}
       </div>
 
@@ -1319,7 +1320,8 @@ function PlayerModal({
     >
       <div
         style={{
-          width: isMobile ? "100%" : "min(1420px, 96vw)",
+          width: isMobile ? "100%" : "min(1460px, 96vw)",
+          height: isMobile ? "auto" : "min(900px, 92vh)",
           maxHeight: isMobile ? "94vh" : "92vh",
           overflow: "hidden",
           borderRadius: isMobile ? 22 : 30,
@@ -1328,7 +1330,7 @@ function PlayerModal({
           border: "1px solid rgba(255,255,255,0.08)",
           boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
           display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "440px minmax(0, 1fr)",
+          gridTemplateColumns: isMobile ? "1fr" : "460px minmax(0, 1fr)",
         }}
       >
         {/* ================================
@@ -1523,136 +1525,116 @@ function PlayerModal({
           ) : (
             <>
               {/* ================================
-                  PLAYER MODAL: DESKTOP CONTROL BAR
+                  PLAYER MODAL: DESKTOP CONTROL ROW 1
               ================================ */}
 
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr auto",
-                  gap: 12,
+                  display: "flex",
                   alignItems: "center",
-                  padding: "12px 14px",
-                  borderRadius: 20,
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.07)",
+                  gap: 10,
+                  flexWrap: "wrap",
                 }}
               >
-                {/* ================================
-                    PLAYER MODAL: DESKTOP PRIMARY CONTROLS
-                ================================ */}
+                <Button
+                  onClick={onPrev}
+                  style={{
+                    padding: "10px 14px",
+                    minWidth: 52,
+                  }}
+                >
+                  ⏮
+                </Button>
+
+                <Button
+                  onClick={onPlayPause}
+                  style={{
+                    padding: "10px 20px",
+                    minWidth: 94,
+                  }}
+                >
+                  {isPlaying ? "Pause" : "Play"}
+                </Button>
+
+                <Button
+                  onClick={onNext}
+                  style={{
+                    padding: "10px 14px",
+                    minWidth: 52,
+                  }}
+                >
+                  ⏭
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  onClick={onMinimize}
+                  style={{
+                    padding: "10px 16px",
+                    minWidth: 108,
+                  }}
+                >
+                  Minimize
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  onClick={onClose}
+                  style={{
+                    padding: "10px 16px",
+                    minWidth: 84,
+                  }}
+                >
+                  Close
+                </Button>
+              </div>
+
+              {/* ================================
+                  PLAYER MODAL: DESKTOP CONTROL ROW 2
+              ================================ */}
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  flexWrap: "wrap",
+                }}
+              >
+                <Button
+                  variant="ghost"
+                  onClick={onToggleVolumeSlider}
+                  style={{
+                    padding: "10px 14px",
+                    minWidth: 54,
+                  }}
+                >
+                  🔊
+                </Button>
+
+                {showVolumeSlider ? (
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={volume}
+                    onChange={(e) => onVolumeChange(Number(e.target.value))}
+                    style={{
+                      width: 180,
+                      cursor: "pointer",
+                    }}
+                  />
+                ) : null}
 
                 <div
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    flexWrap: "wrap",
+                    fontSize: 13,
+                    color: "rgba(255,255,255,0.68)",
+                    minWidth: 44,
                   }}
                 >
-                  <Button
-                    onClick={onPrev}
-                    style={{
-                      padding: "10px 14px",
-                      minWidth: 52,
-                    }}
-                  >
-                    ⏮
-                  </Button>
-
-                  <Button
-                    onClick={onPlayPause}
-                    style={{
-                      padding: "10px 20px",
-                      minWidth: 94,
-                    }}
-                  >
-                    {isPlaying ? "Pause" : "Play"}
-                  </Button>
-
-                  <Button
-                    onClick={onNext}
-                    style={{
-                      padding: "10px 14px",
-                      minWidth: 52,
-                    }}
-                  >
-                    ⏭
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    onClick={onMinimize}
-                    style={{
-                      padding: "10px 16px",
-                      minWidth: 108,
-                    }}
-                  >
-                    Minimize
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    onClick={onClose}
-                    style={{
-                      padding: "10px 16px",
-                      minWidth: 84,
-                    }}
-                  >
-                    Close
-                  </Button>
-                </div>
-
-                {/* ================================
-                    PLAYER MODAL: DESKTOP VOLUME CONTROLS
-                ================================ */}
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-end",
-                    gap: 12,
-                    minWidth: 220,
-                  }}
-                >
-                  <Button
-                    variant="ghost"
-                    onClick={onToggleVolumeSlider}
-                    style={{
-                      padding: "10px 14px",
-                      minWidth: 54,
-                      flexShrink: 0,
-                    }}
-                  >
-                    🔊
-                  </Button>
-
-                  {showVolumeSlider ? (
-                    <input
-                      type="range"
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={volume}
-                      onChange={(e) => onVolumeChange(Number(e.target.value))}
-                      style={{
-                        width: 130,
-                        cursor: "pointer",
-                      }}
-                    />
-                  ) : null}
-
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: "rgba(255,255,255,0.68)",
-                      minWidth: 44,
-                      textAlign: "right",
-                    }}
-                  >
-                    {Math.round(volume * 100)}%
-                  </div>
+                  {Math.round(volume * 100)}%
                 </div>
               </div>
             </>
