@@ -255,6 +255,9 @@ function shellCardStyle(extra = {}) {
 ================================ */
 
 function Button({ children, variant = "secondary", type = "button", ...props }) {
+  const isSmallScreen =
+    typeof window !== "undefined" ? window.innerWidth < 640 : false;
+
   const variants = {
     primary: {
       background:
@@ -297,11 +300,11 @@ function Button({ children, variant = "secondary", type = "button", ...props }) 
       type={type}
       {...props}
       style={{
-        padding: window.innerWidth < 640 ? "10px 14px" : "12px 18px",
+        padding: isSmallScreen ? "10px 14px" : "12px 18px",
         borderRadius: 16,
         fontWeight: 700,
         cursor: props.disabled ? "not-allowed" : "pointer",
-        fontSize: window.innerWidth < 640 ? 15 : 16,
+        fontSize: isSmallScreen ? 15 : 16,
         transition: "0.2s ease",
         opacity: props.disabled ? 0.7 : 1,
         backdropFilter: "blur(10px)",
@@ -888,7 +891,8 @@ function MiniPlayer({
 }) {
   if (!song) return null;
 
-  const isMobile = window.innerWidth < 900;
+  const isMobile =
+    typeof window !== "undefined" ? window.innerWidth < 900 : false;
 
   return (
     <div
@@ -992,7 +996,8 @@ function PlayerModal({
 }) {
   if (!song) return null;
 
-  const isMobile = window.innerWidth < 900;
+  const isMobile =
+    typeof window !== "undefined" ? window.innerWidth < 900 : false;
 
   return (
     <div
