@@ -1122,7 +1122,7 @@ function MiniPlayer({
 
         <div
           style={{
-            fontSize: isMobile ? 12 : 12,
+            fontSize: 12,
             opacity: 0.62,
             whiteSpace: "nowrap",
             overflow: "hidden",
@@ -1142,7 +1142,7 @@ function MiniPlayer({
         style={{
           display: "grid",
           gridTemplateColumns: isMobile
-            ? "52px 52px minmax(92px, 1fr) 52px 52px"
+            ? "46px 58px minmax(88px, 1fr) 58px 46px"
             : "52px 52px 96px 52px 52px minmax(120px, 160px)",
           gap: isMobile ? 8 : 10,
           alignItems: "center",
@@ -1152,7 +1152,7 @@ function MiniPlayer({
           variant="ghost"
           onClick={onExpand}
           style={{
-            padding: "10px 12px",
+            padding: isMobile ? "10px 0" : "10px 12px",
             width: "100%",
             minWidth: 0,
           }}
@@ -1164,7 +1164,7 @@ function MiniPlayer({
           variant="ghost"
           onClick={onPrev}
           style={{
-            padding: "10px 12px",
+            padding: isMobile ? "10px 0" : "10px 12px",
             width: "100%",
             minWidth: 0,
           }}
@@ -1176,7 +1176,7 @@ function MiniPlayer({
           variant="secondary"
           onClick={onPlayPause}
           style={{
-            padding: "10px 16px",
+            padding: isMobile ? "10px 0" : "10px 16px",
             width: "100%",
             minWidth: 0,
           }}
@@ -1188,7 +1188,7 @@ function MiniPlayer({
           variant="ghost"
           onClick={onNext}
           style={{
-            padding: "10px 12px",
+            padding: isMobile ? "10px 0" : "10px 12px",
             width: "100%",
             minWidth: 0,
           }}
@@ -1200,7 +1200,7 @@ function MiniPlayer({
           variant="ghost"
           onClick={onToggleVolumeSlider}
           style={{
-            padding: "10px 12px",
+            padding: isMobile ? "10px 0" : "10px 12px",
             width: "100%",
             minWidth: 0,
           }}
@@ -1319,7 +1319,7 @@ function PlayerModal({
     >
       <div
         style={{
-          width: isMobile ? "100%" : "min(1380px, 96vw)",
+          width: isMobile ? "100%" : "min(1420px, 96vw)",
           maxHeight: isMobile ? "94vh" : "92vh",
           overflow: "hidden",
           borderRadius: isMobile ? 22 : 30,
@@ -1328,7 +1328,7 @@ function PlayerModal({
           border: "1px solid rgba(255,255,255,0.08)",
           boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
           display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "420px minmax(0, 1fr)",
+          gridTemplateColumns: isMobile ? "1fr" : "440px minmax(0, 1fr)",
         }}
       >
         {/* ================================
@@ -1345,6 +1345,7 @@ function PlayerModal({
             display: "grid",
             gap: isMobile ? 14 : 18,
             alignContent: "start",
+            minHeight: 0,
           }}
         >
           {/* ================================
@@ -1528,17 +1529,17 @@ function PlayerModal({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr auto 1fr",
+                  gridTemplateColumns: "1fr auto",
+                  gap: 12,
                   alignItems: "center",
-                  gap: 16,
-                  padding: "10px 14px",
+                  padding: "12px 14px",
                   borderRadius: 20,
                   background: "rgba(255,255,255,0.03)",
                   border: "1px solid rgba(255,255,255,0.07)",
                 }}
               >
                 {/* ================================
-                    PLAYER MODAL: DESKTOP CONTROL LEFT
+                    PLAYER MODAL: DESKTOP PRIMARY CONTROLS
                 ================================ */}
 
                 <div
@@ -1546,7 +1547,7 @@ function PlayerModal({
                     display: "flex",
                     alignItems: "center",
                     gap: 10,
-                    justifyContent: "flex-start",
+                    flexWrap: "wrap",
                   }}
                 >
                   <Button
@@ -1578,20 +1579,7 @@ function PlayerModal({
                   >
                     ⏭
                   </Button>
-                </div>
 
-                {/* ================================
-                    PLAYER MODAL: DESKTOP CONTROL CENTER
-                ================================ */}
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    justifyContent: "center",
-                  }}
-                >
                   <Button
                     variant="ghost"
                     onClick={onMinimize}
@@ -1616,7 +1604,7 @@ function PlayerModal({
                 </div>
 
                 {/* ================================
-                    PLAYER MODAL: DESKTOP CONTROL RIGHT
+                    PLAYER MODAL: DESKTOP VOLUME CONTROLS
                 ================================ */}
 
                 <div
@@ -1625,7 +1613,7 @@ function PlayerModal({
                     alignItems: "center",
                     justifyContent: "flex-end",
                     gap: 12,
-                    minWidth: 0,
+                    minWidth: 220,
                   }}
                 >
                   <Button
@@ -1649,8 +1637,7 @@ function PlayerModal({
                       value={volume}
                       onChange={(e) => onVolumeChange(Number(e.target.value))}
                       style={{
-                        width: 150,
-                        maxWidth: "100%",
+                        width: 130,
                         cursor: "pointer",
                       }}
                     />
@@ -1701,13 +1688,13 @@ function PlayerModal({
           <div
             style={{
               padding: 24,
-              overflow: "hidden",
               display: "grid",
               gridTemplateRows: "auto minmax(0, 1fr)",
-              alignContent: "stretch",
               gap: 12,
               minWidth: 0,
               minHeight: 0,
+              height: "100%",
+              overflow: "hidden",
             }}
           >
             <div
@@ -1734,6 +1721,7 @@ function PlayerModal({
                   border: "1px solid rgba(255,255,255,0.08)",
                   overflowY: "auto",
                   minHeight: 0,
+                  height: "100%",
                 }}
               >
                 {song.lyrics}
