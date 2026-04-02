@@ -1329,8 +1329,9 @@ function PlayerModal({
     >
       <div
         style={{
-          width: isMobile ? "100%" : "min(1380px, 100%)",
-          height: isMobile ? "94vh" : "min(860px, 92vh)",
+          width: isMobile ? "100%" : "min(1240px, 100%)",
+          height: isMobile ? "auto" : "min(92vh, 860px)",
+          maxHeight: isMobile ? "94vh" : "92vh",
           overflow: "hidden",
           borderRadius: isMobile ? 22 : 28,
           background:
@@ -1347,15 +1348,16 @@ function PlayerModal({
 
         <div
           style={{
-            padding: isMobile ? 16 : 28,
+            padding: isMobile ? 16 : 30,
             borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.06)",
             borderBottom: isMobile
               ? "1px solid rgba(255,255,255,0.06)"
               : "none",
             display: "grid",
-            gap: isMobile ? 14 : 18,
+            gap: isMobile ? 14 : 20,
             alignContent: "start",
             overflowY: isMobile ? "auto" : "hidden",
+            minHeight: 0,
           }}
         >
           {/* ================================
@@ -1398,8 +1400,8 @@ function PlayerModal({
             <h2
               style={{
                 margin: 0,
-                fontSize: isMobile ? 24 : 32,
-                lineHeight: 1.08,
+                fontSize: isMobile ? 24 : 34,
+                lineHeight: 1.06,
                 wordBreak: "break-word",
               }}
             >
@@ -1410,7 +1412,7 @@ function PlayerModal({
               style={{
                 margin: "10px 0 0",
                 opacity: 0.72,
-                fontSize: isMobile ? 14 : 16,
+                fontSize: isMobile ? 14 : 17,
               }}
             >
               {song.artist}
@@ -1469,7 +1471,9 @@ function PlayerModal({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gridTemplateColumns: isMobile
+                ? "repeat(2, minmax(0, 1fr))"
+                : "repeat(5, minmax(0, 1fr))",
               gap: 10,
             }}
           >
@@ -1484,19 +1488,7 @@ function PlayerModal({
             <Button onClick={onNext} style={{ width: "100%" }}>
               ⏭
             </Button>
-          </div>
 
-          {/* ================================
-              PLAYER MODAL: ACTIONS
-          ================================ */}
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: 10,
-            }}
-          >
             <Button variant="ghost" onClick={onMinimize} style={{ width: "100%" }}>
               Minimize
             </Button>
@@ -1569,14 +1561,14 @@ function PlayerModal({
                 <div
                   style={{
                     whiteSpace: "pre-wrap",
-                    lineHeight: 1.75,
+                    lineHeight: 1.7,
                     fontSize: 14,
                     color: "rgba(255,255,255,0.88)",
-                    padding: 16,
-                    borderRadius: 20,
+                    padding: 18,
+                    borderRadius: 22,
                     background: "rgba(255,255,255,0.04)",
                     border: "1px solid rgba(255,255,255,0.08)",
-                    maxHeight: "30vh",
+                    maxHeight: "32vh",
                     overflowY: "auto",
                   }}
                 >
@@ -1585,8 +1577,8 @@ function PlayerModal({
               ) : (
                 <div
                   style={{
-                    padding: 16,
-                    borderRadius: 20,
+                    padding: 18,
+                    borderRadius: 22,
                     background: "rgba(255,255,255,0.04)",
                     border: "1px solid rgba(255,255,255,0.08)",
                     color: "rgba(255,255,255,0.62)",
@@ -1600,164 +1592,67 @@ function PlayerModal({
         </div>
 
         {/* ================================
-            PLAYER MODAL: RIGHT SIDE / DESKTOP LAYOUT
+            PLAYER MODAL: RIGHT SIDE / LYRICS
         ================================ */}
 
         {!isMobile ? (
           <div
             style={{
               padding: 30,
-              minWidth: 0,
-              height: "100%",
+              overflow: "hidden",
               display: "grid",
-              gridTemplateRows: "1fr auto",
-              gap: 22,
+              gridTemplateRows: "auto minmax(0, 1fr)",
+              alignContent: "stretch",
+              gap: 16,
+              minWidth: 0,
+              minHeight: 0,
             }}
           >
-            {/* ================================
-                PLAYER MODAL: DESKTOP LYRICS PANEL
-            ================================ */}
-
             <div
               style={{
-                minHeight: 0,
-                display: "grid",
-                gridTemplateRows: "auto minmax(0, 1fr)",
-                gap: 14,
+                fontSize: 13,
+                letterSpacing: "0.24em",
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,0.48)",
               }}
             >
-              <div
-                style={{
-                  fontSize: 13,
-                  letterSpacing: "0.24em",
-                  textTransform: "uppercase",
-                  color: "rgba(255,255,255,0.48)",
-                }}
-              >
-                Lyrics
-              </div>
-
-              {song.lyrics ? (
-                <div
-                  style={{
-                    whiteSpace: "pre-wrap",
-                    lineHeight: 1.85,
-                    fontSize: 16,
-                    color: "rgba(255,255,255,0.88)",
-                    padding: 24,
-                    borderRadius: 22,
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    overflowY: "auto",
-                    minHeight: 0,
-                  }}
-                >
-                  {song.lyrics}
-                </div>
-              ) : (
-                <div
-                  style={{
-                    padding: 20,
-                    borderRadius: 22,
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    color: "rgba(255,255,255,0.62)",
-                  }}
-                >
-                  No lyrics added yet.
-                </div>
-              )}
+              Lyrics
             </div>
 
-            {/* ================================
-                PLAYER MODAL: DESKTOP BOTTOM BAR
-            ================================ */}
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(0, 1fr) auto",
-                gap: 18,
-                alignItems: "center",
-                padding: "18px 20px",
-                borderRadius: 22,
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.07)",
-              }}
-            >
-              {/* ================================
-                  PLAYER MODAL: DESKTOP NOW PLAYING
-              ================================ */}
-
-              <div style={{ minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: 12,
-                    letterSpacing: "0.18em",
-                    textTransform: "uppercase",
-                    color: "rgba(255,255,255,0.45)",
-                    marginBottom: 6,
-                  }}
-                >
-                  Now Playing
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 800,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {song.title}
-                </div>
-
-                <div
-                  style={{
-                    marginTop: 4,
-                    fontSize: 14,
-                    color: "rgba(255,255,255,0.66)",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {song.artist}
-                </div>
-              </div>
-
-              {/* ================================
-                  PLAYER MODAL: DESKTOP VOLUME SHORTCUT
-              ================================ */}
-
+            {song.lyrics ? (
               <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  justifyContent: "flex-end",
+                  whiteSpace: "pre-wrap",
+                  lineHeight: 1.9,
+                  fontSize: 16,
+                  color: "rgba(255,255,255,0.88)",
+                  padding: 24,
+                  borderRadius: 22,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  overflowY: "auto",
+                  minHeight: 0,
+                  height: "100%",
                 }}
               >
-                <Button variant="ghost" onClick={onToggleMute}>
-                  {isMuted || volume === 0 ? "🔇" : "🔊"}
-                </Button>
-
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={isMuted ? 0 : volume}
-                  onChange={(e) => onVolumeChange(Number(e.target.value))}
-                  style={{
-                    width: 150,
-                    cursor: "pointer",
-                  }}
-                />
+                {song.lyrics}
               </div>
-            </div>
+            ) : (
+              <div
+                style={{
+                  padding: 20,
+                  borderRadius: 22,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  color: "rgba(255,255,255,0.62)",
+                  overflowY: "auto",
+                  minHeight: 0,
+                  height: "100%",
+                }}
+              >
+                No lyrics added yet.
+              </div>
+            )}
           </div>
         ) : null}
       </div>
