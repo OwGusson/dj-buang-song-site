@@ -3038,6 +3038,7 @@ function App() {
                           onClick={() => {
                             setMessageSuccess("");
                             setUploadSuccess("");
+                            setAdminSection("dashboard");
                             setView(adminLoggedIn ? "admin" : "login");
                           }}
                           style={{
@@ -3140,6 +3141,7 @@ function App() {
                       onClick={() => {
                         setMessageSuccess("");
                         setUploadSuccess("");
+                        setAdminSection("dashboard");
                         setView(adminLoggedIn ? "admin" : "login");
                       }}
                       style={{
@@ -3617,6 +3619,53 @@ function App() {
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <Button type="submit" variant="primary">
                   Send Message
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setView("home")}
+                >
+                  Back Home
+                </Button>
+              </div>
+            </form>
+          </Panel>
+        )}
+
+        {view === "login" && !adminLoggedIn && (
+          <Panel
+            title="Admin Login"
+            subtitle="Use this to open the private admin dashboard."
+          >
+            <form
+              onSubmit={handleAdminLogin}
+              style={{ display: "grid", gap: 16, maxWidth: 460 }}
+            >
+              <Input
+                type="password"
+                label="Password"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+              />
+
+              {loginError ? (
+                <div
+                  style={{
+                    padding: 14,
+                    borderRadius: 16,
+                    background: "rgba(220,38,38,0.12)",
+                    border: "1px solid rgba(248,113,113,0.24)",
+                    color: "#fca5a5",
+                  }}
+                >
+                  {loginError}
+                </div>
+              ) : null}
+
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <Button type="submit" variant="primary">
+                  Login
                 </Button>
 
                 <Button
