@@ -1,4 +1,4 @@
-/* ===== PART 1/6: IMPORTS + HELPERS ===== */
+/* ===== APP.JSX PART 1/12: IMPORTS + GLOBAL CONSTANTS + STORAGE HELPERS ===== */
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -61,45 +61,63 @@ function clearOldDemoDataOnce() {
   }
 }
 
+/* ===== END APP.JSX PART 1/12 ===== */
+
+/* ===== APP.JSX PART 2/12: SONG NORMALIZATION + SORTING + FORMAT HELPERS ===== */
+
 /* ================================
-   SONG NORMALIZATION HELPERS
+   SONG NORMALIZATION
 ================================ */
 
 function normalizeSong(song) {
-  const requestedBy = (song.requestedBy || song.genre || "").trim();
-
-  const parsedSortOrder = Number(song.sortOrder);
+  if (!song) return song;
 
   return {
-    id: song.id || `song-${Date.now()}-${Math.random()}`,
-    title: song.title || "Untitled Song",
+    id: song.id,
+    title: song.title || "",
     artist: song.artist || "DJ-Buang",
-    requestedBy,
+    requestedBy: song.requestedBy || "",
     coverUrl: song.coverUrl || "",
     audioUrl: song.audioUrl || "",
     lyrics: song.lyrics || "",
     likes: Number(song.likes || 0),
-    featured: Boolean(song.featured),
+    featured: !!song.featured,
     visibility: song.visibility || "public",
     status: song.status || "published",
     createdAt: song.createdAt || new Date().toISOString(),
-    sortOrder: Number.isFinite(parsedSortOrder)
-      ? parsedSortOrder
-      : null,
+    sortOrder: Number(song.sortOrder || 0),
   };
 }
 
-function ensureSongSortOrders(songList) {
-  return songList.map((song, index) => {
-    const normalized = normalizeSong(song);
+/* ================================
+   ANALYTICS NORMALIZATION
+================================ */
 
-    return {
-      ...normalized,
-      sortOrder: Number.isFinite(normalized.sortOrder)
-        ? normalized.sortOrder
-        : index + 1,
-    };
-  });
+function normalizeAnalyticsRow(row) {
+  if (!row) return null;
+
+  return {
+    song_id: row.song_id,
+    opens: Number(row.opens || 0),
+    plays: Number(row.plays || 0),
+    updated_at: row.updated_at,
+  };
+}
+
+/* ================================
+   SORT ORDER HELPERS
+================================ */
+
+function ensureSongSortOrders(songs) {
+  if (!Array.isArray(songs)) return [];
+
+  return songs.map((song, index) => ({
+    ...normalizeSong(song),
+    sortOrder:
+      typeof song.sortOrder === "number"
+        ? song.sortOrder
+        : index,
+  }));
 }
 
 function compareSongsForDisplay(a, b) {
@@ -107,53 +125,41 @@ function compareSongsForDisplay(a, b) {
     return b.featured ? 1 : -1;
   }
 
-  const aOrder = Number.isFinite(Number(a.sortOrder))
-    ? Number(a.sortOrder)
-    : Number.MAX_SAFE_INTEGER;
-
-  const bOrder = Number.isFinite(Number(b.sortOrder))
-    ? Number(b.sortOrder)
-    : Number.MAX_SAFE_INTEGER;
-
-  if (aOrder !== bOrder) {
-    return aOrder - bOrder;
+  if ((a.sortOrder ?? 0) !== (b.sortOrder ?? 0)) {
+    return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
   }
 
   return new Date(b.createdAt) - new Date(a.createdAt);
 }
 
 /* ================================
-   SONG LABEL HELPERS
+   SONG TYPE HELPERS
 ================================ */
 
-function isNewSong(song) {
-  if (!song?.id) return false;
-
-  const timestamp = Number(
-    String(song.id).replace(/^song-/, "").split("-")[0]
-  );
-
-  if (!Number.isFinite(timestamp)) return false;
-
-  const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
-
-  return Date.now() - timestamp <= FOURTEEN_DAYS;
-}
-
 function isRequestedSong(song) {
-  return Boolean((song.requestedBy || "").trim());
+  return !!song.requestedBy;
 }
 
 function isOriginalSong(song) {
-  return !isRequestedSong(song);
+  return !song.requestedBy;
+}
+
+function isNewSong(song) {
+  if (!song.createdAt) return false;
+
+  const created = new Date(song.createdAt).getTime();
+  const now = Date.now();
+
+  const diffDays = (now - created) / (1000 * 60 * 60 * 24);
+
+  return diffDays <= 14;
 }
 
 function getSongTypeLabel(song) {
-  if ((song.requestedBy || "").trim()) {
-    return `Requested by ${song.requestedBy.trim()}`;
-  }
-
-  return "DJ-BUANG Original";
+  if (song.featured) return "featured";
+  if (isNewSong(song)) return "new";
+  if (isRequestedSong(song)) return "request";
+  return "original";
 }
 
 /* ================================
@@ -161,103 +167,82 @@ function getSongTypeLabel(song) {
 ================================ */
 
 function formatDate(dateString) {
+  if (!dateString) return "";
+
   try {
-    const d = new Date(dateString);
-    return d.toISOString().slice(0, 10);
+    return new Date(dateString).toLocaleDateString();
   } catch {
-    return dateString;
+    return "";
   }
 }
 
 function timeAgo(dateString) {
-  try {
-    const now = new Date();
-    const past = new Date(dateString);
+  if (!dateString) return "";
 
-    const diffMs = now - past;
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const now = Date.now();
+  const time = new Date(dateString).getTime();
 
-    if (diffDays <= 0) return "today";
-    if (diffDays === 1) return "1 day ago";
+  const diff = Math.floor((now - time) / 1000);
 
-    return `${diffDays} days ago`;
-  } catch {
-    return "";
-  }
+  if (diff < 60) return "just now";
+
+  const minutes = Math.floor(diff / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+
+  return formatDate(dateString);
 }
 
 function formatTime(seconds) {
-  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  if (!seconds && seconds !== 0) return "0:00";
 
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
 
-  return `${mins}:${String(secs).padStart(2, "0")}`;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
 /* ================================
-   FILE HELPERS
+   FILE + IMAGE HELPERS
 ================================ */
 
-function getFileNameFromUrl(url = "") {
+function getFileNameFromUrl(url) {
+  if (!url) return "";
+
   try {
-    const parsed = new URL(url);
-    const parts = parsed.pathname.split("/");
-    return decodeURIComponent(parts[parts.length - 1] || "");
+    return decodeURIComponent(url.split("/").pop());
   } catch {
     return "";
   }
 }
 
-function loadImageAsDataUrl(src) {
-  return new Promise((resolve, reject) => {
-    if (!src) {
-      resolve(null);
-      return;
-    }
+async function loadImageAsDataUrl(imageUrl) {
+  if (!imageUrl) return null;
 
-    const img = new Image();
-    img.crossOrigin = "anonymous";
+  try {
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
 
-    img.onload = () => {
-      try {
-        const canvas = document.createElement("canvas");
+    return new Promise((resolve) => {
+      const reader = new FileReader();
 
-        canvas.width = img.naturalWidth || img.width;
-        canvas.height = img.naturalHeight || img.height;
-
-        const ctx = canvas.getContext("2d");
-
-        if (!ctx) {
-          reject(new Error("Canvas context not available"));
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0);
-
-        resolve(canvas.toDataURL("image/png"));
-      } catch (error) {
-        reject(error);
-      }
-    };
-
-    img.onerror = reject;
-    img.src = src;
-  });
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.warn("Could not load image:", error);
+    return null;
+  }
 }
 
-/* ================================
-   ANALYTICS HELPERS
-================================ */
+/* ===== END APP.JSX PART 2/12 ===== */
 
-function normalizeAnalyticsRow(row) {
-  return {
-    song_id: row.song_id,
-    opens: Number(row.opens || 0),
-    plays: Number(row.plays || 0),
-    updated_at: row.updated_at || null,
-  };
-}
+/* ===== APP.JSX PART 3/12: SHARED UI COMPONENTS ===== */
 
 /* ================================
    UI STYLE HELPERS
@@ -274,9 +259,9 @@ function shellCardStyle(extra = {}) {
   };
 }
 
-/* ===== END PART 1/6 ===== */
-
-/* ===== PART 2/6: SHARED UI COMPONENTS ===== */
+/* ================================
+   BUTTON
+================================ */
 
 function Button({ children, variant = "secondary", type = "button", ...props }) {
   const variants = {
@@ -302,7 +287,7 @@ function Button({ children, variant = "secondary", type = "button", ...props }) 
     },
     danger: {
       background:
-        "linear-gradient(180deg, rgba(127, 29, 29, 0.56), rgba(153, 27, 27, 0.42))",
+        "linear-gradient(180deg, rgba(127,29,29,0.56), rgba(153,27,27,0.42))",
       color: "white",
       border: "1px solid rgba(248,113,113,0.24)",
       boxShadow: "0 10px 24px rgba(127,29,29,0.20)",
@@ -338,6 +323,10 @@ function Button({ children, variant = "secondary", type = "button", ...props }) 
     </button>
   );
 }
+
+/* ================================
+   INPUT
+================================ */
 
 function Input({ label, helper, ...props }) {
   return (
@@ -386,6 +375,10 @@ function Input({ label, helper, ...props }) {
   );
 }
 
+/* ================================
+   TEXT AREA
+================================ */
+
 function TextArea({ label, ...props }) {
   return (
     <label style={{ display: "block" }}>
@@ -423,6 +416,10 @@ function TextArea({ label, ...props }) {
   );
 }
 
+/* ================================
+   SELECT
+================================ */
+
 function Select({ label, children, ...props }) {
   return (
     <label style={{ display: "block" }}>
@@ -457,6 +454,10 @@ function Select({ label, children, ...props }) {
     </label>
   );
 }
+
+/* ================================
+   BADGE
+================================ */
 
 function Badge({ children, style = {} }) {
   const text = String(children || "").toUpperCase();
@@ -516,6 +517,10 @@ function Badge({ children, style = {} }) {
   );
 }
 
+/* ================================
+   STAT PILL
+================================ */
+
 function StatPill({ label, value }) {
   return (
     <div
@@ -531,6 +536,10 @@ function StatPill({ label, value }) {
     </div>
   );
 }
+
+/* ================================
+   PANEL
+================================ */
 
 function Panel({ title, subtitle, right, children }) {
   return (
@@ -566,6 +575,10 @@ function Panel({ title, subtitle, right, children }) {
     </section>
   );
 }
+
+/* ================================
+   SECTION HEADING
+================================ */
 
 function SectionHeading({ icon, title, tone = "default" }) {
   const tones = {
@@ -616,9 +629,9 @@ function SectionHeading({ icon, title, tone = "default" }) {
   );
 }
 
-/* ===== END PART 2/6 ===== */
+/* ===== END APP.JSX PART 3/12 ===== */
 
-/* ===== PART 3/6: CONTENT + PLAYER COMPONENTS ===== */
+/* ===== APP.JSX PART 4/12: SONG / CONTENT COMPONENTS ===== */
 
 /* ================================
    SONG ROW (LIBRARY LIST ITEM)
@@ -647,15 +660,27 @@ function SongRow({
   const isRequested = isRequestedSong(song);
   const isFeatured = !!song.featured;
 
+  const actionButtonStyle = isMobile
+    ? {
+        padding: "8px 11px",
+        fontSize: 13,
+        borderRadius: 14,
+      }
+    : {
+        padding: "10px 14px",
+        fontSize: 14,
+        borderRadius: 14,
+      };
+
   return (
     <div
       onClick={() => onOpenPlayer(song)}
       style={{
         display: "grid",
         gridTemplateColumns: isMobile ? "64px 1fr" : "96px 1fr",
-        gap: isMobile ? 8 : 14,
-        padding: isMobile ? 12 : 14,
-        borderRadius: isMobile ? 18 : 20,
+        gap: isMobile ? 8 : 16,
+        padding: isMobile ? 12 : 16,
+        borderRadius: isMobile ? 18 : 22,
         background: isFeatured
           ? "linear-gradient(180deg, rgba(33,24,8,0.88), rgba(8,12,24,0.92))"
           : "rgba(8,12,24,0.64)",
@@ -670,14 +695,15 @@ function SongRow({
       <div
         style={{
           width: "100%",
-          height: isMobile ? 58 : 76,
-          borderRadius: isMobile ? 12 : 16,
+          height: isMobile ? 58 : 84,
+          borderRadius: isMobile ? 12 : 18,
           overflow: "hidden",
           background:
             "linear-gradient(135deg, rgba(89,55,150,0.8), rgba(41,73,120,0.8))",
           display: "grid",
           placeItems: "center",
           alignSelf: isMobile ? "start" : "center",
+          boxShadow: isMobile ? "none" : "0 12px 28px rgba(0,0,0,0.22)",
         }}
       >
         {song.coverUrl ? (
@@ -691,16 +717,16 @@ function SongRow({
             }}
           />
         ) : (
-          <span style={{ fontSize: isMobile ? 22 : 26 }}>🎵</span>
+          <span style={{ fontSize: isMobile ? 22 : 28 }}>🎵</span>
         )}
       </div>
 
       {/* INFO */}
-      <div style={{ display: "grid", gap: isMobile ? 5 : 6, minWidth: 0 }}>
+      <div style={{ display: "grid", gap: isMobile ? 5 : 8, minWidth: 0 }}>
         <div
           style={{
             display: "flex",
-            gap: 8,
+            gap: 10,
             flexWrap: "wrap",
             alignItems: "center",
           }}
@@ -716,17 +742,34 @@ function SongRow({
           </strong>
 
           {isNew && (
-            <Badge style={{ padding: isMobile ? "5px 9px" : "7px 12px", fontSize: isMobile ? 11 : 13 }}>
+            <Badge
+              style={{
+                padding: isMobile ? "5px 9px" : "7px 12px",
+                fontSize: isMobile ? 11 : 13,
+              }}
+            >
               NEW
             </Badge>
           )}
+
           {isRequested && (
-            <Badge style={{ padding: isMobile ? "5px 9px" : "7px 12px", fontSize: isMobile ? 11 : 13 }}>
+            <Badge
+              style={{
+                padding: isMobile ? "5px 9px" : "7px 12px",
+                fontSize: isMobile ? 11 : 13,
+              }}
+            >
               REQUEST
             </Badge>
           )}
+
           {isFeatured && (
-            <Badge style={{ padding: isMobile ? "5px 9px" : "7px 12px", fontSize: isMobile ? 11 : 13 }}>
+            <Badge
+              style={{
+                padding: isMobile ? "5px 9px" : "7px 12px",
+                fontSize: isMobile ? 11 : 13,
+              }}
+            >
               FEATURED
             </Badge>
           )}
@@ -746,7 +789,7 @@ function SongRow({
         <div
           style={{
             display: "flex",
-            gap: isMobile ? 10 : 12,
+            gap: isMobile ? 10 : 14,
             flexWrap: "wrap",
             fontSize: isMobile ? 12 : 13,
             opacity: 0.65,
@@ -762,7 +805,7 @@ function SongRow({
           onClick={(e) => e.stopPropagation()}
           style={{
             display: "flex",
-            gap: isMobile ? 5 : 6,
+            gap: isMobile ? 5 : 8,
             flexWrap: "wrap",
             marginTop: isMobile ? 4 : 6,
           }}
@@ -770,11 +813,7 @@ function SongRow({
           <Button
             variant="secondary"
             onClick={() => onLike(song.id)}
-            style={{
-              padding: isMobile ? "8px 11px" : undefined,
-              fontSize: isMobile ? 13 : undefined,
-              borderRadius: isMobile ? 14 : undefined,
-            }}
+            style={actionButtonStyle}
           >
             ♡ Like
           </Button>
@@ -782,11 +821,7 @@ function SongRow({
           <Button
             variant="secondary"
             onClick={() => onDownloadSong(song)}
-            style={{
-              padding: isMobile ? "8px 11px" : undefined,
-              fontSize: isMobile ? 13 : undefined,
-              borderRadius: isMobile ? 14 : undefined,
-            }}
+            style={actionButtonStyle}
           >
             ⬇ Song
           </Button>
@@ -794,11 +829,7 @@ function SongRow({
           <Button
             variant="secondary"
             onClick={() => onDownloadLyrics(song)}
-            style={{
-              padding: isMobile ? "8px 11px" : undefined,
-              fontSize: isMobile ? 13 : undefined,
-              borderRadius: isMobile ? 14 : undefined,
-            }}
+            style={actionButtonStyle}
           >
             📄 Lyrics
           </Button>
@@ -806,11 +837,7 @@ function SongRow({
           <Button
             variant="ghost"
             onClick={() => onCopyLink(song.id)}
-            style={{
-              padding: isMobile ? "8px 11px" : undefined,
-              fontSize: isMobile ? 13 : undefined,
-              borderRadius: isMobile ? 14 : undefined,
-            }}
+            style={actionButtonStyle}
           >
             🔗 Copy link
           </Button>
@@ -820,11 +847,7 @@ function SongRow({
               <Button
                 variant="ghost"
                 onClick={() => onEdit(song)}
-                style={{
-                  padding: isMobile ? "8px 11px" : undefined,
-                  fontSize: isMobile ? 13 : undefined,
-                  borderRadius: isMobile ? 14 : undefined,
-                }}
+                style={actionButtonStyle}
               >
                 ✏ Edit
               </Button>
@@ -832,11 +855,7 @@ function SongRow({
               <Button
                 variant="danger"
                 onClick={() => onDelete(song)}
-                style={{
-                  padding: isMobile ? "8px 11px" : undefined,
-                  fontSize: isMobile ? 13 : undefined,
-                  borderRadius: isMobile ? 14 : undefined,
-                }}
+                style={actionButtonStyle}
               >
                 🗑 Delete
               </Button>
@@ -845,11 +864,7 @@ function SongRow({
                 <Button
                   variant="ghost"
                   onClick={() => onMoveUp(song)}
-                  style={{
-                    padding: isMobile ? "8px 11px" : undefined,
-                    fontSize: isMobile ? 13 : undefined,
-                    borderRadius: isMobile ? 14 : undefined,
-                  }}
+                  style={actionButtonStyle}
                 >
                   ↑
                 </Button>
@@ -859,11 +874,7 @@ function SongRow({
                 <Button
                   variant="ghost"
                   onClick={() => onMoveDown(song)}
-                  style={{
-                    padding: isMobile ? "8px 11px" : undefined,
-                    fontSize: isMobile ? 13 : undefined,
-                    borderRadius: isMobile ? 14 : undefined,
-                  }}
+                  style={actionButtonStyle}
                 >
                   ↓
                 </Button>
@@ -875,6 +886,10 @@ function SongRow({
     </div>
   );
 }
+
+/* ===== END APP.JSX PART 4/12 ===== */
+
+/* ===== APP.JSX PART 5/12: PLAYER COMPONENTS ===== */
 
 /* ================================
    MINI PLAYER (BOTTOM BAR)
@@ -890,6 +905,8 @@ function MiniPlayer({
 }) {
   if (!song) return null;
 
+  const isMobile = window.innerWidth < 900;
+
   return (
     <div
       style={{
@@ -897,29 +914,82 @@ function MiniPlayer({
         bottom: 0,
         left: 0,
         right: 0,
-        padding: "14px 18px",
+        padding: isMobile ? "12px 14px" : "14px 20px",
         background:
-          "linear-gradient(180deg, rgba(10,14,28,0.95), rgba(6,10,22,0.98))",
+          "linear-gradient(180deg, rgba(10,14,28,0.96), rgba(6,10,22,0.99))",
         borderTop: "1px solid rgba(255,255,255,0.08)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
+        gap: 14,
         zIndex: 999,
+        backdropFilter: "blur(14px)",
       }}
     >
-      <div onClick={onExpand} style={{ cursor: "pointer" }}>
-        <strong>{song.title}</strong>
-        <div style={{ fontSize: 13, opacity: 0.6 }}>{song.artist}</div>
+      {/* SONG INFO */}
+      <div
+        onClick={onExpand}
+        style={{
+          cursor: "pointer",
+          overflow: "hidden",
+          minWidth: 0,
+        }}
+      >
+        <strong
+          style={{
+            display: "block",
+            fontSize: isMobile ? 14 : 16,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {song.title}
+        </strong>
+
+        <div
+          style={{
+            fontSize: isMobile ? 12 : 13,
+            opacity: 0.6,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {song.artist}
+        </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8 }}>
-        <Button onClick={onPrev}>⏮</Button>
+      {/* CONTROLS */}
+      <div
+        style={{
+          display: "flex",
+          gap: isMobile ? 6 : 10,
+        }}
+      >
+        <Button
+          variant="ghost"
+          onClick={onPrev}
+          style={{ padding: isMobile ? "8px 10px" : "10px 12px" }}
+        >
+          ⏮
+        </Button>
 
-        <Button onClick={onPlayPause}>
+        <Button
+          variant="secondary"
+          onClick={onPlayPause}
+          style={{ padding: isMobile ? "8px 16px" : "10px 18px" }}
+        >
           {isPlaying ? "Pause" : "Play"}
         </Button>
 
-        <Button onClick={onNext}>⏭</Button>
+        <Button
+          variant="ghost"
+          onClick={onNext}
+          style={{ padding: isMobile ? "8px 10px" : "10px 12px" }}
+        >
+          ⏭
+        </Button>
       </div>
     </div>
   );
@@ -936,9 +1006,10 @@ function PlayerModal({
   onClose,
   onNext,
   onPrev,
-  onMinimize,
 }) {
   if (!song) return null;
+
+  const isMobile = window.innerWidth < 900;
 
   return (
     <div
@@ -949,22 +1020,51 @@ function PlayerModal({
         display: "grid",
         placeItems: "center",
         zIndex: 1000,
+        padding: isMobile ? 18 : 32,
       }}
     >
       <div
         style={{
-          width: "min(520px, 92%)",
-          padding: 28,
-          borderRadius: 24,
+          width: "min(520px, 100%)",
+          padding: isMobile ? 22 : 30,
+          borderRadius: 26,
           background:
             "linear-gradient(180deg, rgba(10,14,28,0.98), rgba(6,10,22,0.98))",
+          border: "1px solid rgba(255,255,255,0.08)",
+          boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
         }}
       >
-        <h2 style={{ marginTop: 0 }}>{song.title}</h2>
+        {/* TITLE */}
+        <h2
+          style={{
+            marginTop: 0,
+            marginBottom: 6,
+            fontSize: isMobile ? 20 : 26,
+          }}
+        >
+          {song.title}
+        </h2>
 
-        <p style={{ opacity: 0.7 }}>{song.artist}</p>
+        {/* ARTIST */}
+        <p
+          style={{
+            margin: 0,
+            opacity: 0.7,
+            fontSize: isMobile ? 14 : 15,
+          }}
+        >
+          {song.artist}
+        </p>
 
-        <div style={{ display: "flex", gap: 8, marginTop: 20, flexWrap: "wrap" }}>
+        {/* CONTROLS */}
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            marginTop: 22,
+            flexWrap: "wrap",
+          }}
+        >
           <Button onClick={onPrev}>⏮</Button>
 
           <Button onClick={onPlayPause}>
@@ -973,10 +1073,6 @@ function PlayerModal({
 
           <Button onClick={onNext}>⏭</Button>
 
-          <Button variant="ghost" onClick={onMinimize}>
-            Minimize
-          </Button>
-
           <Button variant="ghost" onClick={onClose}>
             Close
           </Button>
@@ -986,175 +1082,9 @@ function PlayerModal({
   );
 }
 
-/* ================================
-   REQUEST REVIEW MODAL
-================================ */
+/* ===== END APP.JSX PART 5/12 ===== */
 
-function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
-  if (!request) return null;
-
-  const linkedSong = songs.find((song) => song.id === request.linkedSongId);
-
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.72)",
-        display: "grid",
-        placeItems: "center",
-        zIndex: 1100,
-        padding: 16,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(680px, 100%)",
-          maxHeight: "85vh",
-          overflowY: "auto",
-          padding: 24,
-          borderRadius: 24,
-          background:
-            "linear-gradient(180deg, rgba(10,14,28,0.98), rgba(6,10,22,0.98))",
-          border: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 18px 60px rgba(0,0,0,0.38)",
-          color: "white",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 12,
-            alignItems: "flex-start",
-            marginBottom: 18,
-          }}
-        >
-          <div>
-            <h2 style={{ margin: 0, fontSize: 24 }}>Request Review</h2>
-            <p style={{ margin: "8px 0 0", color: "rgba(255,255,255,0.70)" }}>
-              Full request details and linked song preview.
-            </p>
-          </div>
-
-          <Button variant="ghost" onClick={onClose}>
-            Close
-          </Button>
-        </div>
-
-        <div style={{ display: "grid", gap: 14 }}>
-          <div
-            style={{
-              padding: 16,
-              borderRadius: 18,
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 6 }}>
-              Requested by
-            </div>
-            <strong>{request.name || "Unknown"}</strong>
-          </div>
-
-          <div
-            style={{
-              padding: 16,
-              borderRadius: 18,
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 6 }}>
-              Song idea
-            </div>
-            <strong>{request.title || "Untitled request"}</strong>
-          </div>
-
-          <div
-            style={{
-              padding: 16,
-              borderRadius: 18,
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 6 }}>
-              Details
-            </div>
-            <div style={{ lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-              {request.details || "No extra details provided."}
-            </div>
-          </div>
-
-          <div
-            style={{
-              padding: 16,
-              borderRadius: 18,
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 6 }}>
-              Delivery / notify / contact
-            </div>
-            <div style={{ lineHeight: 1.6 }}>
-              <div>
-                Delivery: {request.delivery === "private" ? "Private" : "Public"}
-              </div>
-              <div>Notify: {request.notify ? "Yes" : "No"}</div>
-              <div>Email: {request.email || "No email provided"}</div>
-              <div>Status: {request.status || "pending"}</div>
-              <div>Created: {formatDate(request.createdAt)}</div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              padding: 16,
-              borderRadius: 18,
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 10 }}>
-              Linked song
-            </div>
-
-            {linkedSong ? (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                }}
-              >
-                <strong>
-                  {linkedSong.title} — {linkedSong.artist}
-                </strong>
-
-                <Button variant="secondary" onClick={() => onOpenSong(linkedSong)}>
-                  Open Song
-                </Button>
-              </div>
-            ) : (
-              <div style={{ color: "rgba(255,255,255,0.72)" }}>
-                No uploaded song linked yet.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ===== END PART 3/6 ===== */
-
-/* ===== PART 4/6: API + STORAGE FUNCTIONS ===== */
+/* ===== APP.JSX PART 6/12: API + STORAGE FUNCTIONS ===== */
 
 /* ================================
    CLOUDFLARE FILE UPLOAD
@@ -1392,9 +1322,9 @@ async function deleteSongFromSupabaseBackup(songId) {
   }
 }
 
-/* ===== END PART 4/6 ===== */
+/* ===== END APP.JSX PART 6/12 ===== */
 
-/* ===== PART 5/6: APP STATE + REFS + EFFECTS + MEMO LOGIC ===== */
+/* ===== APP.JSX PART 7/12: APP STATE + REFS + LOCAL HELPERS ===== */
 
 function App() {
   const [songs, setSongs] = useState(() => {
@@ -1558,6 +1488,10 @@ function App() {
   function cancelEditSong() {
     resetSongForm();
   }
+
+/* ===== END APP.JSX PART 7/12 ===== */
+
+/* ===== APP.JSX PART 8/12: EFFECTS ===== */
 
   useEffect(() => {
     let cancelled = false;
@@ -1964,6 +1898,10 @@ function App() {
     shouldAutoplayOnSongChangeRef.current = false;
   }, [playerSong]);
 
+/* ===== END APP.JSX PART 8/12 ===== */
+
+/* ===== APP.JSX PART 9/12: MEMO LOGIC + COMPUTED VALUES ===== */
+
   const publicSongs = useMemo(
     () =>
       ensureSongSortOrders(songs)
@@ -2139,13 +2077,9 @@ function App() {
     0
   );
 
-/* ===== END PART 5/6 ===== */
+/* ===== END APP.JSX PART 9/12 ===== */
 
-/* ===== PART 6/6: HANDLERS + JSX RETURN + EXPORT ===== */
-
-  const openPayPalDonation = () => {
-    window.open(PAYPAL_URL, "_blank", "noopener,noreferrer");
-  };
+/* ===== APP.JSX PART 10/12: DATA / ADMIN HANDLERS ===== */
 
   const handleLikeSong = async (songId) => {
     const likedKey = `liked_${songId}`;
@@ -2224,8 +2158,10 @@ function App() {
     try {
       setIsUploading(true);
 
-      let uploadedCoverUrl = editingOriginalSong?.coverUrl || newSong.coverUrl || "";
-      let uploadedAudioUrl = editingOriginalSong?.audioUrl || newSong.audioUrl || "";
+      let uploadedCoverUrl =
+        editingOriginalSong?.coverUrl || newSong.coverUrl || "";
+      let uploadedAudioUrl =
+        editingOriginalSong?.audioUrl || newSong.audioUrl || "";
 
       if (newSongFiles.coverFile) {
         uploadedCoverUrl = await uploadFileToCloudflare(newSongFiles.coverFile);
@@ -2413,7 +2349,8 @@ function App() {
 
     if (currentIndex === -1) return;
 
-    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    const targetIndex =
+      direction === "up" ? currentIndex - 1 : currentIndex + 1;
     if (targetIndex < 0 || targetIndex >= visibleList.length) return;
 
     const currentSong = visibleList[currentIndex];
@@ -2427,8 +2364,14 @@ function App() {
       ? Number(targetSong.sortOrder)
       : targetIndex + 1;
 
-    const updatedCurrentSong = { ...currentSong, sortOrder: targetSortOrder };
-    const updatedTargetSong = { ...targetSong, sortOrder: currentSortOrder };
+    const updatedCurrentSong = {
+      ...currentSong,
+      sortOrder: targetSortOrder,
+    };
+    const updatedTargetSong = {
+      ...targetSong,
+      sortOrder: currentSortOrder,
+    };
     const previousSongs = songs;
 
     setSongs((prev) =>
@@ -2629,6 +2572,14 @@ function App() {
     );
   };
 
+/* ===== END APP.JSX PART 10/12 ===== */
+
+/* ===== APP.JSX PART 11/12: PLAYER / DOWNLOAD HANDLERS + PUBLIC JSX ===== */
+
+  const openPayPalDonation = () => {
+    window.open(PAYPAL_URL, "_blank", "noopener,noreferrer");
+  };
+
   const handleOpenSong = async (song) => {
     setPlayerSong(song);
     setPlayerMinimized(false);
@@ -2750,7 +2701,8 @@ function App() {
 
     const a = document.createElement("a");
     a.href = song.audioUrl;
-    a.download = getFileNameFromUrl(song.audioUrl) || `${song.title || "song"}.mp3`;
+    a.download =
+      getFileNameFromUrl(song.audioUrl) || `${song.title || "song"}.mp3`;
     a.click();
   };
 
@@ -2797,6 +2749,7 @@ function App() {
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(22);
+      doc.setTextColor(20, 20, 20);
       doc.text(song.title || "Untitled Song", pageWidth / 2, y, {
         align: "center",
       });
@@ -2817,12 +2770,6 @@ function App() {
       doc.line(marginX, y, pageWidth - marginX, y);
       y += 10;
 
-      doc.setTextColor(20, 20, 20);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(12);
-
-      const lyricsLines = doc.splitTextToSize(song.lyrics, contentWidth);
-
       const addFooter = () => {
         doc.setFont("helvetica", "italic");
         doc.setFontSize(10);
@@ -2832,7 +2779,16 @@ function App() {
         });
       };
 
+      const applyLyricsTextStyle = () => {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(12);
+        doc.setTextColor(20, 20, 20);
+      };
+
+      const lyricsLines = doc.splitTextToSize(song.lyrics, contentWidth);
+
       addFooter();
+      applyLyricsTextStyle();
 
       const lineHeight = 6.6;
 
@@ -2841,9 +2797,7 @@ function App() {
           doc.addPage();
           y = 20;
           addFooter();
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(12);
-          doc.setTextColor(20, 20, 20);
+          applyLyricsTextStyle();
         }
 
         doc.text(lyricsLines[i], marginX, y);
@@ -2871,6 +2825,168 @@ function App() {
       alert(url);
     }
   };
+
+  function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
+    if (!request) return null;
+
+    const linkedSong = songs.find((song) => song.id === request.linkedSongId);
+
+    return (
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.72)",
+          display: "grid",
+          placeItems: "center",
+          zIndex: 1100,
+          padding: 16,
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: "min(680px, 100%)",
+            maxHeight: "85vh",
+            overflowY: "auto",
+            padding: 24,
+            borderRadius: 24,
+            background:
+              "linear-gradient(180deg, rgba(10,14,28,0.98), rgba(6,10,22,0.98))",
+            border: "1px solid rgba(255,255,255,0.08)",
+            boxShadow: "0 18px 60px rgba(0,0,0,0.38)",
+            color: "white",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              alignItems: "flex-start",
+              marginBottom: 18,
+            }}
+          >
+            <div>
+              <h2 style={{ margin: 0, fontSize: 24 }}>Request Review</h2>
+              <p style={{ margin: "8px 0 0", color: "rgba(255,255,255,0.70)" }}>
+                Full request details and linked song preview.
+              </p>
+            </div>
+
+            <Button variant="ghost" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+
+          <div style={{ display: "grid", gap: 14 }}>
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 18,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 6 }}>
+                Requested by
+              </div>
+              <strong>{request.name || "Unknown"}</strong>
+            </div>
+
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 18,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 6 }}>
+                Song idea
+              </div>
+              <strong>{request.title || "Untitled request"}</strong>
+            </div>
+
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 18,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 6 }}>
+                Details
+              </div>
+              <div style={{ lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                {request.details || "No extra details provided."}
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 18,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 6 }}>
+                Delivery / notify / contact
+              </div>
+              <div style={{ lineHeight: 1.6 }}>
+                <div>
+                  Delivery: {request.delivery === "private" ? "Private" : "Public"}
+                </div>
+                <div>Notify: {request.notify ? "Yes" : "No"}</div>
+                <div>Email: {request.email || "No email provided"}</div>
+                <div>Status: {request.status || "pending"}</div>
+                <div>Created: {formatDate(request.createdAt)}</div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 18,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 10 }}>
+                Linked song
+              </div>
+
+              {linkedSong ? (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                  }}
+                >
+                  <strong>
+                    {linkedSong.title} — {linkedSong.artist}
+                  </strong>
+
+                  <Button variant="secondary" onClick={() => onOpenSong(linkedSong)}>
+                    Open Song
+                  </Button>
+                </div>
+              ) : (
+                <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                  No uploaded song linked yet.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -3603,799 +3719,266 @@ function App() {
           </Panel>
         )}
 
+/* ===== END APP.JSX PART 11/12 ===== */
+
+/* ===== APP.JSX PART 12/12: ADMIN PANEL + PLAYER UI + EXPORT ===== */
+
         {view === "admin" && adminLoggedIn && (
-          <div style={{ display: "grid", gap: isMobile ? 18 : 22 }}>
-            <Panel
-              title="Admin Dashboard"
-              subtitle="Jump straight to the section you need."
-              right={
-                <Button
-                  variant="secondary"
-                  onClick={handleLogout}
-                  style={{
-                    padding: isMobile ? "8px 12px" : undefined,
-                    fontSize: isMobile ? 14 : undefined,
-                  }}
-                >
-                  Logout
-                </Button>
-              }
-            >
+          <Panel
+            title="Admin Dashboard"
+            subtitle="Manage songs, requests, and private messages."
+          >
+            {/* MOBILE TAB NAV */}
+            {isMobile && (
               <div
                 style={{
                   display: "flex",
-                  gap: 10,
+                  gap: 8,
+                  marginBottom: 18,
                   flexWrap: "wrap",
                 }}
               >
                 <Button
                   variant={adminSection === "dashboard" ? "primary" : "secondary"}
                   onClick={() => setAdminSection("dashboard")}
-                  style={{ padding: isMobile ? "9px 12px" : undefined, fontSize: isMobile ? 13 : undefined }}
                 >
                   Dashboard
                 </Button>
 
                 <Button
-                  variant={adminSection === "requests" ? "primary" : "secondary"}
-                  onClick={() => setAdminSection("requests")}
-                  style={{ padding: isMobile ? "9px 12px" : undefined, fontSize: isMobile ? 13 : undefined }}
-                >
-                  Requests
-                </Button>
-
-                <Button
-                  variant={adminSection === "messages" ? "primary" : "secondary"}
-                  onClick={() => setAdminSection("messages")}
-                  style={{ padding: isMobile ? "9px 12px" : undefined, fontSize: isMobile ? 13 : undefined }}
-                >
-                  Messages
-                </Button>
-
-                <Button
-                  variant={adminSection === "upload" ? "primary" : "secondary"}
-                  onClick={() => setAdminSection("upload")}
-                  style={{ padding: isMobile ? "9px 12px" : undefined, fontSize: isMobile ? 13 : undefined }}
-                >
-                  Upload
-                </Button>
-
-                <Button
                   variant={adminSection === "songs" ? "primary" : "secondary"}
                   onClick={() => setAdminSection("songs")}
-                  style={{ padding: isMobile ? "9px 12px" : undefined, fontSize: isMobile ? 13 : undefined }}
                 >
                   Songs
                 </Button>
 
                 <Button
-                  variant={adminSection === "top-played" ? "primary" : "secondary"}
-                  onClick={() => setAdminSection("top-played")}
-                  style={{ padding: isMobile ? "9px 12px" : undefined, fontSize: isMobile ? 13 : undefined }}
+                  variant={adminSection === "requests" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("requests")}
                 >
-                  Top Played
+                  Requests ({pendingRequests})
+                </Button>
+
+                <Button
+                  variant={adminSection === "messages" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("messages")}
+                >
+                  Messages ({newMessages})
                 </Button>
               </div>
-            </Panel>
+            )}
 
+            {/* DASHBOARD OVERVIEW */}
             {adminSection === "dashboard" && (
-              <Panel title="Overview" subtitle="Your current numbers at a glance.">
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: isMobile
-                      ? "repeat(2, minmax(0, 1fr))"
-                      : "repeat(7, minmax(0, 1fr))",
-                    gap: isMobile ? 10 : 14,
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: isMobile ? 14 : 16,
-                      borderRadius: isMobile ? 16 : 18,
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
-                      Total Plays
-                    </div>
-                    <div style={{ marginTop: 6, fontSize: isMobile ? 24 : 28, fontWeight: 800 }}>
-                      {totalPlays}
-                    </div>
-                  </div>
+              <div style={{ display: "grid", gap: 16 }}>
+                <Badge>Total songs: {songs.length}</Badge>
+                <Badge>Total likes: {totalLikes}</Badge>
+                <Badge>Total opens: {totalOpens}</Badge>
+                <Badge>Total plays: {totalPlays}</Badge>
 
-                  <div
-                    style={{
-                      padding: isMobile ? 14 : 16,
-                      borderRadius: isMobile ? 16 : 18,
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setAdminSection("songs")}
                   >
-                    <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
-                      Total Opens
-                    </div>
-                    <div style={{ marginTop: 6, fontSize: isMobile ? 24 : 28, fontWeight: 800 }}>
-                      {totalOpens}
-                    </div>
-                  </div>
+                    See All Songs
+                  </Button>
 
-                  <div
-                    style={{
-                      padding: isMobile ? 14 : 16,
-                      borderRadius: isMobile ? 16 : 18,
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
+                  <Button
+                    variant="secondary"
+                    onClick={() => setAdminSection("requests")}
                   >
-                    <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
-                      Total Likes
-                    </div>
-                    <div style={{ marginTop: 6, fontSize: isMobile ? 24 : 28, fontWeight: 800 }}>
-                      {totalLikes}
-                    </div>
-                  </div>
+                    See All Requests
+                  </Button>
 
-                  <div
-                    style={{
-                      padding: isMobile ? 14 : 16,
-                      borderRadius: isMobile ? 16 : 18,
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
+                  <Button
+                    variant="secondary"
+                    onClick={() => setAdminSection("messages")}
                   >
-                    <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
-                      Songs Uploaded
-                    </div>
-                    <div style={{ marginTop: 6, fontSize: isMobile ? 24 : 28, fontWeight: 800 }}>
-                      {songs.length}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      padding: isMobile ? 14 : 16,
-                      borderRadius: isMobile ? 16 : 18,
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
-                      Pending Requests
-                    </div>
-                    <div style={{ marginTop: 6, fontSize: isMobile ? 24 : 28, fontWeight: 800 }}>
-                      {pendingRequests}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      padding: isMobile ? 14 : 16,
-                      borderRadius: isMobile ? 16 : 18,
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
-                      Done Requests
-                    </div>
-                    <div style={{ marginTop: 6, fontSize: isMobile ? 24 : 28, fontWeight: 800 }}>
-                      {doneRequests}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      padding: isMobile ? 14 : 16,
-                      borderRadius: isMobile ? 16 : 18,
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
-                      New Messages
-                    </div>
-                    <div style={{ marginTop: 6, fontSize: isMobile ? 24 : 28, fontWeight: 800 }}>
-                      {newMessages}
-                    </div>
-                  </div>
+                    See All Messages
+                  </Button>
                 </div>
-              </Panel>
+              </div>
             )}
 
-            {adminSection === "requests" && (
-              <Panel
-                title="Song Requests"
-                subtitle="Live requests with review popup and song linking."
-                right={
-                  <div style={{ minWidth: 220 }}>
-                    <Select
-                      value={requestFilter}
-                      onChange={(e) => setRequestFilter(e.target.value)}
-                    >
-                      <option value="all" style={{ color: "black" }}>
-                        All requests
-                      </option>
-                      <option value="pending" style={{ color: "black" }}>
-                        Pending
-                      </option>
-                      <option value="done" style={{ color: "black" }}>
-                        Done
-                      </option>
-                      <option value="public" style={{ color: "black" }}>
-                        Public
-                      </option>
-                      <option value="private" style={{ color: "black" }}>
-                        Private
-                      </option>
-                    </Select>
-                  </div>
-                }
-              >
-                <div style={{ display: "grid", gap: 14 }}>
-                  {filteredRequests.length === 0 ? (
-                    <div style={{ color: "rgba(255,255,255,0.72)" }}>
-                      No requests yet.
-                    </div>
-                  ) : (
-                    filteredRequests.map((req) => (
-                      <div
-                        key={req.id}
-                        style={{
-                          padding: isMobile ? 14 : 16,
-                          borderRadius: 18,
-                          background: "rgba(8,12,24,0.68)",
-                          border: "1px solid rgba(255,255,255,0.08)",
-                        }}
-                      >
-                        <div style={{ display: "grid", gap: 10 }}>
-                          <strong
-                            style={{
-                              fontSize: isMobile ? 15 : 16,
-                              lineHeight: 1.35,
-                              wordBreak: "break-word",
-                            }}
-                          >
-                            {req.title}
-                          </strong>
-
-                          <div
-                            style={{
-                              color: "rgba(255,255,255,0.65)",
-                              fontSize: isMobile ? 13 : 14,
-                              lineHeight: 1.4,
-                            }}
-                          >
-                            by {req.name} • {timeAgo(req.createdAt)}
-                          </div>
-
-                          <div
-                            style={{
-                              color: "rgba(255,255,255,0.78)",
-                              fontSize: isMobile ? 13 : 14,
-                              lineHeight: 1.45,
-                            }}
-                          >
-                            Status: {req.status} • Delivery:{" "}
-                            {req.delivery === "private" ? "Private" : "Public"}
-                          </div>
-
-                          <Select
-                            label="Attach uploaded song"
-                            value={req.linkedSongId || ""}
-                            onChange={(e) => linkSongToRequest(req.id, e.target.value)}
-                          >
-                            <option value="" style={{ color: "black" }}>
-                              Select a song
-                            </option>
-
-                            {ensureSongSortOrders(songs)
-                              .sort(compareSongsForDisplay)
-                              .map((song) => (
-                                <option
-                                  key={song.id}
-                                  value={song.id}
-                                  style={{ color: "black" }}
-                                >
-                                  {song.title} — {song.artist}
-                                </option>
-                              ))}
-                          </Select>
-
-                          <div
-                            style={{
-                              display: "grid",
-                              gridTemplateColumns: isMobile
-                                ? "repeat(3, minmax(0, 1fr))"
-                                : "repeat(3, auto)",
-                              gap: 10,
-                              alignItems: "stretch",
-                            }}
-                          >
-                            <Button
-                              variant="secondary"
-                              onClick={() => setSelectedRequest(req)}
-                              style={{
-                                width: isMobile ? "100%" : "auto",
-                                padding: isMobile ? "9px 10px" : undefined,
-                                fontSize: isMobile ? 13 : undefined,
-                              }}
-                            >
-                              Review
-                            </Button>
-
-                            <Button
-                              variant={req.status === "done" ? "secondary" : "success"}
-                              onClick={() => toggleRequestStatus(req.id)}
-                              style={{
-                                width: isMobile ? "100%" : "auto",
-                                padding: isMobile ? "9px 10px" : undefined,
-                                fontSize: isMobile ? 13 : undefined,
-                              }}
-                            >
-                              {req.status === "done" ? "Mark Pending" : "Mark Done"}
-                            </Button>
-
-                            <Button
-                              variant="danger"
-                              onClick={() => handleDeleteRequest(req.id)}
-                              style={{
-                                width: isMobile ? "100%" : "auto",
-                                padding: isMobile ? "9px 10px" : undefined,
-                                fontSize: isMobile ? 13 : undefined,
-                              }}
-                            >
-                              Delete
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </Panel>
-            )}
-
-            {adminSection === "messages" && (
-              <Panel title="Private Messages">
-                <div style={{ display: "grid", gap: 14 }}>
-                  {messages.length === 0 ? (
-                    <div style={{ color: "rgba(255,255,255,0.72)" }}>
-                      No messages yet.
-                    </div>
-                  ) : (
-                    [...messages]
-                      .sort((a, b) => {
-                        if (a.status !== b.status) {
-                          return a.status === "new" ? -1 : 1;
-                        }
-                        return new Date(b.createdAt) - new Date(a.createdAt);
-                      })
-                      .map((msg) => (
-                        <div
-                          key={msg.id}
-                          style={{
-                            padding: 16,
-                            borderRadius: 18,
-                            background: "rgba(8,12,24,0.68)",
-                            border: "1px solid rgba(255,255,255,0.08)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              gap: 12,
-                              alignItems: "flex-start",
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            <div style={{ display: "grid", gap: 6 }}>
-                              <strong>{msg.from}</strong>
-
-                              <div
-                                style={{
-                                  color: "rgba(255,255,255,0.65)",
-                                  display: "flex",
-                                  gap: 8,
-                                  alignItems: "center",
-                                  flexWrap: "wrap",
-                                }}
-                              >
-                                <span>{formatDate(msg.createdAt)}</span>
-
-                                <Badge
-                                  style={{
-                                    background:
-                                      msg.status === "new"
-                                        ? "rgba(34,197,94,0.18)"
-                                        : "rgba(255,255,255,0.06)",
-                                    border:
-                                      msg.status === "new"
-                                        ? "1px solid rgba(74,222,128,0.30)"
-                                        : "1px solid rgba(255,255,255,0.10)",
-                                    color:
-                                      msg.status === "new"
-                                        ? "#bbf7d0"
-                                        : "rgba(255,255,255,0.78)",
-                                    fontWeight: 800,
-                                    padding: "5px 10px",
-                                  }}
-                                >
-                                  {msg.status === "new" ? "NEW" : "READ"}
-                                </Badge>
-                              </div>
-
-                              <div style={{ color: "rgba(255,255,255,0.78)" }}>
-                                Reply via:{" "}
-                                {msg.replyContact
-                                  ? msg.replyContact
-                                  : "No reply contact left"}
-                              </div>
-                            </div>
-
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                              <Button
-                                variant={msg.status === "new" ? "success" : "secondary"}
-                                onClick={() => toggleMessageStatus(msg.id)}
-                                style={{ padding: "9px 14px", fontSize: 14 }}
-                              >
-                                {msg.status === "new" ? "Mark Read" : "Mark New"}
-                              </Button>
-
-                              <Button
-                                variant="danger"
-                                onClick={() => handleDeleteMessage(msg.id)}
-                                style={{ padding: "9px 14px", fontSize: 14 }}
-                              >
-                                Delete
-                              </Button>
-                            </div>
-                          </div>
-
-                          <p style={{ margin: "14px 0 0", lineHeight: 1.55 }}>
-                            {msg.message}
-                          </p>
-                        </div>
-                      ))
-                  )}
-                </div>
-              </Panel>
-            )}
-
-            {adminSection === "upload" && (
-              <Panel title={editingSongId ? "Edit Song" : "Admin Upload Panel"}>
-                {uploadSuccess && (
-                  <div
-                    style={{
-                      padding: 18,
-                      borderRadius: 18,
-                      background: "rgba(34,197,94,0.15)",
-                      border: "1px solid rgba(74,222,128,0.35)",
-                      marginBottom: 18,
-                    }}
-                  >
-                    <strong>{uploadSuccess}</strong>
-                  </div>
-                )}
-
-                <form
-                  onSubmit={handleAddSong}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-                    gap: 16,
-                  }}
-                >
-                  <Input
-                    label="Song title"
-                    value={newSong.title}
-                    onChange={(e) => {
-                      setNewSong((p) => ({ ...p, title: e.target.value }));
-                      if (editingSongId) setHasUnsavedSongChanges(true);
-                    }}
-                  />
-
-                  <Input
-                    label="Artist"
-                    value={newSong.artist}
-                    onChange={(e) => {
-                      setNewSong((p) => ({ ...p, artist: e.target.value }));
-                      if (editingSongId) setHasUnsavedSongChanges(true);
-                    }}
-                  />
-
-                  <Input
-                    label="Requested by"
-                    value={newSong.requestedBy}
-                    onChange={(e) => {
-                      setNewSong((p) => ({ ...p, requestedBy: e.target.value }));
-                      if (editingSongId) setHasUnsavedSongChanges(true);
-                    }}
-                  />
-
-                  <Select
-                    label="Collection"
-                    value={newSong.visibility}
-                    onChange={(e) => {
-                      setNewSong((p) => ({ ...p, visibility: e.target.value }));
-                      if (editingSongId) setHasUnsavedSongChanges(true);
-                    }}
-                  >
-                    <option value="public" style={{ color: "black" }}>
-                      Main website / Public
-                    </option>
-                    <option value="private" style={{ color: "black" }}>
-                      Private collection
-                    </option>
-                  </Select>
-
-                  <div>
-                    <div
-                      style={{
-                        marginBottom: 8,
-                        fontSize: 14,
-                        color: "rgba(255,255,255,0.82)",
-                      }}
-                    >
-                      Upload cover image
-                    </div>
-
-                    <input
-                      id="song-cover-input"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        setNewSongFiles((prev) => ({
-                          ...prev,
-                          coverFile: e.target.files?.[0] || null,
-                        }));
-
-                        if (editingSongId) setHasUnsavedSongChanges(true);
-                      }}
-                      style={{
-                        width: "100%",
-                        padding: "12px 14px",
-                        borderRadius: 16,
-                        border: "1px solid rgba(255,255,255,0.10)",
-                        background: "rgba(8,12,24,0.64)",
-                        color: "white",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <div
-                      style={{
-                        marginBottom: 8,
-                        fontSize: 14,
-                        color: "rgba(255,255,255,0.82)",
-                      }}
-                    >
-                      Upload MP3 song
-                    </div>
-
-                    <input
-                      id="song-audio-input"
-                      type="file"
-                      accept="audio/*"
-                      onChange={(e) => {
-                        setNewSongFiles((prev) => ({
-                          ...prev,
-                          audioFile: e.target.files?.[0] || null,
-                        }));
-
-                        if (editingSongId) setHasUnsavedSongChanges(true);
-                      }}
-                      style={{
-                        width: "100%",
-                        padding: "12px 14px",
-                        borderRadius: 16,
-                        border: "1px solid rgba(255,255,255,0.10)",
-                        background: "rgba(8,12,24,0.64)",
-                        color: "white",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </div>
-
-                  <label
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      paddingTop: 34,
-                      color: "rgba(255,255,255,0.85)",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={newSong.featured}
-                      onChange={(e) => {
-                        setNewSong((p) => ({ ...p, featured: e.target.checked }));
-                        if (editingSongId) setHasUnsavedSongChanges(true);
-                      }}
-                    />
-                    Featured song
-                  </label>
-
-                  <div style={{ gridColumn: "1 / -1" }}>
-                    <TextArea
-                      label="Lyrics"
-                      value={newSong.lyrics}
-                      onChange={(e) => {
-                        setNewSong((p) => ({ ...p, lyrics: e.target.value }));
-                        if (editingSongId) setHasUnsavedSongChanges(true);
-                      }}
-                      style={{ minHeight: 180 }}
-                    />
-                  </div>
-
-                  <div
-                    style={{
-                      gridColumn: "1 / -1",
-                      display: "flex",
-                      gap: 12,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <Button type="submit" variant="primary" disabled={isUploading}>
-                      {isUploading ? "Saving..." : editingSongId ? "Save Changes" : "Upload Song"}
-                    </Button>
-
-                    {editingSongId ? (
-                      <Button type="button" variant="secondary" onClick={cancelEditSong}>
-                        Cancel Edit
-                      </Button>
-                    ) : null}
-                  </div>
-                </form>
-              </Panel>
-            )}
-
+            {/* SONG MANAGEMENT */}
             {adminSection === "songs" && (
-              <Panel
-                title="Song Library"
-                subtitle="Compact view of your uploaded songs, including private ones."
-                right={
-                  <div style={{ minWidth: 220 }}>
-                    <Select
-                      value={adminSongFilter}
-                      onChange={(e) => setAdminSongFilter(e.target.value)}
-                    >
-                      <option value="all" style={{ color: "black" }}>
-                        All songs
-                      </option>
-                      <option value="public" style={{ color: "black" }}>
-                        Public songs
-                      </option>
-                      <option value="private" style={{ color: "black" }}>
-                        Private songs
-                      </option>
-                      <option value="requested" style={{ color: "black" }}>
-                        Requested songs
-                      </option>
-                      <option value="originals" style={{ color: "black" }}>
-                        Originals
-                      </option>
-                    </Select>
-                  </div>
-                }
-              >
-                <div style={{ display: "grid", gap: 12 }}>
-                  {adminSongs.length > 0 ? (
-                    adminSongs.map((song, index) => (
-                      <SongRow
-                        key={song.id}
-                        song={song}
-                        analytics={songAnalytics[song.id]}
-                        isAdmin
-                        isMobile={isMobile}
-                        onLike={handleLikeSong}
-                        onOpenPlayer={handleOpenSong}
-                        onDownloadSong={downloadSong}
-                        onDownloadLyrics={downloadLyrics}
-                        onDelete={handleDeleteSong}
-                        onCopyLink={copySongLink}
-                        onEdit={startEditSong}
-                        onMoveUp={(songItem) => handleMoveSong(songItem, "up")}
-                        onMoveDown={(songItem) => handleMoveSong(songItem, "down")}
-                        canMoveUp={index > 0 && !isReorderingSongs}
-                        canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
-                      />
-                    ))
-                  ) : (
-                    <div style={{ color: "rgba(255,255,255,0.72)" }}>
-                      No songs uploaded yet.
-                    </div>
-                  )}
-                </div>
-              </Panel>
+              <div style={{ display: "grid", gap: 14 }}>
+                {adminSongs.map((song) => (
+                  <SongRow
+                    key={song.id}
+                    song={song}
+                    analytics={songAnalytics[song.id]}
+                    onLike={handleLikeSong}
+                    onOpenPlayer={handleOpenSong}
+                    onDownloadSong={downloadSong}
+                    onDownloadLyrics={downloadLyrics}
+                    onCopyLink={copySongLink}
+                    isMobile={isMobile}
+                    isAdmin
+                    onEdit={() => startEditSong(song)}
+                    onDelete={() => handleDeleteSong(song)}
+                    onMoveUp={() => handleMoveSong(song, "up")}
+                    onMoveDown={() => handleMoveSong(song, "down")}
+                  />
+                ))}
+              </div>
             )}
 
-            {adminSection === "top-played" && (
-              <Panel title="Top 3 Played Songs" subtitle="Your most listened songs so far.">
-                <div style={{ display: "grid", gap: 10 }}>
-                  {topPlayedSongs.map((song) => (
+            {/* REQUEST MANAGEMENT */}
+            {adminSection === "requests" && (
+              <div style={{ display: "grid", gap: 12 }}>
+                {filteredRequests.map((req) => (
+                  <div
+                    key={req.id}
+                    style={{
+                      padding: 16,
+                      borderRadius: 18,
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <strong>{req.title}</strong>
+
                     <div
-                      key={song.id}
                       style={{
-                        display: "grid",
-                        gridTemplateColumns: isMobile ? "1fr" : "1fr auto",
-                        gap: isMobile ? 6 : 12,
-                        alignItems: isMobile ? "start" : "center",
-                        padding: isMobile ? 12 : 10,
-                        borderRadius: 14,
-                        background: "rgba(8,12,24,0.6)",
+                        fontSize: 13,
+                        opacity: 0.7,
+                        marginTop: 6,
                       }}
                     >
-                      <div
-                        style={{
-                          minWidth: 0,
-                          fontSize: isMobile ? 15 : 16,
-                          lineHeight: 1.4,
-                          wordBreak: "break-word",
-                        }}
-                      >
-                        {song.title}
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: isMobile ? 13 : 14,
-                          color: "#94a3b8",
-                          textAlign: isMobile ? "left" : "right",
-                          lineHeight: 1.45,
-                        }}
-                      >
-                        {song.plays} plays • {song.opens} opens
-                      </div>
+                      Requested by {req.name}
                     </div>
-                  ))}
-                </div>
-              </Panel>
-            )}
-          </div>
-        )}
-      </div>
 
-      {selectedRequest ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        marginTop: 10,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Button
+                        variant="secondary"
+                        onClick={() => setSelectedRequest(req)}
+                      >
+                        Review
+                      </Button>
+
+                      <Button
+                        variant="secondary"
+                        onClick={() => toggleRequestStatus(req.id)}
+                      >
+                        Toggle Status
+                      </Button>
+
+                      <Button
+                        variant="secondary"
+                        onClick={() => handleDeleteRequest(req.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* MESSAGE MANAGEMENT */}
+            {adminSection === "messages" && (
+              <div style={{ display: "grid", gap: 12 }}>
+                {messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    style={{
+                      padding: 16,
+                      borderRadius: 18,
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <strong>{msg.from}</strong>
+
+                    <div
+                      style={{
+                        fontSize: 13,
+                        opacity: 0.7,
+                        marginTop: 6,
+                      }}
+                    >
+                      {msg.replyContact || "No reply contact"}
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        marginTop: 10,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Button
+                        variant="secondary"
+                        onClick={() => toggleMessageStatus(msg.id)}
+                      >
+                        Toggle Status
+                      </Button>
+
+                      <Button
+                        variant="secondary"
+                        onClick={() => handleDeleteMessage(msg.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ marginTop: 20 }}>
+              <Button variant="secondary" onClick={handleLogout}>
+                Logout
+              </Button>
+            </div>
+          </Panel>
+        )}
+
+        {/* REQUEST REVIEW MODAL */}
         <RequestReviewModal
           request={selectedRequest}
           onClose={() => setSelectedRequest(null)}
           songs={songs}
           onOpenSong={handleOpenSong}
         />
-      ) : null}
 
-      {playerSong && !playerMinimized ? (
-        <PlayerModal
-          song={playerSong}
-          isPlaying={isPlaying}
-          onPlayPause={handlePlayPause}
-          onClose={handleClosePlayer}
-          onNext={handleNextSong}
-          onPrev={handlePreviousSong}
-          onMinimize={handleMinimizePlayer}
-        />
-      ) : null}
+                {/* PLAYER UI */}
+        {playerSong && !playerMinimized ? (
+          <PlayerModal
+            song={playerSong}
+            isPlaying={isPlaying}
+            onPlayPause={handlePlayPause}
+            onClose={handleClosePlayer}
+            onNext={handleNextSong}
+            onPrev={handlePreviousSong}
+          />
+        ) : null}
 
-      {playerSong && playerMinimized ? (
-        <MiniPlayer
-          song={playerSong}
-          isPlaying={isPlaying}
-          onPlayPause={handlePlayPause}
-          onExpand={handleExpandPlayer}
-          onNext={handleNextSong}
-          onPrev={handlePreviousSong}
-        />
-      ) : null}
+        {playerSong && playerMinimized ? (
+          <MiniPlayer
+            song={playerSong}
+            isPlaying={isPlaying}
+            onPlayPause={handlePlayPause}
+            onExpand={handleExpandPlayer}
+            onNext={handleNextSong}
+            onPrev={handlePreviousSong}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }
 
 export default App;
 
-/* ===== END PART 6/6 ===== */
+/* ===== END APP.JSX PART 12/12 ===== */
