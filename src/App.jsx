@@ -605,10 +605,10 @@ function SongRow({
       onClick={() => onOpenPlayer(song)}
       style={{
         display: "grid",
-        gridTemplateColumns: isMobile ? "72px 1fr" : "96px 1fr",
-        gap: isMobile ? 10 : 14,
-        padding: isMobile ? 10 : 14,
-        borderRadius: 20,
+        gridTemplateColumns: isMobile ? "64px 1fr" : "96px 1fr",
+        gap: isMobile ? 8 : 14,
+        padding: isMobile ? 12 : 14,
+        borderRadius: isMobile ? 18 : 20,
         background: isFeatured
           ? "linear-gradient(180deg, rgba(33,24,8,0.88), rgba(8,12,24,0.92))"
           : "rgba(8,12,24,0.64)",
@@ -623,13 +623,14 @@ function SongRow({
       <div
         style={{
           width: "100%",
-          height: isMobile ? 64 : 76,
-          borderRadius: isMobile ? 14 : 16,
+          height: isMobile ? 58 : 76,
+          borderRadius: isMobile ? 12 : 16,
           overflow: "hidden",
           background:
             "linear-gradient(135deg, rgba(89,55,150,0.8), rgba(41,73,120,0.8))",
           display: "grid",
           placeItems: "center",
+          alignSelf: isMobile ? "start" : "center",
         }}
       >
         {song.coverUrl ? (
@@ -643,12 +644,12 @@ function SongRow({
             }}
           />
         ) : (
-          <span style={{ fontSize: 26 }}>🎵</span>
+          <span style={{ fontSize: isMobile ? 22 : 26 }}>🎵</span>
         )}
       </div>
 
       {/* INFO */}
-      <div style={{ display: "grid", gap: 6 }}>
+      <div style={{ display: "grid", gap: isMobile ? 5 : 6, minWidth: 0 }}>
         <div
           style={{
             display: "flex",
@@ -657,22 +658,50 @@ function SongRow({
             alignItems: "center",
           }}
         >
-          <strong>{song.title}</strong>
+          <strong
+            style={{
+              fontSize: isMobile ? 15 : 18,
+              lineHeight: 1.25,
+              wordBreak: "break-word",
+            }}
+          >
+            {song.title}
+          </strong>
 
-          {isNew && <Badge>NEW</Badge>}
-          {isRequested && <Badge>REQUEST</Badge>}
-          {isFeatured && <Badge>FEATURED</Badge>}
+          {isNew && (
+            <Badge style={{ padding: isMobile ? "5px 9px" : "7px 12px", fontSize: isMobile ? 11 : 13 }}>
+              NEW
+            </Badge>
+          )}
+          {isRequested && (
+            <Badge style={{ padding: isMobile ? "5px 9px" : "7px 12px", fontSize: isMobile ? 11 : 13 }}>
+              REQUEST
+            </Badge>
+          )}
+          {isFeatured && (
+            <Badge style={{ padding: isMobile ? "5px 9px" : "7px 12px", fontSize: isMobile ? 11 : 13 }}>
+              FEATURED
+            </Badge>
+          )}
         </div>
 
-        <div style={{ fontSize: 14, opacity: 0.7 }}>
+        <div
+          style={{
+            fontSize: isMobile ? 13 : 14,
+            opacity: 0.7,
+            lineHeight: 1.4,
+            wordBreak: "break-word",
+          }}
+        >
           {song.artist} • {songTypeLabel}
         </div>
 
         <div
           style={{
             display: "flex",
-            gap: 12,
-            fontSize: 13,
+            gap: isMobile ? 10 : 12,
+            flexWrap: "wrap",
+            fontSize: isMobile ? 12 : 13,
             opacity: 0.65,
           }}
         >
@@ -686,45 +715,109 @@ function SongRow({
           onClick={(e) => e.stopPropagation()}
           style={{
             display: "flex",
-            gap: 6,
+            gap: isMobile ? 5 : 6,
             flexWrap: "wrap",
-            marginTop: 6,
+            marginTop: isMobile ? 4 : 6,
           }}
         >
-          <Button variant="secondary" onClick={() => onLike(song.id)}>
+          <Button
+            variant="secondary"
+            onClick={() => onLike(song.id)}
+            style={{
+              padding: isMobile ? "8px 11px" : undefined,
+              fontSize: isMobile ? 13 : undefined,
+              borderRadius: isMobile ? 14 : undefined,
+            }}
+          >
             ♡ Like
           </Button>
 
-          <Button variant="secondary" onClick={() => onDownloadSong(song)}>
+          <Button
+            variant="secondary"
+            onClick={() => onDownloadSong(song)}
+            style={{
+              padding: isMobile ? "8px 11px" : undefined,
+              fontSize: isMobile ? 13 : undefined,
+              borderRadius: isMobile ? 14 : undefined,
+            }}
+          >
             ⬇ Song
           </Button>
 
-          <Button variant="secondary" onClick={() => onDownloadLyrics(song)}>
+          <Button
+            variant="secondary"
+            onClick={() => onDownloadLyrics(song)}
+            style={{
+              padding: isMobile ? "8px 11px" : undefined,
+              fontSize: isMobile ? 13 : undefined,
+              borderRadius: isMobile ? 14 : undefined,
+            }}
+          >
             📄 Lyrics
           </Button>
 
-          <Button variant="ghost" onClick={() => onCopyLink(song.id)}>
+          <Button
+            variant="ghost"
+            onClick={() => onCopyLink(song.id)}
+            style={{
+              padding: isMobile ? "8px 11px" : undefined,
+              fontSize: isMobile ? 13 : undefined,
+              borderRadius: isMobile ? 14 : undefined,
+            }}
+          >
             🔗 Copy link
           </Button>
 
           {isAdmin && (
             <>
-              <Button variant="ghost" onClick={() => onEdit(song)}>
+              <Button
+                variant="ghost"
+                onClick={() => onEdit(song)}
+                style={{
+                  padding: isMobile ? "8px 11px" : undefined,
+                  fontSize: isMobile ? 13 : undefined,
+                  borderRadius: isMobile ? 14 : undefined,
+                }}
+              >
                 ✏ Edit
               </Button>
 
-              <Button variant="danger" onClick={() => onDelete(song)}>
+              <Button
+                variant="danger"
+                onClick={() => onDelete(song)}
+                style={{
+                  padding: isMobile ? "8px 11px" : undefined,
+                  fontSize: isMobile ? 13 : undefined,
+                  borderRadius: isMobile ? 14 : undefined,
+                }}
+              >
                 🗑 Delete
               </Button>
 
               {canMoveUp && (
-                <Button variant="ghost" onClick={() => onMoveUp(song)}>
+                <Button
+                  variant="ghost"
+                  onClick={() => onMoveUp(song)}
+                  style={{
+                    padding: isMobile ? "8px 11px" : undefined,
+                    fontSize: isMobile ? 13 : undefined,
+                    borderRadius: isMobile ? 14 : undefined,
+                  }}
+                >
                   ↑
                 </Button>
               )}
 
               {canMoveDown && (
-                <Button variant="ghost" onClick={() => onMoveDown(song)}>
+                <Button
+                  variant="ghost"
+                  onClick={() => onMoveDown(song)}
+                  style={{
+                    padding: isMobile ? "8px 11px" : undefined,
+                    fontSize: isMobile ? 13 : undefined,
+                    borderRadius: isMobile ? 14 : undefined,
+                  }}
+                >
                   ↓
                 </Button>
               )}
@@ -3459,12 +3552,19 @@ function App() {
         )}
 
         {view === "admin" && adminLoggedIn && (
-          <div style={{ display: "grid", gap: 22 }}>
+          <div style={{ display: "grid", gap: isMobile ? 18 : 22 }}>
             <Panel
               title="Admin Dashboard"
               subtitle="Overview of requests, songs, likes, and analytics."
               right={
-                <Button variant="secondary" onClick={handleLogout}>
+                <Button
+                  variant="secondary"
+                  onClick={handleLogout}
+                  style={{
+                    padding: isMobile ? "8px 12px" : undefined,
+                    fontSize: isMobile ? 14 : undefined,
+                  }}
+                >
                   Logout
                 </Button>
               }
@@ -3475,16 +3575,162 @@ function App() {
                   gridTemplateColumns: isMobile
                     ? "repeat(2, minmax(0, 1fr))"
                     : "repeat(7, minmax(0, 1fr))",
-                  gap: 14,
+                  gap: isMobile ? 10 : 14,
                 }}
               >
-                <StatPill label="Total Plays" value={totalPlays} />
-                <StatPill label="Total Opens" value={totalOpens} />
-                <StatPill label="Total Likes" value={totalLikes} />
-                <StatPill label="Songs Uploaded" value={songs.length} />
-                <StatPill label="Pending Requests" value={pendingRequests} />
-                <StatPill label="Done Requests" value={doneRequests} />
-                <StatPill label="New Messages" value={newMessages} />
+                <div
+                  style={{
+                    padding: isMobile ? 14 : 16,
+                    borderRadius: isMobile ? 16 : 18,
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
+                    Total Plays
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 6,
+                      fontSize: isMobile ? 24 : 28,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {totalPlays}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: isMobile ? 14 : 16,
+                    borderRadius: isMobile ? 16 : 18,
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
+                    Total Opens
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 6,
+                      fontSize: isMobile ? 24 : 28,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {totalOpens}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: isMobile ? 14 : 16,
+                    borderRadius: isMobile ? 16 : 18,
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
+                    Total Likes
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 6,
+                      fontSize: isMobile ? 24 : 28,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {totalLikes}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: isMobile ? 14 : 16,
+                    borderRadius: isMobile ? 16 : 18,
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
+                    Songs Uploaded
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 6,
+                      fontSize: isMobile ? 24 : 28,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {songs.length}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: isMobile ? 14 : 16,
+                    borderRadius: isMobile ? 16 : 18,
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
+                    Pending Requests
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 6,
+                      fontSize: isMobile ? 24 : 28,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {pendingRequests}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: isMobile ? 14 : 16,
+                    borderRadius: isMobile ? 16 : 18,
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
+                    Done Requests
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 6,
+                      fontSize: isMobile ? 24 : 28,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {doneRequests}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: isMobile ? 14 : 16,
+                    borderRadius: isMobile ? 16 : 18,
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
+                    New Messages
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 6,
+                      fontSize: isMobile ? 24 : 28,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {newMessages}
+                  </div>
+                </div>
               </div>
             </Panel>
 
@@ -3494,16 +3740,34 @@ function App() {
                   <div
                     key={song.id}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: 10,
+                      display: "grid",
+                      gridTemplateColumns: isMobile ? "1fr" : "1fr auto",
+                      gap: isMobile ? 6 : 12,
+                      alignItems: isMobile ? "start" : "center",
+                      padding: isMobile ? 12 : 10,
                       borderRadius: 14,
                       background: "rgba(8,12,24,0.6)",
                     }}
                   >
-                    <div>{song.title}</div>
-                    <div style={{ fontSize: 14, color: "#94a3b8" }}>
+                    <div
+                      style={{
+                        minWidth: 0,
+                        fontSize: isMobile ? 15 : 16,
+                        lineHeight: 1.4,
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {song.title}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: isMobile ? 13 : 14,
+                        color: "#94a3b8",
+                        textAlign: isMobile ? "left" : "right",
+                        lineHeight: 1.45,
+                      }}
+                    >
                       {song.plays} plays • {song.opens} opens
                     </div>
                   </div>
@@ -3796,20 +4060,40 @@ function App() {
                     <div
                       key={req.id}
                       style={{
-                        padding: 16,
+                        padding: isMobile ? 14 : 16,
                         borderRadius: 18,
                         background: "rgba(8,12,24,0.68)",
                         border: "1px solid rgba(255,255,255,0.08)",
                       }}
                     >
                       <div style={{ display: "grid", gap: 10 }}>
-                        <strong>{req.title}</strong>
+                        <strong
+                          style={{
+                            fontSize: isMobile ? 15 : 16,
+                            lineHeight: 1.35,
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {req.title}
+                        </strong>
 
-                        <div style={{ color: "rgba(255,255,255,0.65)" }}>
+                        <div
+                          style={{
+                            color: "rgba(255,255,255,0.65)",
+                            fontSize: isMobile ? 13 : 14,
+                            lineHeight: 1.4,
+                          }}
+                        >
                           by {req.name} • {timeAgo(req.createdAt)}
                         </div>
 
-                        <div style={{ color: "rgba(255,255,255,0.78)" }}>
+                        <div
+                          style={{
+                            color: "rgba(255,255,255,0.78)",
+                            fontSize: isMobile ? 13 : 14,
+                            lineHeight: 1.45,
+                          }}
+                        >
                           Status: {req.status} • Delivery:{" "}
                           {req.delivery === "private" ? "Private" : "Public"}
                         </div>
@@ -3836,10 +4120,24 @@ function App() {
                             ))}
                         </Select>
 
-                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: isMobile
+                              ? "repeat(3, minmax(0, 1fr))"
+                              : "repeat(3, auto)",
+                            gap: 10,
+                            alignItems: "stretch",
+                          }}
+                        >
                           <Button
                             variant="secondary"
                             onClick={() => setSelectedRequest(req)}
+                            style={{
+                              width: isMobile ? "100%" : "auto",
+                              padding: isMobile ? "9px 10px" : undefined,
+                              fontSize: isMobile ? 13 : undefined,
+                            }}
                           >
                             Review
                           </Button>
@@ -3847,6 +4145,11 @@ function App() {
                           <Button
                             variant={req.status === "done" ? "secondary" : "success"}
                             onClick={() => toggleRequestStatus(req.id)}
+                            style={{
+                              width: isMobile ? "100%" : "auto",
+                              padding: isMobile ? "9px 10px" : undefined,
+                              fontSize: isMobile ? 13 : undefined,
+                            }}
                           >
                             {req.status === "done" ? "Mark Pending" : "Mark Done"}
                           </Button>
@@ -3854,6 +4157,11 @@ function App() {
                           <Button
                             variant="danger"
                             onClick={() => handleDeleteRequest(req.id)}
+                            style={{
+                              width: isMobile ? "100%" : "auto",
+                              padding: isMobile ? "9px 10px" : undefined,
+                              fontSize: isMobile ? 13 : undefined,
+                            }}
                           >
                             Delete
                           </Button>
