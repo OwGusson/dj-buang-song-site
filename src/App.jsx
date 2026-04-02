@@ -1068,11 +1068,11 @@ function MiniPlayer({
         right: 0,
         padding: isMobile ? "10px 12px 12px" : "10px 18px 12px",
         background:
-          "linear-gradient(180deg, rgba(9,13,26,0.975), rgba(5,9,20,0.995))",
+          "linear-gradient(180deg, rgba(9,13,26,0.97), rgba(5,9,20,0.995))",
         borderTop: "1px solid rgba(255,255,255,0.08)",
         boxShadow: "0 -14px 34px rgba(0,0,0,0.28)",
         display: "grid",
-        gap: isMobile ? 10 : 8,
+        gap: isMobile ? 10 : 12,
         zIndex: 999,
         backdropFilter: "blur(16px)",
         WebkitBackdropFilter: "blur(16px)",
@@ -1100,140 +1100,127 @@ function MiniPlayer({
           MINI PLAYER: MAIN ROW
       ================================ */}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: isMobile
-            ? "1fr"
-            : "minmax(220px, 1fr) auto minmax(220px, 1fr)",
-          gap: isMobile ? 10 : 16,
-          alignItems: "center",
-        }}
-      >
-        {/* ================================
-            MINI PLAYER: SONG INFO
-        ================================ */}
-
+      {isMobile ? (
         <div
-          onClick={onExpand}
           style={{
-            cursor: "pointer",
-            overflow: "hidden",
-            minWidth: 0,
-            textAlign: "left",
+            display: "grid",
+            gap: 10,
+            alignItems: "center",
           }}
         >
-          <strong
-            style={{
-              display: "block",
-              fontSize: isMobile ? 14 : 15,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {song.title}
-          </strong>
+          {/* ================================
+              MINI PLAYER: SONG INFO
+          ================================ */}
 
           <div
-            style={{
-              fontSize: isMobile ? 12 : 12,
-              opacity: 0.62,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              marginTop: 2,
-            }}
-          >
-            {song.artist}
-          </div>
-        </div>
-
-        {/* ================================
-            MINI PLAYER: CONTROLS
-        ================================ */}
-
-        <div
-          style={{
-            display: "flex",
-            gap: isMobile ? 8 : 10,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Button
-            variant="ghost"
             onClick={onExpand}
             style={{
-              padding: isMobile ? "9px 12px" : "9px 11px",
-              minWidth: isMobile ? 48 : 42,
+              cursor: "pointer",
+              overflow: "hidden",
+              minWidth: 0,
             }}
           >
-            ⤢
-          </Button>
+            <strong
+              style={{
+                display: "block",
+                fontSize: 14,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {song.title}
+            </strong>
 
-          <Button
-            variant="ghost"
-            onClick={onPrev}
-            style={{
-              padding: isMobile ? "9px 12px" : "9px 11px",
-              minWidth: isMobile ? 48 : 42,
-            }}
-          >
-            ⏮
-          </Button>
+            <div
+              style={{
+                fontSize: 12,
+                opacity: 0.62,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                marginTop: 2,
+              }}
+            >
+              {song.artist}
+            </div>
+          </div>
 
-          <Button
-            variant="secondary"
-            onClick={onPlayPause}
-            style={{
-              padding: isMobile ? "9px 18px" : "9px 20px",
-              minWidth: isMobile ? 96 : 100,
-            }}
-          >
-            {isPlaying ? "Pause" : "Play"}
-          </Button>
+          {/* ================================
+              MINI PLAYER: CONTROLS
+          ================================ */}
 
-          <Button
-            variant="ghost"
-            onClick={onNext}
-            style={{
-              padding: isMobile ? "9px 12px" : "9px 11px",
-              minWidth: isMobile ? 48 : 42,
-            }}
-          >
-            ⏭
-          </Button>
-        </div>
-
-        {/* ================================
-            MINI PLAYER: VOLUME
-        ================================ */}
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: isMobile ? "space-between" : "flex-end",
-            gap: 10,
-            minWidth: 0,
-          }}
-        >
           <div
             style={{
-              display: "flex",
+              display: "grid",
+              gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+              gap: 8,
               alignItems: "center",
+            }}
+          >
+            <Button
+              variant="ghost"
+              onClick={onExpand}
+              style={{
+                padding: "9px 10px",
+                width: "100%",
+              }}
+            >
+              ⤢
+            </Button>
+
+            <Button
+              variant="ghost"
+              onClick={onPrev}
+              style={{
+                padding: "9px 10px",
+                width: "100%",
+              }}
+            >
+              ⏮
+            </Button>
+
+            <Button
+              variant="secondary"
+              onClick={onPlayPause}
+              style={{
+                padding: "9px 10px",
+                width: "100%",
+              }}
+            >
+              {isPlaying ? "Pause" : "Play"}
+            </Button>
+
+            <Button
+              variant="ghost"
+              onClick={onNext}
+              style={{
+                padding: "9px 10px",
+                width: "100%",
+              }}
+            >
+              ⏭
+            </Button>
+          </div>
+
+          {/* ================================
+              MINI PLAYER: VOLUME
+          ================================ */}
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "56px minmax(0, 1fr)",
               gap: 10,
-              width: isMobile ? "100%" : "auto",
+              alignItems: "center",
             }}
           >
             <Button
               variant="ghost"
               onClick={onToggleMute}
               style={{
-                padding: isMobile ? "9px 12px" : "9px 12px",
-                flexShrink: 0,
-                minWidth: isMobile ? 52 : 44,
+                padding: "9px 10px",
+                width: "100%",
               }}
             >
               {isMuted || volume === 0 ? "🔇" : "🔊"}
@@ -1247,15 +1234,160 @@ function MiniPlayer({
               value={isMuted ? 0 : volume}
               onChange={(e) => onVolumeChange(Number(e.target.value))}
               style={{
-                width: isMobile ? "100%" : 120,
-                maxWidth: isMobile ? "100%" : 120,
+                width: "100%",
                 cursor: "pointer",
                 margin: 0,
               }}
             />
           </div>
         </div>
-      </div>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(220px, 1fr) auto minmax(220px, 1fr)",
+            gap: 18,
+            alignItems: "center",
+          }}
+        >
+          {/* ================================
+              MINI PLAYER: SONG INFO
+          ================================ */}
+
+          <div
+            onClick={onExpand}
+            style={{
+              cursor: "pointer",
+              overflow: "hidden",
+              minWidth: 0,
+              justifySelf: "start",
+            }}
+          >
+            <strong
+              style={{
+                display: "block",
+                fontSize: 15,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {song.title}
+            </strong>
+
+            <div
+              style={{
+                fontSize: 12,
+                opacity: 0.62,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                marginTop: 2,
+              }}
+            >
+              {song.artist}
+            </div>
+          </div>
+
+          {/* ================================
+              MINI PLAYER: CONTROLS
+          ================================ */}
+
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Button
+              variant="ghost"
+              onClick={onExpand}
+              style={{
+                padding: "8px 10px",
+                minWidth: 42,
+              }}
+            >
+              ⤢
+            </Button>
+
+            <Button
+              variant="ghost"
+              onClick={onPrev}
+              style={{
+                padding: "8px 10px",
+                minWidth: 42,
+              }}
+            >
+              ⏮
+            </Button>
+
+            <Button
+              variant="secondary"
+              onClick={onPlayPause}
+              style={{
+                padding: "8px 16px",
+                minWidth: 88,
+              }}
+            >
+              {isPlaying ? "Pause" : "Play"}
+            </Button>
+
+            <Button
+              variant="ghost"
+              onClick={onNext}
+              style={{
+                padding: "8px 10px",
+                minWidth: 42,
+              }}
+            >
+              ⏭
+            </Button>
+          </div>
+
+          {/* ================================
+              MINI PLAYER: VOLUME
+          ================================ */}
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "44px minmax(120px, 180px)",
+              gap: 10,
+              alignItems: "center",
+              justifyContent: "end",
+              justifySelf: "end",
+              minWidth: 0,
+            }}
+          >
+            <Button
+              variant="ghost"
+              onClick={onToggleMute}
+              style={{
+                padding: "8px 10px",
+                minWidth: 44,
+              }}
+            >
+              {isMuted || volume === 0 ? "🔇" : "🔊"}
+            </Button>
+
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={isMuted ? 0 : volume}
+              onChange={(e) => onVolumeChange(Number(e.target.value))}
+              style={{
+                width: "100%",
+                cursor: "pointer",
+                margin: 0,
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ================================
           MINI PLAYER: TIME ROW
@@ -1266,7 +1398,7 @@ function MiniPlayer({
           display: "flex",
           justifyContent: "space-between",
           gap: 12,
-          fontSize: isMobile ? 11 : 11,
+          fontSize: isMobile ? 11 : 12,
           color: "rgba(255,255,255,0.60)",
           lineHeight: 1,
         }}
@@ -1330,7 +1462,7 @@ function PlayerModal({
       <div
         style={{
           width: isMobile ? "100%" : "min(1240px, 100%)",
-          height: isMobile ? "auto" : "min(92vh, 860px)",
+          height: isMobile ? "94vh" : "min(92vh, 860px)",
           maxHeight: isMobile ? "94vh" : "92vh",
           overflow: "hidden",
           borderRadius: isMobile ? 22 : 28,
@@ -1375,6 +1507,7 @@ function PlayerModal({
               display: "grid",
               placeItems: "center",
               boxShadow: "0 18px 40px rgba(0,0,0,0.28)",
+              maxHeight: isMobile ? 320 : "none",
             }}
           >
             {song.coverUrl ? (
@@ -1468,35 +1601,73 @@ function PlayerModal({
               PLAYER MODAL: CONTROLS
           ================================ */}
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: isMobile
-                ? "repeat(2, minmax(0, 1fr))"
-                : "repeat(5, minmax(0, 1fr))",
-              gap: 10,
-            }}
-          >
-            <Button onClick={onPrev} style={{ width: "100%" }}>
-              ⏮
-            </Button>
+          {isMobile ? (
+            <div style={{ display: "grid", gap: 10 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: 10,
+                }}
+              >
+                <Button onClick={onPrev} style={{ width: "100%" }}>
+                  ⏮
+                </Button>
 
-            <Button onClick={onPlayPause} style={{ width: "100%" }}>
-              {isPlaying ? "Pause" : "Play"}
-            </Button>
+                <Button onClick={onPlayPause} style={{ width: "100%" }}>
+                  {isPlaying ? "Pause" : "Play"}
+                </Button>
 
-            <Button onClick={onNext} style={{ width: "100%" }}>
-              ⏭
-            </Button>
+                <Button onClick={onNext} style={{ width: "100%" }}>
+                  ⏭
+                </Button>
+              </div>
 
-            <Button variant="ghost" onClick={onMinimize} style={{ width: "100%" }}>
-              Minimize
-            </Button>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                  gap: 10,
+                }}
+              >
+                <Button variant="ghost" onClick={onMinimize} style={{ width: "100%" }}>
+                  Minimize
+                </Button>
 
-            <Button variant="ghost" onClick={onClose} style={{ width: "100%" }}>
-              Close
-            </Button>
-          </div>
+                <Button variant="ghost" onClick={onClose} style={{ width: "100%" }}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                gap: 10,
+              }}
+            >
+              <Button onClick={onPrev} style={{ width: "100%" }}>
+                ⏮
+              </Button>
+
+              <Button onClick={onPlayPause} style={{ width: "100%" }}>
+                {isPlaying ? "Pause" : "Play"}
+              </Button>
+
+              <Button onClick={onNext} style={{ width: "100%" }}>
+                ⏭
+              </Button>
+
+              <Button variant="ghost" onClick={onMinimize} style={{ width: "100%" }}>
+                Minimize
+              </Button>
+
+              <Button variant="ghost" onClick={onClose} style={{ width: "100%" }}>
+                Close
+              </Button>
+            </div>
+          )}
 
           {/* ================================
               PLAYER MODAL: VOLUME
@@ -1545,7 +1716,7 @@ function PlayerModal({
           ================================ */}
 
           {isMobile ? (
-            <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gap: 10, minHeight: 0 }}>
               <div
                 style={{
                   fontSize: 13,
@@ -1568,7 +1739,7 @@ function PlayerModal({
                     borderRadius: 22,
                     background: "rgba(255,255,255,0.04)",
                     border: "1px solid rgba(255,255,255,0.08)",
-                    maxHeight: "32vh",
+                    maxHeight: "28vh",
                     overflowY: "auto",
                   }}
                 >
@@ -1602,7 +1773,6 @@ function PlayerModal({
               overflow: "hidden",
               display: "grid",
               gridTemplateRows: "auto minmax(0, 1fr)",
-              alignContent: "stretch",
               gap: 16,
               minWidth: 0,
               minHeight: 0,
@@ -5263,20 +5433,20 @@ function App() {
 
         {playerSong && playerMinimized ? (
           <MiniPlayer
-            song={playerSong}
-            isPlaying={isPlaying}
-            currentTime={playerCurrentTime}
-            duration={playerDuration}
-            volume={volume}
-            isMuted={isMuted}
-            onPlayPause={handlePlayPause}
-            onExpand={handleExpandPlayer}
-            onNext={handleNextSong}
-            onPrev={handlePreviousSong}
-            onSeek={handleSeek}
-            onVolumeChange={handleVolumeChange}
-            onToggleMute={handleToggleMute}
-  />
+             song={playerSong}
+             isPlaying={isPlaying}
+             currentTime={playerCurrentTime}
+             duration={playerDuration}
+             volume={volume}
+             isMuted={isMuted}
+             onPlayPause={handlePlayPause}
+             onExpand={handleExpandPlayer}
+             onNext={handleNextSong}
+             onPrev={handlePreviousSong}
+             onSeek={handleSeek}
+             onVolumeChange={handleVolumeChange}
+             onToggleMute={handleToggleMute}
+/>
 ) : null}
       </div>
     </div>
