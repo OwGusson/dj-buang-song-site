@@ -281,29 +281,38 @@ function shellCardStyle(extra = {}) {
 function Button({ children, variant = "secondary", type = "button", ...props }) {
   const variants = {
     primary: {
-      background: "#f4f4f5",
+      background:
+        "linear-gradient(180deg, rgba(255,255,255,0.96), rgba(232,236,245,0.92))",
       color: "#0b1020",
-      border: "1px solid rgba(255,255,255,0.25)",
+      border: "1px solid rgba(255,255,255,0.30)",
+      boxShadow: "0 10px 24px rgba(255,255,255,0.08)",
     },
     secondary: {
-      background: "rgba(255,255,255,0.08)",
-      color: "white",
-      border: "1px solid rgba(255,255,255,0.10)",
-    },
-    ghost: {
-      background: "transparent",
+      background:
+        "linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06))",
       color: "white",
       border: "1px solid rgba(255,255,255,0.12)",
+      boxShadow: "0 10px 22px rgba(0,0,0,0.18)",
+    },
+    ghost: {
+      background: "rgba(255,255,255,0.03)",
+      color: "white",
+      border: "1px solid rgba(255,255,255,0.10)",
+      boxShadow: "0 8px 18px rgba(0,0,0,0.12)",
     },
     danger: {
-      background: "rgba(220, 38, 38, 0.18)",
+      background:
+        "linear-gradient(180deg, rgba(127, 29, 29, 0.56), rgba(153, 27, 27, 0.42))",
       color: "white",
       border: "1px solid rgba(248,113,113,0.24)",
+      boxShadow: "0 10px 24px rgba(127,29,29,0.20)",
     },
     success: {
-      background: "rgba(34,197,94,0.18)",
+      background:
+        "linear-gradient(180deg, rgba(21,128,61,0.34), rgba(22,101,52,0.22))",
       color: "white",
       border: "1px solid rgba(74,222,128,0.24)",
+      boxShadow: "0 10px 24px rgba(21,128,61,0.16)",
     },
   };
 
@@ -314,11 +323,13 @@ function Button({ children, variant = "secondary", type = "button", ...props }) 
       style={{
         padding: window.innerWidth < 640 ? "10px 14px" : "12px 18px",
         borderRadius: 16,
-        fontWeight: 600,
+        fontWeight: 700,
         cursor: props.disabled ? "not-allowed" : "pointer",
         fontSize: window.innerWidth < 640 ? 15 : 16,
         transition: "0.2s ease",
         opacity: props.disabled ? 0.7 : 1,
+        backdropFilter: "blur(10px)",
+        WebkitBackdropFilter: "blur(10px)",
         ...variants[variant],
         ...props.style,
       }}
@@ -448,6 +459,42 @@ function Select({ label, children, ...props }) {
 }
 
 function Badge({ children, style = {} }) {
+  const text = String(children || "").toUpperCase();
+
+  let toneStyle = {
+    background:
+      "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.05))",
+    border: "1px solid rgba(255,255,255,0.10)",
+    color: "rgba(255,255,255,0.88)",
+    boxShadow: "0 8px 20px rgba(0,0,0,0.14)",
+  };
+
+  if (text.includes("FEATURED")) {
+    toneStyle = {
+      background:
+        "linear-gradient(180deg, rgba(250,204,21,0.18), rgba(202,138,4,0.12))",
+      border: "1px solid rgba(250,204,21,0.24)",
+      color: "#fde68a",
+      boxShadow: "0 10px 24px rgba(250,204,21,0.10)",
+    };
+  } else if (text.includes("NEW")) {
+    toneStyle = {
+      background:
+        "linear-gradient(180deg, rgba(59,130,246,0.16), rgba(37,99,235,0.10))",
+      border: "1px solid rgba(96,165,250,0.22)",
+      color: "#bfdbfe",
+      boxShadow: "0 10px 24px rgba(59,130,246,0.10)",
+    };
+  } else if (text.includes("REQUEST")) {
+    toneStyle = {
+      background:
+        "linear-gradient(180deg, rgba(168,85,247,0.16), rgba(147,51,234,0.10))",
+      border: "1px solid rgba(192,132,252,0.22)",
+      color: "#e9d5ff",
+      boxShadow: "0 10px 24px rgba(168,85,247,0.10)",
+    };
+  }
+
   return (
     <span
       style={{
@@ -456,11 +503,11 @@ function Badge({ children, style = {} }) {
         gap: 6,
         padding: "7px 12px",
         borderRadius: 999,
-        background: "rgba(255,255,255,0.08)",
-        border: "1px solid rgba(255,255,255,0.08)",
         fontSize: 13,
-        color: "rgba(255,255,255,0.88)",
         whiteSpace: "nowrap",
+        backdropFilter: "blur(10px)",
+        WebkitBackdropFilter: "blur(10px)",
+        ...toneStyle,
         ...style,
       }}
     >
@@ -1373,6 +1420,7 @@ function App() {
   });
 
   const [view, setView] = useState("home");
+  const [adminSection, setAdminSection] = useState("dashboard");
   const [adminPassword, setAdminPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
@@ -1480,6 +1528,7 @@ function App() {
 
     setEditingSongId(song.id);
     setEditingOriginalSong(song);
+    setAdminSection("upload");
 
     setNewSong({
       title: song.title || "",
@@ -2145,6 +2194,7 @@ function App() {
       await loginAdmin(adminPassword);
       setAdminLoggedIn(true);
       setView("admin");
+      setAdminSection("dashboard");
       setLoginError("");
       setAdminPassword("");
     } catch (error) {
@@ -2155,6 +2205,7 @@ function App() {
   const handleLogout = () => {
     setAdminLoggedIn(false);
     setView("home");
+    setAdminSection("dashboard");
   };
 
   const handleAddSong = async (e) => {
@@ -2229,6 +2280,7 @@ function App() {
 
       setHasUnsavedSongChanges(false);
       resetSongForm();
+      setAdminSection("songs");
     } catch (error) {
       alert(error.message || "Save failed");
     } finally {
@@ -3555,7 +3607,7 @@ function App() {
           <div style={{ display: "grid", gap: isMobile ? 18 : 22 }}>
             <Panel
               title="Admin Dashboard"
-              subtitle="Overview of requests, songs, likes, and analytics."
+              subtitle="Jump straight to the section you need."
               right={
                 <Button
                   variant="secondary"
@@ -3571,712 +3623,740 @@ function App() {
             >
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: isMobile
-                    ? "repeat(2, minmax(0, 1fr))"
-                    : "repeat(7, minmax(0, 1fr))",
-                  gap: isMobile ? 10 : 14,
+                  display: "flex",
+                  gap: 10,
+                  flexWrap: "wrap",
                 }}
               >
-                <div
-                  style={{
-                    padding: isMobile ? 14 : 16,
-                    borderRadius: isMobile ? 16 : 18,
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                  }}
+                <Button
+                  variant={adminSection === "dashboard" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("dashboard")}
+                  style={{ padding: isMobile ? "9px 12px" : undefined, fontSize: isMobile ? 13 : undefined }}
                 >
-                  <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
-                    Total Plays
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 6,
-                      fontSize: isMobile ? 24 : 28,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {totalPlays}
-                  </div>
-                </div>
+                  Dashboard
+                </Button>
 
-                <div
-                  style={{
-                    padding: isMobile ? 14 : 16,
-                    borderRadius: isMobile ? 16 : 18,
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                  }}
+                <Button
+                  variant={adminSection === "requests" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("requests")}
+                  style={{ padding: isMobile ? "9px 12px" : undefined, fontSize: isMobile ? 13 : undefined }}
                 >
-                  <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
-                    Total Opens
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 6,
-                      fontSize: isMobile ? 24 : 28,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {totalOpens}
-                  </div>
-                </div>
+                  Requests
+                </Button>
 
-                <div
-                  style={{
-                    padding: isMobile ? 14 : 16,
-                    borderRadius: isMobile ? 16 : 18,
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                  }}
+                <Button
+                  variant={adminSection === "messages" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("messages")}
+                  style={{ padding: isMobile ? "9px 12px" : undefined, fontSize: isMobile ? 13 : undefined }}
                 >
-                  <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
-                    Total Likes
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 6,
-                      fontSize: isMobile ? 24 : 28,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {totalLikes}
-                  </div>
-                </div>
+                  Messages
+                </Button>
 
-                <div
-                  style={{
-                    padding: isMobile ? 14 : 16,
-                    borderRadius: isMobile ? 16 : 18,
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                  }}
+                <Button
+                  variant={adminSection === "upload" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("upload")}
+                  style={{ padding: isMobile ? "9px 12px" : undefined, fontSize: isMobile ? 13 : undefined }}
                 >
-                  <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
-                    Songs Uploaded
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 6,
-                      fontSize: isMobile ? 24 : 28,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {songs.length}
-                  </div>
-                </div>
+                  Upload
+                </Button>
 
-                <div
-                  style={{
-                    padding: isMobile ? 14 : 16,
-                    borderRadius: isMobile ? 16 : 18,
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                  }}
+                <Button
+                  variant={adminSection === "songs" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("songs")}
+                  style={{ padding: isMobile ? "9px 12px" : undefined, fontSize: isMobile ? 13 : undefined }}
                 >
-                  <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
-                    Pending Requests
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 6,
-                      fontSize: isMobile ? 24 : 28,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {pendingRequests}
-                  </div>
-                </div>
+                  Songs
+                </Button>
 
-                <div
-                  style={{
-                    padding: isMobile ? 14 : 16,
-                    borderRadius: isMobile ? 16 : 18,
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                  }}
+                <Button
+                  variant={adminSection === "top-played" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("top-played")}
+                  style={{ padding: isMobile ? "9px 12px" : undefined, fontSize: isMobile ? 13 : undefined }}
                 >
-                  <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
-                    Done Requests
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 6,
-                      fontSize: isMobile ? 24 : 28,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {doneRequests}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    padding: isMobile ? 14 : 16,
-                    borderRadius: isMobile ? 16 : 18,
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                  }}
-                >
-                  <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
-                    New Messages
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 6,
-                      fontSize: isMobile ? 24 : 28,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {newMessages}
-                  </div>
-                </div>
+                  Top Played
+                </Button>
               </div>
             </Panel>
 
-            <Panel title="Top 3 Played Songs" subtitle="Your most listened songs so far.">
-              <div style={{ display: "grid", gap: 10 }}>
-                {topPlayedSongs.map((song) => (
-                  <div
-                    key={song.id}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: isMobile ? "1fr" : "1fr auto",
-                      gap: isMobile ? 6 : 12,
-                      alignItems: isMobile ? "start" : "center",
-                      padding: isMobile ? 12 : 10,
-                      borderRadius: 14,
-                      background: "rgba(8,12,24,0.6)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        minWidth: 0,
-                        fontSize: isMobile ? 15 : 16,
-                        lineHeight: 1.4,
-                        wordBreak: "break-word",
-                      }}
-                    >
-                      {song.title}
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: isMobile ? 13 : 14,
-                        color: "#94a3b8",
-                        textAlign: isMobile ? "left" : "right",
-                        lineHeight: 1.45,
-                      }}
-                    >
-                      {song.plays} plays • {song.opens} opens
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Panel>
-
-            <Panel title={editingSongId ? "Edit Song" : "Admin Upload Panel"}>
-              {uploadSuccess && (
+            {adminSection === "dashboard" && (
+              <Panel title="Overview" subtitle="Your current numbers at a glance.">
                 <div
                   style={{
-                    padding: 18,
-                    borderRadius: 18,
-                    background: "rgba(34,197,94,0.15)",
-                    border: "1px solid rgba(74,222,128,0.35)",
-                    marginBottom: 18,
+                    display: "grid",
+                    gridTemplateColumns: isMobile
+                      ? "repeat(2, minmax(0, 1fr))"
+                      : "repeat(7, minmax(0, 1fr))",
+                    gap: isMobile ? 10 : 14,
                   }}
                 >
-                  <strong>{uploadSuccess}</strong>
-                </div>
-              )}
+                  <div
+                    style={{
+                      padding: isMobile ? 14 : 16,
+                      borderRadius: isMobile ? 16 : 18,
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
+                      Total Plays
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: isMobile ? 24 : 28, fontWeight: 800 }}>
+                      {totalPlays}
+                    </div>
+                  </div>
 
-              <form
-                onSubmit={handleAddSong}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-                  gap: 16,
-                }}
+                  <div
+                    style={{
+                      padding: isMobile ? 14 : 16,
+                      borderRadius: isMobile ? 16 : 18,
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
+                      Total Opens
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: isMobile ? 24 : 28, fontWeight: 800 }}>
+                      {totalOpens}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: isMobile ? 14 : 16,
+                      borderRadius: isMobile ? 16 : 18,
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
+                      Total Likes
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: isMobile ? 24 : 28, fontWeight: 800 }}>
+                      {totalLikes}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: isMobile ? 14 : 16,
+                      borderRadius: isMobile ? 16 : 18,
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
+                      Songs Uploaded
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: isMobile ? 24 : 28, fontWeight: 800 }}>
+                      {songs.length}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: isMobile ? 14 : 16,
+                      borderRadius: isMobile ? 16 : 18,
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
+                      Pending Requests
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: isMobile ? 24 : 28, fontWeight: 800 }}>
+                      {pendingRequests}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: isMobile ? 14 : 16,
+                      borderRadius: isMobile ? 16 : 18,
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
+                      Done Requests
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: isMobile ? 24 : 28, fontWeight: 800 }}>
+                      {doneRequests}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: isMobile ? 14 : 16,
+                      borderRadius: isMobile ? 16 : 18,
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <div style={{ fontSize: isMobile ? 12 : 13, opacity: 0.74 }}>
+                      New Messages
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: isMobile ? 24 : 28, fontWeight: 800 }}>
+                      {newMessages}
+                    </div>
+                  </div>
+                </div>
+              </Panel>
+            )}
+
+            {adminSection === "requests" && (
+              <Panel
+                title="Song Requests"
+                subtitle="Live requests with review popup and song linking."
+                right={
+                  <div style={{ minWidth: 220 }}>
+                    <Select
+                      value={requestFilter}
+                      onChange={(e) => setRequestFilter(e.target.value)}
+                    >
+                      <option value="all" style={{ color: "black" }}>
+                        All requests
+                      </option>
+                      <option value="pending" style={{ color: "black" }}>
+                        Pending
+                      </option>
+                      <option value="done" style={{ color: "black" }}>
+                        Done
+                      </option>
+                      <option value="public" style={{ color: "black" }}>
+                        Public
+                      </option>
+                      <option value="private" style={{ color: "black" }}>
+                        Private
+                      </option>
+                    </Select>
+                  </div>
+                }
               >
-                <Input
-                  label="Song title"
-                  value={newSong.title}
-                  onChange={(e) => {
-                    setNewSong((p) => ({ ...p, title: e.target.value }));
-                    if (editingSongId) setHasUnsavedSongChanges(true);
-                  }}
-                />
-
-                <Input
-                  label="Artist"
-                  value={newSong.artist}
-                  onChange={(e) => {
-                    setNewSong((p) => ({ ...p, artist: e.target.value }));
-                    if (editingSongId) setHasUnsavedSongChanges(true);
-                  }}
-                />
-
-                <Input
-                  label="Requested by"
-                  value={newSong.requestedBy}
-                  onChange={(e) => {
-                    setNewSong((p) => ({ ...p, requestedBy: e.target.value }));
-                    if (editingSongId) setHasUnsavedSongChanges(true);
-                  }}
-                />
-
-                <Select
-                  label="Collection"
-                  value={newSong.visibility}
-                  onChange={(e) => {
-                    setNewSong((p) => ({ ...p, visibility: e.target.value }));
-                    if (editingSongId) setHasUnsavedSongChanges(true);
-                  }}
-                >
-                  <option value="public" style={{ color: "black" }}>
-                    Main website / Public
-                  </option>
-                  <option value="private" style={{ color: "black" }}>
-                    Private collection
-                  </option>
-                </Select>
-
-                <div>
-                  <div
-                    style={{
-                      marginBottom: 8,
-                      fontSize: 14,
-                      color: "rgba(255,255,255,0.82)",
-                    }}
-                  >
-                    Upload cover image
-                  </div>
-
-                  <input
-                    id="song-cover-input"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      setNewSongFiles((prev) => ({
-                        ...prev,
-                        coverFile: e.target.files?.[0] || null,
-                      }));
-
-                      if (editingSongId) setHasUnsavedSongChanges(true);
-                    }}
-                    style={{
-                      width: "100%",
-                      padding: "12px 14px",
-                      borderRadius: 16,
-                      border: "1px solid rgba(255,255,255,0.10)",
-                      background: "rgba(8,12,24,0.64)",
-                      color: "white",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <div
-                    style={{
-                      marginBottom: 8,
-                      fontSize: 14,
-                      color: "rgba(255,255,255,0.82)",
-                    }}
-                  >
-                    Upload MP3 song
-                  </div>
-
-                  <input
-                    id="song-audio-input"
-                    type="file"
-                    accept="audio/*"
-                    onChange={(e) => {
-                      setNewSongFiles((prev) => ({
-                        ...prev,
-                        audioFile: e.target.files?.[0] || null,
-                      }));
-
-                      if (editingSongId) setHasUnsavedSongChanges(true);
-                    }}
-                    style={{
-                      width: "100%",
-                      padding: "12px 14px",
-                      borderRadius: 16,
-                      border: "1px solid rgba(255,255,255,0.10)",
-                      background: "rgba(8,12,24,0.64)",
-                      color: "white",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
-
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    paddingTop: 34,
-                    color: "rgba(255,255,255,0.85)",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={newSong.featured}
-                    onChange={(e) => {
-                      setNewSong((p) => ({ ...p, featured: e.target.checked }));
-                      if (editingSongId) setHasUnsavedSongChanges(true);
-                    }}
-                  />
-                  Featured song
-                </label>
-
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <TextArea
-                    label="Lyrics"
-                    value={newSong.lyrics}
-                    onChange={(e) => {
-                      setNewSong((p) => ({ ...p, lyrics: e.target.value }));
-                      if (editingSongId) setHasUnsavedSongChanges(true);
-                    }}
-                    style={{ minHeight: 180 }}
-                  />
-                </div>
-
-                <div
-                  style={{
-                    gridColumn: "1 / -1",
-                    display: "flex",
-                    gap: 12,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <Button type="submit" variant="primary" disabled={isUploading}>
-                    {isUploading ? "Saving..." : editingSongId ? "Save Changes" : "Upload Song"}
-                  </Button>
-
-                  {editingSongId ? (
-                    <Button type="button" variant="secondary" onClick={cancelEditSong}>
-                      Cancel Edit
-                    </Button>
-                  ) : null}
-                </div>
-              </form>
-            </Panel>
-
-            <Panel
-              title="Song Library"
-              subtitle="Compact view of your uploaded songs, including private ones."
-              right={
-                <div style={{ minWidth: 220 }}>
-                  <Select
-                    value={adminSongFilter}
-                    onChange={(e) => setAdminSongFilter(e.target.value)}
-                  >
-                    <option value="all" style={{ color: "black" }}>
-                      All songs
-                    </option>
-                    <option value="public" style={{ color: "black" }}>
-                      Public songs
-                    </option>
-                    <option value="private" style={{ color: "black" }}>
-                      Private songs
-                    </option>
-                    <option value="requested" style={{ color: "black" }}>
-                      Requested songs
-                    </option>
-                    <option value="originals" style={{ color: "black" }}>
-                      Originals
-                    </option>
-                  </Select>
-                </div>
-              }
-            >
-              <div style={{ display: "grid", gap: 12 }}>
-                {adminSongs.length > 0 ? (
-                  adminSongs.map((song, index) => (
-                    <SongRow
-                      key={song.id}
-                      song={song}
-                      analytics={songAnalytics[song.id]}
-                      isAdmin
-                      isMobile={isMobile}
-                      onLike={handleLikeSong}
-                      onOpenPlayer={handleOpenSong}
-                      onDownloadSong={downloadSong}
-                      onDownloadLyrics={downloadLyrics}
-                      onDelete={handleDeleteSong}
-                      onCopyLink={copySongLink}
-                      onEdit={startEditSong}
-                      onMoveUp={(songItem) => handleMoveSong(songItem, "up")}
-                      onMoveDown={(songItem) => handleMoveSong(songItem, "down")}
-                      canMoveUp={index > 0 && !isReorderingSongs}
-                      canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
-                    />
-                  ))
-                ) : (
-                  <div style={{ color: "rgba(255,255,255,0.72)" }}>
-                    No songs uploaded yet.
-                  </div>
-                )}
-              </div>
-            </Panel>
-
-            <Panel
-              title="Song Requests"
-              subtitle="Live requests with review popup and song linking."
-              right={
-                <div style={{ minWidth: 220 }}>
-                  <Select
-                    value={requestFilter}
-                    onChange={(e) => setRequestFilter(e.target.value)}
-                  >
-                    <option value="all" style={{ color: "black" }}>
-                      All requests
-                    </option>
-                    <option value="pending" style={{ color: "black" }}>
-                      Pending
-                    </option>
-                    <option value="done" style={{ color: "black" }}>
-                      Done
-                    </option>
-                    <option value="public" style={{ color: "black" }}>
-                      Public
-                    </option>
-                    <option value="private" style={{ color: "black" }}>
-                      Private
-                    </option>
-                  </Select>
-                </div>
-              }
-            >
-              <div style={{ display: "grid", gap: 14 }}>
-                {filteredRequests.length === 0 ? (
-                  <div style={{ color: "rgba(255,255,255,0.72)" }}>
-                    No requests yet.
-                  </div>
-                ) : (
-                  filteredRequests.map((req) => (
-                    <div
-                      key={req.id}
-                      style={{
-                        padding: isMobile ? 14 : 16,
-                        borderRadius: 18,
-                        background: "rgba(8,12,24,0.68)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                      }}
-                    >
-                      <div style={{ display: "grid", gap: 10 }}>
-                        <strong
-                          style={{
-                            fontSize: isMobile ? 15 : 16,
-                            lineHeight: 1.35,
-                            wordBreak: "break-word",
-                          }}
-                        >
-                          {req.title}
-                        </strong>
-
-                        <div
-                          style={{
-                            color: "rgba(255,255,255,0.65)",
-                            fontSize: isMobile ? 13 : 14,
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          by {req.name} • {timeAgo(req.createdAt)}
-                        </div>
-
-                        <div
-                          style={{
-                            color: "rgba(255,255,255,0.78)",
-                            fontSize: isMobile ? 13 : 14,
-                            lineHeight: 1.45,
-                          }}
-                        >
-                          Status: {req.status} • Delivery:{" "}
-                          {req.delivery === "private" ? "Private" : "Public"}
-                        </div>
-
-                        <Select
-                          label="Attach uploaded song"
-                          value={req.linkedSongId || ""}
-                          onChange={(e) => linkSongToRequest(req.id, e.target.value)}
-                        >
-                          <option value="" style={{ color: "black" }}>
-                            Select a song
-                          </option>
-
-                          {ensureSongSortOrders(songs)
-                            .sort(compareSongsForDisplay)
-                            .map((song) => (
-                              <option
-                                key={song.id}
-                                value={song.id}
-                                style={{ color: "black" }}
-                              >
-                                {song.title} — {song.artist}
-                              </option>
-                            ))}
-                        </Select>
-
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: isMobile
-                              ? "repeat(3, minmax(0, 1fr))"
-                              : "repeat(3, auto)",
-                            gap: 10,
-                            alignItems: "stretch",
-                          }}
-                        >
-                          <Button
-                            variant="secondary"
-                            onClick={() => setSelectedRequest(req)}
-                            style={{
-                              width: isMobile ? "100%" : "auto",
-                              padding: isMobile ? "9px 10px" : undefined,
-                              fontSize: isMobile ? 13 : undefined,
-                            }}
-                          >
-                            Review
-                          </Button>
-
-                          <Button
-                            variant={req.status === "done" ? "secondary" : "success"}
-                            onClick={() => toggleRequestStatus(req.id)}
-                            style={{
-                              width: isMobile ? "100%" : "auto",
-                              padding: isMobile ? "9px 10px" : undefined,
-                              fontSize: isMobile ? 13 : undefined,
-                            }}
-                          >
-                            {req.status === "done" ? "Mark Pending" : "Mark Done"}
-                          </Button>
-
-                          <Button
-                            variant="danger"
-                            onClick={() => handleDeleteRequest(req.id)}
-                            style={{
-                              width: isMobile ? "100%" : "auto",
-                              padding: isMobile ? "9px 10px" : undefined,
-                              fontSize: isMobile ? 13 : undefined,
-                            }}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
+                <div style={{ display: "grid", gap: 14 }}>
+                  {filteredRequests.length === 0 ? (
+                    <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                      No requests yet.
                     </div>
-                  ))
-                )}
-              </div>
-            </Panel>
-
-            <Panel title="Private Messages">
-              <div style={{ display: "grid", gap: 14 }}>
-                {messages.length === 0 ? (
-                  <div style={{ color: "rgba(255,255,255,0.72)" }}>
-                    No messages yet.
-                  </div>
-                ) : (
-                  [...messages]
-                    .sort((a, b) => {
-                      if (a.status !== b.status) {
-                        return a.status === "new" ? -1 : 1;
-                      }
-                      return new Date(b.createdAt) - new Date(a.createdAt);
-                    })
-                    .map((msg) => (
+                  ) : (
+                    filteredRequests.map((req) => (
                       <div
-                        key={msg.id}
+                        key={req.id}
                         style={{
-                          padding: 16,
+                          padding: isMobile ? 14 : 16,
                           borderRadius: 18,
                           background: "rgba(8,12,24,0.68)",
                           border: "1px solid rgba(255,255,255,0.08)",
                         }}
                       >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: 12,
-                            alignItems: "flex-start",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <div style={{ display: "grid", gap: 6 }}>
-                            <strong>{msg.from}</strong>
+                        <div style={{ display: "grid", gap: 10 }}>
+                          <strong
+                            style={{
+                              fontSize: isMobile ? 15 : 16,
+                              lineHeight: 1.35,
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {req.title}
+                          </strong>
 
-                            <div
-                              style={{
-                                color: "rgba(255,255,255,0.65)",
-                                display: "flex",
-                                gap: 8,
-                                alignItems: "center",
-                                flexWrap: "wrap",
-                              }}
-                            >
-                              <span>{formatDate(msg.createdAt)}</span>
-
-                              <Badge
-                                style={{
-                                  background:
-                                    msg.status === "new"
-                                      ? "rgba(34,197,94,0.18)"
-                                      : "rgba(255,255,255,0.06)",
-                                  border:
-                                    msg.status === "new"
-                                      ? "1px solid rgba(74,222,128,0.30)"
-                                      : "1px solid rgba(255,255,255,0.10)",
-                                  color:
-                                    msg.status === "new"
-                                      ? "#bbf7d0"
-                                      : "rgba(255,255,255,0.78)",
-                                  fontWeight: 800,
-                                  padding: "5px 10px",
-                                }}
-                              >
-                                {msg.status === "new" ? "NEW" : "READ"}
-                              </Badge>
-                            </div>
-
-                            <div style={{ color: "rgba(255,255,255,0.78)" }}>
-                              Reply via:{" "}
-                              {msg.replyContact
-                                ? msg.replyContact
-                                : "No reply contact left"}
-                            </div>
+                          <div
+                            style={{
+                              color: "rgba(255,255,255,0.65)",
+                              fontSize: isMobile ? 13 : 14,
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            by {req.name} • {timeAgo(req.createdAt)}
                           </div>
 
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <div
+                            style={{
+                              color: "rgba(255,255,255,0.78)",
+                              fontSize: isMobile ? 13 : 14,
+                              lineHeight: 1.45,
+                            }}
+                          >
+                            Status: {req.status} • Delivery:{" "}
+                            {req.delivery === "private" ? "Private" : "Public"}
+                          </div>
+
+                          <Select
+                            label="Attach uploaded song"
+                            value={req.linkedSongId || ""}
+                            onChange={(e) => linkSongToRequest(req.id, e.target.value)}
+                          >
+                            <option value="" style={{ color: "black" }}>
+                              Select a song
+                            </option>
+
+                            {ensureSongSortOrders(songs)
+                              .sort(compareSongsForDisplay)
+                              .map((song) => (
+                                <option
+                                  key={song.id}
+                                  value={song.id}
+                                  style={{ color: "black" }}
+                                >
+                                  {song.title} — {song.artist}
+                                </option>
+                              ))}
+                          </Select>
+
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: isMobile
+                                ? "repeat(3, minmax(0, 1fr))"
+                                : "repeat(3, auto)",
+                              gap: 10,
+                              alignItems: "stretch",
+                            }}
+                          >
                             <Button
-                              variant={msg.status === "new" ? "success" : "secondary"}
-                              onClick={() => toggleMessageStatus(msg.id)}
-                              style={{ padding: "9px 14px", fontSize: 14 }}
+                              variant="secondary"
+                              onClick={() => setSelectedRequest(req)}
+                              style={{
+                                width: isMobile ? "100%" : "auto",
+                                padding: isMobile ? "9px 10px" : undefined,
+                                fontSize: isMobile ? 13 : undefined,
+                              }}
                             >
-                              {msg.status === "new" ? "Mark Read" : "Mark New"}
+                              Review
+                            </Button>
+
+                            <Button
+                              variant={req.status === "done" ? "secondary" : "success"}
+                              onClick={() => toggleRequestStatus(req.id)}
+                              style={{
+                                width: isMobile ? "100%" : "auto",
+                                padding: isMobile ? "9px 10px" : undefined,
+                                fontSize: isMobile ? 13 : undefined,
+                              }}
+                            >
+                              {req.status === "done" ? "Mark Pending" : "Mark Done"}
                             </Button>
 
                             <Button
                               variant="danger"
-                              onClick={() => handleDeleteMessage(msg.id)}
-                              style={{ padding: "9px 14px", fontSize: 14 }}
+                              onClick={() => handleDeleteRequest(req.id)}
+                              style={{
+                                width: isMobile ? "100%" : "auto",
+                                padding: isMobile ? "9px 10px" : undefined,
+                                fontSize: isMobile ? 13 : undefined,
+                              }}
                             >
                               Delete
                             </Button>
                           </div>
                         </div>
-
-                        <p style={{ margin: "14px 0 0", lineHeight: 1.55 }}>
-                          {msg.message}
-                        </p>
                       </div>
                     ))
+                  )}
+                </div>
+              </Panel>
+            )}
+
+            {adminSection === "messages" && (
+              <Panel title="Private Messages">
+                <div style={{ display: "grid", gap: 14 }}>
+                  {messages.length === 0 ? (
+                    <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                      No messages yet.
+                    </div>
+                  ) : (
+                    [...messages]
+                      .sort((a, b) => {
+                        if (a.status !== b.status) {
+                          return a.status === "new" ? -1 : 1;
+                        }
+                        return new Date(b.createdAt) - new Date(a.createdAt);
+                      })
+                      .map((msg) => (
+                        <div
+                          key={msg.id}
+                          style={{
+                            padding: 16,
+                            borderRadius: 18,
+                            background: "rgba(8,12,24,0.68)",
+                            border: "1px solid rgba(255,255,255,0.08)",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 12,
+                              alignItems: "flex-start",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <div style={{ display: "grid", gap: 6 }}>
+                              <strong>{msg.from}</strong>
+
+                              <div
+                                style={{
+                                  color: "rgba(255,255,255,0.65)",
+                                  display: "flex",
+                                  gap: 8,
+                                  alignItems: "center",
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                <span>{formatDate(msg.createdAt)}</span>
+
+                                <Badge
+                                  style={{
+                                    background:
+                                      msg.status === "new"
+                                        ? "rgba(34,197,94,0.18)"
+                                        : "rgba(255,255,255,0.06)",
+                                    border:
+                                      msg.status === "new"
+                                        ? "1px solid rgba(74,222,128,0.30)"
+                                        : "1px solid rgba(255,255,255,0.10)",
+                                    color:
+                                      msg.status === "new"
+                                        ? "#bbf7d0"
+                                        : "rgba(255,255,255,0.78)",
+                                    fontWeight: 800,
+                                    padding: "5px 10px",
+                                  }}
+                                >
+                                  {msg.status === "new" ? "NEW" : "READ"}
+                                </Badge>
+                              </div>
+
+                              <div style={{ color: "rgba(255,255,255,0.78)" }}>
+                                Reply via:{" "}
+                                {msg.replyContact
+                                  ? msg.replyContact
+                                  : "No reply contact left"}
+                              </div>
+                            </div>
+
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              <Button
+                                variant={msg.status === "new" ? "success" : "secondary"}
+                                onClick={() => toggleMessageStatus(msg.id)}
+                                style={{ padding: "9px 14px", fontSize: 14 }}
+                              >
+                                {msg.status === "new" ? "Mark Read" : "Mark New"}
+                              </Button>
+
+                              <Button
+                                variant="danger"
+                                onClick={() => handleDeleteMessage(msg.id)}
+                                style={{ padding: "9px 14px", fontSize: 14 }}
+                              >
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+
+                          <p style={{ margin: "14px 0 0", lineHeight: 1.55 }}>
+                            {msg.message}
+                          </p>
+                        </div>
+                      ))
+                  )}
+                </div>
+              </Panel>
+            )}
+
+            {adminSection === "upload" && (
+              <Panel title={editingSongId ? "Edit Song" : "Admin Upload Panel"}>
+                {uploadSuccess && (
+                  <div
+                    style={{
+                      padding: 18,
+                      borderRadius: 18,
+                      background: "rgba(34,197,94,0.15)",
+                      border: "1px solid rgba(74,222,128,0.35)",
+                      marginBottom: 18,
+                    }}
+                  >
+                    <strong>{uploadSuccess}</strong>
+                  </div>
                 )}
-              </div>
-            </Panel>
+
+                <form
+                  onSubmit={handleAddSong}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                    gap: 16,
+                  }}
+                >
+                  <Input
+                    label="Song title"
+                    value={newSong.title}
+                    onChange={(e) => {
+                      setNewSong((p) => ({ ...p, title: e.target.value }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
+                  />
+
+                  <Input
+                    label="Artist"
+                    value={newSong.artist}
+                    onChange={(e) => {
+                      setNewSong((p) => ({ ...p, artist: e.target.value }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
+                  />
+
+                  <Input
+                    label="Requested by"
+                    value={newSong.requestedBy}
+                    onChange={(e) => {
+                      setNewSong((p) => ({ ...p, requestedBy: e.target.value }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
+                  />
+
+                  <Select
+                    label="Collection"
+                    value={newSong.visibility}
+                    onChange={(e) => {
+                      setNewSong((p) => ({ ...p, visibility: e.target.value }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
+                  >
+                    <option value="public" style={{ color: "black" }}>
+                      Main website / Public
+                    </option>
+                    <option value="private" style={{ color: "black" }}>
+                      Private collection
+                    </option>
+                  </Select>
+
+                  <div>
+                    <div
+                      style={{
+                        marginBottom: 8,
+                        fontSize: 14,
+                        color: "rgba(255,255,255,0.82)",
+                      }}
+                    >
+                      Upload cover image
+                    </div>
+
+                    <input
+                      id="song-cover-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        setNewSongFiles((prev) => ({
+                          ...prev,
+                          coverFile: e.target.files?.[0] || null,
+                        }));
+
+                        if (editingSongId) setHasUnsavedSongChanges(true);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        borderRadius: 16,
+                        border: "1px solid rgba(255,255,255,0.10)",
+                        background: "rgba(8,12,24,0.64)",
+                        color: "white",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <div
+                      style={{
+                        marginBottom: 8,
+                        fontSize: 14,
+                        color: "rgba(255,255,255,0.82)",
+                      }}
+                    >
+                      Upload MP3 song
+                    </div>
+
+                    <input
+                      id="song-audio-input"
+                      type="file"
+                      accept="audio/*"
+                      onChange={(e) => {
+                        setNewSongFiles((prev) => ({
+                          ...prev,
+                          audioFile: e.target.files?.[0] || null,
+                        }));
+
+                        if (editingSongId) setHasUnsavedSongChanges(true);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        borderRadius: 16,
+                        border: "1px solid rgba(255,255,255,0.10)",
+                        background: "rgba(8,12,24,0.64)",
+                        color: "white",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      paddingTop: 34,
+                      color: "rgba(255,255,255,0.85)",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={newSong.featured}
+                      onChange={(e) => {
+                        setNewSong((p) => ({ ...p, featured: e.target.checked }));
+                        if (editingSongId) setHasUnsavedSongChanges(true);
+                      }}
+                    />
+                    Featured song
+                  </label>
+
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <TextArea
+                      label="Lyrics"
+                      value={newSong.lyrics}
+                      onChange={(e) => {
+                        setNewSong((p) => ({ ...p, lyrics: e.target.value }));
+                        if (editingSongId) setHasUnsavedSongChanges(true);
+                      }}
+                      style={{ minHeight: 180 }}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      gridColumn: "1 / -1",
+                      display: "flex",
+                      gap: 12,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Button type="submit" variant="primary" disabled={isUploading}>
+                      {isUploading ? "Saving..." : editingSongId ? "Save Changes" : "Upload Song"}
+                    </Button>
+
+                    {editingSongId ? (
+                      <Button type="button" variant="secondary" onClick={cancelEditSong}>
+                        Cancel Edit
+                      </Button>
+                    ) : null}
+                  </div>
+                </form>
+              </Panel>
+            )}
+
+            {adminSection === "songs" && (
+              <Panel
+                title="Song Library"
+                subtitle="Compact view of your uploaded songs, including private ones."
+                right={
+                  <div style={{ minWidth: 220 }}>
+                    <Select
+                      value={adminSongFilter}
+                      onChange={(e) => setAdminSongFilter(e.target.value)}
+                    >
+                      <option value="all" style={{ color: "black" }}>
+                        All songs
+                      </option>
+                      <option value="public" style={{ color: "black" }}>
+                        Public songs
+                      </option>
+                      <option value="private" style={{ color: "black" }}>
+                        Private songs
+                      </option>
+                      <option value="requested" style={{ color: "black" }}>
+                        Requested songs
+                      </option>
+                      <option value="originals" style={{ color: "black" }}>
+                        Originals
+                      </option>
+                    </Select>
+                  </div>
+                }
+              >
+                <div style={{ display: "grid", gap: 12 }}>
+                  {adminSongs.length > 0 ? (
+                    adminSongs.map((song, index) => (
+                      <SongRow
+                        key={song.id}
+                        song={song}
+                        analytics={songAnalytics[song.id]}
+                        isAdmin
+                        isMobile={isMobile}
+                        onLike={handleLikeSong}
+                        onOpenPlayer={handleOpenSong}
+                        onDownloadSong={downloadSong}
+                        onDownloadLyrics={downloadLyrics}
+                        onDelete={handleDeleteSong}
+                        onCopyLink={copySongLink}
+                        onEdit={startEditSong}
+                        onMoveUp={(songItem) => handleMoveSong(songItem, "up")}
+                        onMoveDown={(songItem) => handleMoveSong(songItem, "down")}
+                        canMoveUp={index > 0 && !isReorderingSongs}
+                        canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
+                      />
+                    ))
+                  ) : (
+                    <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                      No songs uploaded yet.
+                    </div>
+                  )}
+                </div>
+              </Panel>
+            )}
+
+            {adminSection === "top-played" && (
+              <Panel title="Top 3 Played Songs" subtitle="Your most listened songs so far.">
+                <div style={{ display: "grid", gap: 10 }}>
+                  {topPlayedSongs.map((song) => (
+                    <div
+                      key={song.id}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: isMobile ? "1fr" : "1fr auto",
+                        gap: isMobile ? 6 : 12,
+                        alignItems: isMobile ? "start" : "center",
+                        padding: isMobile ? 12 : 10,
+                        borderRadius: 14,
+                        background: "rgba(8,12,24,0.6)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          minWidth: 0,
+                          fontSize: isMobile ? 15 : 16,
+                          lineHeight: 1.4,
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {song.title}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: isMobile ? 13 : 14,
+                          color: "#94a3b8",
+                          textAlign: isMobile ? "left" : "right",
+                          lineHeight: 1.45,
+                        }}
+                      >
+                        {song.plays} plays • {song.opens} opens
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+            )}
           </div>
         )}
       </div>
