@@ -1,3 +1,5 @@
+/* ===== PART 1/6: IMPORTS + HELPERS ===== */
+
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
 import { supabase } from "./supabase";
@@ -7,14 +9,24 @@ import {
   autoCleanDeletedSongFiles,
 } from "./songs";
 
+/* ================================
+   STORAGE + GLOBAL CONSTANTS
+================================ */
+
 const STORAGE_KEYS = {
   songs: "djbuang_songs",
   admin: "djbuang_admin_logged_in",
   resetVersion: "djbuang_reset_version",
 };
 
-const PAYPAL_URL = "https://www.paypal.com/donate/?hosted_button_id=DWL7PTXG7BQ9A";
+const PAYPAL_URL =
+  "https://www.paypal.com/donate/?hosted_button_id=DWL7PTXG7BQ9A";
+
 const DEFAULT_SONGS = [];
+
+/* ================================
+   LOCAL STORAGE HELPERS
+================================ */
 
 function getStored(key, fallback) {
   try {
@@ -29,6 +41,7 @@ function clearOldDemoDataOnce() {
   try {
     const currentVersion = "reset-v4";
     const alreadyReset = localStorage.getItem(STORAGE_KEYS.resetVersion);
+
     if (alreadyReset === currentVersion) return;
 
     localStorage.removeItem(STORAGE_KEYS.songs);
@@ -48,8 +61,13 @@ function clearOldDemoDataOnce() {
   }
 }
 
+/* ================================
+   SONG NORMALIZATION HELPERS
+================================ */
+
 function normalizeSong(song) {
   const requestedBy = (song.requestedBy || song.genre || "").trim();
+
   const parsedSortOrder = Number(song.sortOrder);
 
   return {
@@ -65,13 +83,16 @@ function normalizeSong(song) {
     visibility: song.visibility || "public",
     status: song.status || "published",
     createdAt: song.createdAt || new Date().toISOString(),
-    sortOrder: Number.isFinite(parsedSortOrder) ? parsedSortOrder : null,
+    sortOrder: Number.isFinite(parsedSortOrder)
+      ? parsedSortOrder
+      : null,
   };
 }
 
 function ensureSongSortOrders(songList) {
   return songList.map((song, index) => {
     const normalized = normalizeSong(song);
+
     return {
       ...normalized,
       sortOrder: Number.isFinite(normalized.sortOrder)
@@ -89,6 +110,7 @@ function compareSongsForDisplay(a, b) {
   const aOrder = Number.isFinite(Number(a.sortOrder))
     ? Number(a.sortOrder)
     : Number.MAX_SAFE_INTEGER;
+
   const bOrder = Number.isFinite(Number(b.sortOrder))
     ? Number(b.sortOrder)
     : Number.MAX_SAFE_INTEGER;
@@ -100,13 +122,43 @@ function compareSongsForDisplay(a, b) {
   return new Date(b.createdAt) - new Date(a.createdAt);
 }
 
+/* ================================
+   SONG LABEL HELPERS
+================================ */
+
 function isNewSong(song) {
   if (!song?.id) return false;
-  const timestamp = Number(String(song.id).replace(/^song-/, "").split("-")[0]);
+
+  const timestamp = Number(
+    String(song.id).replace(/^song-/, "").split("-")[0]
+  );
+
   if (!Number.isFinite(timestamp)) return false;
+
   const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
+
   return Date.now() - timestamp <= FOURTEEN_DAYS;
 }
+
+function isRequestedSong(song) {
+  return Boolean((song.requestedBy || "").trim());
+}
+
+function isOriginalSong(song) {
+  return !isRequestedSong(song);
+}
+
+function getSongTypeLabel(song) {
+  if ((song.requestedBy || "").trim()) {
+    return `Requested by ${song.requestedBy.trim()}`;
+  }
+
+  return "DJ-BUANG Original";
+}
+
+/* ================================
+   DATE + TIME HELPERS
+================================ */
 
 function formatDate(dateString) {
   try {
@@ -121,10 +173,13 @@ function timeAgo(dateString) {
   try {
     const now = new Date();
     const past = new Date(dateString);
+
     const diffMs = now - past;
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
     if (diffDays <= 0) return "today";
     if (diffDays === 1) return "1 day ago";
+
     return `${diffDays} days ago`;
   } catch {
     return "";
@@ -133,10 +188,16 @@ function timeAgo(dateString) {
 
 function formatTime(seconds) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
+
   return `${mins}:${String(secs).padStart(2, "0")}`;
 }
+
+/* ================================
+   FILE HELPERS
+================================ */
 
 function getFileNameFromUrl(url = "") {
   try {
@@ -157,26 +218,37 @@ function loadImageAsDataUrl(src) {
 
     const img = new Image();
     img.crossOrigin = "anonymous";
+
     img.onload = () => {
       try {
         const canvas = document.createElement("canvas");
+
         canvas.width = img.naturalWidth || img.width;
         canvas.height = img.naturalHeight || img.height;
+
         const ctx = canvas.getContext("2d");
+
         if (!ctx) {
           reject(new Error("Canvas context not available"));
           return;
         }
+
         ctx.drawImage(img, 0, 0);
+
         resolve(canvas.toDataURL("image/png"));
       } catch (error) {
         reject(error);
       }
     };
+
     img.onerror = reject;
     img.src = src;
   });
 }
+
+/* ================================
+   ANALYTICS HELPERS
+================================ */
 
 function normalizeAnalyticsRow(row) {
   return {
@@ -187,20 +259,9 @@ function normalizeAnalyticsRow(row) {
   };
 }
 
-function getSongTypeLabel(song) {
-  if ((song.requestedBy || "").trim()) {
-    return `Requested by ${song.requestedBy.trim()}`;
-  }
-  return "DJ-BUANG Original";
-}
-
-function isRequestedSong(song) {
-  return Boolean((song.requestedBy || "").trim());
-}
-
-function isOriginalSong(song) {
-  return !isRequestedSong(song);
-}
+/* ================================
+   UI STYLE HELPERS
+================================ */
 
 function shellCardStyle(extra = {}) {
   return {
@@ -212,6 +273,10 @@ function shellCardStyle(extra = {}) {
     ...extra,
   };
 }
+
+/* ===== END PART 1/6 ===== */
+
+/* ===== PART 2/6: SHARED UI COMPONENTS ===== */
 
 function Button({ children, variant = "secondary", type = "button", ...props }) {
   const variants = {
@@ -268,11 +333,16 @@ function Input({ label, helper, ...props }) {
     <label style={{ display: "block" }}>
       {label ? (
         <div
-          style={{ marginBottom: 8, fontSize: 14, color: "rgba(255,255,255,0.82)" }}
+          style={{
+            marginBottom: 8,
+            fontSize: 14,
+            color: "rgba(255,255,255,0.82)",
+          }}
         >
           {label}
         </div>
       ) : null}
+
       <input
         {...props}
         style={{
@@ -288,6 +358,7 @@ function Input({ label, helper, ...props }) {
           ...props.style,
         }}
       />
+
       {helper ? (
         <div
           style={{
@@ -309,11 +380,16 @@ function TextArea({ label, ...props }) {
     <label style={{ display: "block" }}>
       {label ? (
         <div
-          style={{ marginBottom: 8, fontSize: 14, color: "rgba(255,255,255,0.82)" }}
+          style={{
+            marginBottom: 8,
+            fontSize: 14,
+            color: "rgba(255,255,255,0.82)",
+          }}
         >
           {label}
         </div>
       ) : null}
+
       <textarea
         {...props}
         style={{
@@ -341,11 +417,16 @@ function Select({ label, children, ...props }) {
     <label style={{ display: "block" }}>
       {label ? (
         <div
-          style={{ marginBottom: 8, fontSize: 14, color: "rgba(255,255,255,0.82)" }}
+          style={{
+            marginBottom: 8,
+            fontSize: 14,
+            color: "rgba(255,255,255,0.82)",
+          }}
         >
           {label}
         </div>
       ) : null}
+
       <select
         {...props}
         style={{
@@ -418,13 +499,22 @@ function Panel({ title, subtitle, right, children }) {
         }}
       >
         <div>
-          {typeof title === "string" ? <h2 style={{ margin: 0, fontSize: 22 }}>{title}</h2> : title}
+          {typeof title === "string" ? (
+            <h2 style={{ margin: 0, fontSize: 22 }}>{title}</h2>
+          ) : (
+            title
+          )}
+
           {subtitle ? (
-            <p style={{ margin: "8px 0 0", color: "rgba(255,255,255,0.72)" }}>{subtitle}</p>
+            <p style={{ margin: "8px 0 0", color: "rgba(255,255,255,0.72)" }}>
+              {subtitle}
+            </p>
           ) : null}
         </div>
+
         {right}
       </div>
+
       {children}
     </section>
   );
@@ -479,6 +569,14 @@ function SectionHeading({ icon, title, tone = "default" }) {
   );
 }
 
+/* ===== END PART 2/6 ===== */
+
+/* ===== PART 3/6: CONTENT + PLAYER COMPONENTS ===== */
+
+/* ================================
+   SONG ROW (LIBRARY LIST ITEM)
+================================ */
+
 function SongRow({
   song,
   analytics,
@@ -517,11 +615,11 @@ function SongRow({
         border: isFeatured
           ? "1px solid rgba(250,204,21,0.22)"
           : "1px solid rgba(255,255,255,0.08)",
-        boxShadow: isFeatured ? "0 10px 28px rgba(250,204,21,0.08)" : "none",
         alignItems: "center",
         cursor: "pointer",
       }}
     >
+      {/* COVER */}
       <div
         style={{
           width: "100%",
@@ -538,334 +636,218 @@ function SongRow({
           <img
             src={song.coverUrl}
             alt={song.title}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
           />
         ) : (
-          <span style={{ fontSize: 28 }}>🎧</span>
+          <span style={{ fontSize: 26 }}>🎵</span>
         )}
       </div>
 
-      <div>
+      {/* INFO */}
+      <div style={{ display: "grid", gap: 6 }}>
         <div
           style={{
             display: "flex",
-            alignItems: "center",
             gap: 8,
             flexWrap: "wrap",
-            marginBottom: 4,
+            alignItems: "center",
           }}
         >
-          <h3 style={{ margin: 0, fontSize: isMobile ? 16 : 19, lineHeight: 1.25 }}>
-            {song.title}
-          </h3>
+          <strong>{song.title}</strong>
 
-          {isFeatured ? (
-            <Badge
-              style={{
-                background: "rgba(250,204,21,0.12)",
-                border: "1px solid rgba(250,204,21,0.25)",
-                color: "#fde68a",
-                fontWeight: 700,
-                backdropFilter: "blur(4px)",
-              }}
-            >
-              ⭐ FEATURED
-            </Badge>
-          ) : null}
-
-          {isNew ? (
-            <Badge
-              style={{
-                background: "rgba(96,165,250,0.12)",
-                border: "1px solid rgba(96,165,250,0.28)",
-                color: "#bfdbfe",
-                fontWeight: 700,
-                backdropFilter: "blur(4px)",
-              }}
-            >
-              🆕 NEW
-            </Badge>
-          ) : null}
-
-          {isRequested ? (
-            <Badge
-              style={{
-                background: "rgba(249,115,22,0.12)",
-                border: "1px solid rgba(249,115,22,0.28)",
-                color: "#fdba74",
-                fontWeight: 700,
-                backdropFilter: "blur(4px)",
-              }}
-            >
-              🔥 REQUESTED
-            </Badge>
-          ) : null}
-
-          <Badge
-            style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.10)",
-              color: "rgba(255,255,255,0.78)",
-            }}
-          >
-            {song.visibility === "public" ? "Public" : "Private"}
-          </Badge>
-
-          {isAdmin ? (
-            <Badge
-              style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.10)",
-                color: "rgba(255,255,255,0.72)",
-              }}
-            >
-              Order {song.sortOrder}
-            </Badge>
-          ) : null}
+          {isNew && <Badge>NEW</Badge>}
+          {isRequested && <Badge>REQUEST</Badge>}
+          {isFeatured && <Badge>FEATURED</Badge>}
         </div>
 
-        <div
-          style={{
-            color: "rgba(255,255,255,0.72)",
-            marginBottom: isMobile ? 10 : 12,
-            fontSize: isMobile ? 13 : 14,
-            lineHeight: 1.45,
-          }}
-        >
-          {song.artist} • {songTypeLabel} • Added {formatDate(song.createdAt)}
+        <div style={{ fontSize: 14, opacity: 0.7 }}>
+          {song.artist} • {songTypeLabel}
         </div>
 
         <div
           style={{
             display: "flex",
-            gap: isMobile ? 6 : 8,
-            flexWrap: "wrap",
-            alignItems: "center",
+            gap: 12,
+            fontSize: 13,
+            opacity: 0.65,
           }}
         >
-          <Badge>{song.likes} 👍</Badge>
+          <span>♡ {song.likes || 0}</span>
+          <span>▶ {songAnalytics.plays}</span>
+          <span>👁 {songAnalytics.opens}</span>
+        </div>
 
-          {isAdmin ? (
-            <>
-              <Badge>{songAnalytics.opens} opens</Badge>
-              <Badge>{songAnalytics.plays} plays</Badge>
-            </>
-          ) : null}
+        {/* ACTION ROW */}
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            display: "flex",
+            gap: 6,
+            flexWrap: "wrap",
+            marginTop: 6,
+          }}
+        >
+          <Button variant="secondary" onClick={() => onLike(song.id)}>
+            ♡ Like
+          </Button>
 
-          {!isAdmin ? (
-            <Button
-              variant="secondary"
-              onClick={(e) => {
-                e.stopPropagation();
-                onLike(song.id);
-              }}
-              style={{ padding: "9px 14px", fontSize: 14 }}
-            >
-              ♡ Thumbs Up
-            </Button>
-          ) : null}
-
-          <Button
-            variant="secondary"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDownloadSong(song);
-            }}
-            style={{ padding: "9px 14px", fontSize: 14 }}
-          >
+          <Button variant="secondary" onClick={() => onDownloadSong(song)}>
             ⬇ Song
           </Button>
 
-          <Button
-            variant="secondary"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDownloadLyrics(song);
-            }}
-            style={{ padding: "9px 14px", fontSize: 14 }}
-          >
-            ⬇ Lyrics PDF
+          <Button variant="secondary" onClick={() => onDownloadLyrics(song)}>
+            📄 Lyrics
           </Button>
 
-          {isAdmin ? (
+          <Button variant="ghost" onClick={() => onCopyLink(song.id)}>
+            🔗 Copy link
+          </Button>
+
+          {isAdmin && (
             <>
-              <Button
-                variant="secondary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenPlayer(song);
-                }}
-                style={{ padding: "9px 14px", fontSize: 14 }}
-              >
-                Open
+              <Button variant="ghost" onClick={() => onEdit(song)}>
+                ✏ Edit
               </Button>
 
-              <Button
-                variant="secondary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(song);
-                }}
-                style={{ padding: "9px 14px", fontSize: 14 }}
-              >
-                Edit
+              <Button variant="danger" onClick={() => onDelete(song)}>
+                🗑 Delete
               </Button>
 
-              <Button
-                variant="secondary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMoveUp(song.id);
-                }}
-                disabled={!canMoveUp}
-                style={{ padding: "9px 14px", fontSize: 14 }}
-              >
-                ↑ Up
-              </Button>
+              {canMoveUp && (
+                <Button variant="ghost" onClick={() => onMoveUp(song)}>
+                  ↑
+                </Button>
+              )}
 
-              <Button
-                variant="secondary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMoveDown(song.id);
-                }}
-                disabled={!canMoveDown}
-                style={{ padding: "9px 14px", fontSize: 14 }}
-              >
-                ↓ Down
-              </Button>
-
-              <Button
-                variant="secondary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCopyLink(song.id);
-                }}
-                style={{ padding: "9px 14px", fontSize: 14 }}
-              >
-                Copy Link
-              </Button>
-
-              <Button
-                variant="danger"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(song.id);
-                }}
-                style={{ padding: "9px 14px", fontSize: 14 }}
-              >
-                Delete
-              </Button>
+              {canMoveDown && (
+                <Button variant="ghost" onClick={() => onMoveDown(song)}>
+                  ↓
+                </Button>
+              )}
             </>
-          ) : null}
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function AudioControls({
+/* ================================
+   MINI PLAYER (BOTTOM BAR)
+================================ */
+
+function MiniPlayer({
+  song,
   isPlaying,
-  currentTime,
-  duration,
-  volume,
-  isMuted,
   onPlayPause,
-  onSeek,
-  onVolumeChange,
-  onToggleMute,
-  compact = false,
-  isMobile = false,
-  hidePlayButton = false,
-  showVolumeSlider = true,
-  onToggleVolumeSlider,
+  onExpand,
+  onNext,
+  onPrev,
 }) {
-  const volumeIcon = isMuted || volume === 0 ? "🔇" : "🔊";
+  if (!song) return null;
 
   return (
-    <div style={{ display: "grid", gap: compact ? 8 : 12 }}>
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
-        {!hidePlayButton ? (
-          <Button
-            variant="primary"
-            onClick={onPlayPause}
-            style={{
-              padding: compact ? "9px 14px" : undefined,
-              minWidth: compact && isMobile ? 96 : undefined,
-            }}
-          >
-            {isPlaying ? "Pause" : "Play"}
-          </Button>
-        ) : null}
-
-        <div style={{ color: "rgba(255,255,255,0.72)", fontSize: compact ? 13 : 14 }}>
-          {formatTime(currentTime)} / {formatTime(duration)}
-        </div>
+    <div
+      style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: "14px 18px",
+        background:
+          "linear-gradient(180deg, rgba(10,14,28,0.95), rgba(6,10,22,0.98))",
+        borderTop: "1px solid rgba(255,255,255,0.08)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        zIndex: 999,
+      }}
+    >
+      <div onClick={onExpand} style={{ cursor: "pointer" }}>
+        <strong>{song.title}</strong>
+        <div style={{ fontSize: 13, opacity: 0.6 }}>{song.artist}</div>
       </div>
 
-      <input
-        type="range"
-        min="0"
-        max={Number.isFinite(duration) && duration > 0 ? duration : 0}
-        step="0.1"
-        value={Math.min(currentTime, duration || 0)}
-        onChange={(e) => onSeek(Number(e.target.value))}
-        style={{ width: "100%" }}
-      />
+      <div style={{ display: "flex", gap: 8 }}>
+        <Button onClick={onPrev}>⏮</Button>
 
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-          flexWrap: "wrap",
-        }}
-      >
-        <Button
-          variant="secondary"
-          onClick={onToggleVolumeSlider || onToggleMute}
-          style={{
-            padding: compact ? "8px 12px" : "10px 14px",
-            fontSize: compact ? 14 : 15,
-            minWidth: compact && isMobile ? 54 : undefined,
-          }}
-        >
-          {volumeIcon}
+        <Button onClick={onPlayPause}>
+          {isPlaying ? "Pause" : "Play"}
         </Button>
 
-        {showVolumeSlider ? (
-          <>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={isMuted ? 0 : volume}
-              onChange={(e) => onVolumeChange(Number(e.target.value))}
-              style={{ width: compact ? (isMobile ? "150px" : "120px") : "180px" }}
-            />
-            <div
-              style={{
-                minWidth: 42,
-                color: "rgba(255,255,255,0.72)",
-                fontSize: compact ? 13 : 14,
-              }}
-            >
-              {Math.round((isMuted ? 0 : volume) * 100)}%
-            </div>
-          </>
-        ) : null}
+        <Button onClick={onNext}>⏭</Button>
       </div>
     </div>
   );
 }
+
+/* ================================
+   PLAYER MODAL (EXPANDED PLAYER)
+================================ */
+
+function PlayerModal({
+  song,
+  isPlaying,
+  onPlayPause,
+  onClose,
+  onNext,
+  onPrev,
+}) {
+  if (!song) return null;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.75)",
+        display: "grid",
+        placeItems: "center",
+        zIndex: 1000,
+      }}
+    >
+      <div
+        style={{
+          width: "min(520px, 92%)",
+          padding: 28,
+          borderRadius: 24,
+          background:
+            "linear-gradient(180deg, rgba(10,14,28,0.98), rgba(6,10,22,0.98))",
+        }}
+      >
+        <h2 style={{ marginTop: 0 }}>{song.title}</h2>
+
+        <p style={{ opacity: 0.7 }}>{song.artist}</p>
+
+        <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+          <Button onClick={onPrev}>⏮</Button>
+
+          <Button onClick={onPlayPause}>
+            {isPlaying ? "Pause" : "Play"}
+          </Button>
+
+          <Button onClick={onNext}>⏭</Button>
+
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===== END PART 3/6 ===== */
+
+/* ===== PART 4/6: API + STORAGE FUNCTIONS ===== */
+
+/* ================================
+   CLOUDFLARE FILE UPLOAD
+================================ */
 
 async function uploadFileToCloudflare(file) {
   const formData = new FormData();
@@ -891,6 +873,10 @@ async function uploadFileToCloudflare(file) {
 
   return data.fileUrl;
 }
+
+/* ================================
+   CLOUDFLARE SONG CRUD
+================================ */
 
 async function fetchSongsFromCloudflare() {
   const response = await fetch("/api/songs");
@@ -956,6 +942,10 @@ async function deleteSongFromCloudflare(songId) {
   return data;
 }
 
+/* ================================
+   ADMIN LOGIN
+================================ */
+
 async function loginAdmin(password) {
   const response = await fetch("/api/login", {
     method: "POST",
@@ -980,6 +970,10 @@ async function loginAdmin(password) {
 
   return data;
 }
+
+/* ================================
+   SONG ANALYTICS
+================================ */
 
 async function incrementSongAnalytics(songId, field) {
   if (!songId || !field) return null;
@@ -1016,6 +1010,10 @@ async function incrementSongAnalytics(songId, field) {
 
   return normalizeAnalyticsRow(data);
 }
+
+/* ================================
+   SUPABASE BACKUP SONG STORAGE
+================================ */
 
 async function fetchSongsFromSupabaseBackup() {
   const { data, error } = await supabase
@@ -1073,654 +1071,35 @@ async function backupSongToSupabase(song) {
 }
 
 async function deleteSongFromSupabaseBackup(songId) {
-  const { error } = await supabase.from("songs_backup").delete().eq("song_id", songId);
+  const { error } = await supabase
+    .from("songs_backup")
+    .delete()
+    .eq("song_id", songId);
 
   if (error) {
     throw error;
   }
 }
 
-function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
-  if (!request) return null;
+/* ===== END PART 4/6 ===== */
 
-  const linkedSong = songs.find((song) => song.id === request.linkedSongId);
-
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.65)",
-        display: "grid",
-        placeItems: "center",
-        zIndex: 1100,
-        padding: 20,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(760px, 100%)",
-          maxHeight: "88vh",
-          overflow: "auto",
-          ...shellCardStyle(),
-          padding: 24,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 12,
-            alignItems: "flex-start",
-            marginBottom: 18,
-            flexWrap: "wrap",
-          }}
-        >
-          <div>
-            <h2 style={{ margin: 0 }}>Request Review</h2>
-            <div style={{ color: "rgba(255,255,255,0.68)", marginTop: 6 }}>
-              {request.title || "Untitled request"} • {formatDate(request.createdAt)}
-            </div>
-          </div>
-          <Button variant="secondary" onClick={onClose}>
-            Close
-          </Button>
-        </div>
-
-        <div style={{ display: "grid", gap: 14 }}>
-          <div
-            style={{
-              padding: 14,
-              borderRadius: 16,
-              background: "rgba(8,12,24,0.60)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.62)", marginBottom: 6 }}>
-              Name
-            </div>
-            <div>{request.name || "—"}</div>
-          </div>
-
-          <div
-            style={{
-              padding: 14,
-              borderRadius: 16,
-              background: "rgba(8,12,24,0.60)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.62)", marginBottom: 6 }}>
-              Song title / idea
-            </div>
-            <div>{request.title || "—"}</div>
-          </div>
-
-          <div
-            style={{
-              padding: 14,
-              borderRadius: 16,
-              background: "rgba(8,12,24,0.60)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.62)", marginBottom: 6 }}>
-              Details
-            </div>
-            <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.55 }}>
-              {request.details || "No extra details."}
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 14,
-            }}
-          >
-            <div
-              style={{
-                padding: 14,
-                borderRadius: 16,
-                background: "rgba(8,12,24,0.60)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.62)", marginBottom: 6 }}>
-                Delivery
-              </div>
-              <div>{request.delivery === "private" ? "Private" : "Public"}</div>
-            </div>
-
-            <div
-              style={{
-                padding: 14,
-                borderRadius: 16,
-                background: "rgba(8,12,24,0.60)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.62)", marginBottom: 6 }}>
-                Status
-              </div>
-              <div>{request.status === "done" ? "Done" : "Pending"}</div>
-            </div>
-
-            <div
-              style={{
-                padding: 14,
-                borderRadius: 16,
-                background: "rgba(8,12,24,0.60)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.62)", marginBottom: 6 }}>
-                E-mail
-              </div>
-              <div>{request.email || "No e-mail provided"}</div>
-            </div>
-
-            <div
-              style={{
-                padding: 14,
-                borderRadius: 16,
-                background: "rgba(8,12,24,0.60)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.62)", marginBottom: 6 }}>
-                Notification
-              </div>
-              <div>{request.notify ? "Wants notification" : "No notification requested"}</div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              padding: 14,
-              borderRadius: 16,
-              background: "rgba(8,12,24,0.60)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.62)", marginBottom: 6 }}>
-              Linked song
-            </div>
-            {linkedSong ? (
-              <div>
-                <span
-                  onClick={() => onOpenSong(linkedSong)}
-                  style={{
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                    color: "#86efac",
-                  }}
-                >
-                  {linkedSong.title}
-                </span>
-              </div>
-            ) : (
-              <div style={{ color: "#f87171" }}>No song attached yet</div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PlayerModal({
-  song,
-  onClose,
-  onMinimize,
-  onNext,
-  onPrevious,
-  isPlaying,
-  currentTime,
-  duration,
-  volume,
-  isMuted,
-  onPlayPause,
-  onSeek,
-  onVolumeChange,
-  onToggleMute,
-  isMobile,
-}) {
-  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-
-  if (!song) return null;
-
-  const volumeIcon = isMuted || volume === 0 ? "🔇" : "🔊";
-
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.65)",
-        display: "grid",
-        placeItems: "center",
-        zIndex: 1000,
-        padding: isMobile ? 12 : 20,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(980px, 100%)",
-          height: "min(88vh, 860px)",
-          ...shellCardStyle(),
-          padding: isMobile ? 16 : 24,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 12,
-            alignItems: "flex-start",
-            marginBottom: 16,
-            flexWrap: "wrap",
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <h2
-              style={{
-                margin: 0,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                fontSize: isMobile ? 22 : 28,
-              }}
-            >
-              {song.title}
-            </h2>
-            <div
-              style={{
-                color: "rgba(255,255,255,0.7)",
-                marginTop: 6,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {song.artist} • {getSongTypeLabel(song)}
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Button variant="secondary" onClick={onMinimize}>
-              Minimize
-            </Button>
-            <Button variant="secondary" onClick={onClose}>
-              Close
-            </Button>
-          </div>
-        </div>
-
-        {isMobile ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-              minHeight: 0,
-              flex: 1,
-            }}
-          >
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", flexShrink: 0 }}>
-              <Button variant="secondary" onClick={onPrevious} style={{ padding: "8px 12px", fontSize: 14 }}>
-                ⏮
-              </Button>
-              <Button variant="secondary" onClick={onPlayPause} style={{ padding: "8px 16px", fontSize: 14 }}>
-                {isPlaying ? "Pause" : "Play"}
-              </Button>
-              <Button variant="secondary" onClick={onNext} style={{ padding: "8px 12px", fontSize: 14 }}>
-                ⏭
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => setShowVolumeSlider((prev) => !prev)}
-                style={{ padding: "8px 12px", fontSize: 14 }}
-              >
-                {volumeIcon}
-              </Button>
-            </div>
-
-            <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 14, flexShrink: 0 }}>
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </div>
-
-            <input
-              type="range"
-              min="0"
-              max={Number.isFinite(duration) && duration > 0 ? duration : 0}
-              step="0.1"
-              value={Math.min(currentTime, duration || 0)}
-              onChange={(e) => onSeek(Number(e.target.value))}
-              style={{ width: "100%", flexShrink: 0 }}
-            />
-
-            {showVolumeSlider ? (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  flexShrink: 0,
-                }}
-              >
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={isMuted ? 0 : volume}
-                  onChange={(e) => onVolumeChange(Number(e.target.value))}
-                  style={{ width: "170px" }}
-                />
-                <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 14 }}>
-                  {Math.round((isMuted ? 0 : volume) * 100)}%
-                </div>
-              </div>
-            ) : null}
-
-            <div style={{ fontSize: 18, fontWeight: 700, flexShrink: 0, marginTop: 4 }}>Lyrics</div>
-
-            <div
-              style={{
-                background: "rgba(8,12,24,0.60)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 18,
-                padding: 16,
-                minHeight: 0,
-                flex: 1,
-                overflowY: "auto",
-              }}
-            >
-              <pre
-                style={{
-                  margin: 0,
-                  whiteSpace: "pre-wrap",
-                  lineHeight: 1.6,
-                  fontFamily: "inherit",
-                  color: "rgba(255,255,255,0.9)",
-                }}
-              >
-                {song.lyrics || "No lyrics added yet."}
-              </pre>
-            </div>
-          </div>
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "280px minmax(0, 1fr)",
-              gap: 22,
-              minHeight: 0,
-              flex: 1,
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", minHeight: 0, gap: 14 }}>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", flexShrink: 0 }}>
-                <Button variant="secondary" onClick={onPrevious} style={{ padding: "8px 12px", fontSize: 14 }}>
-                  ⏮
-                </Button>
-                <Button variant="secondary" onClick={onPlayPause} style={{ padding: "8px 16px", fontSize: 14 }}>
-                  {isPlaying ? "Pause" : "Play"}
-                </Button>
-                <Button variant="secondary" onClick={onNext} style={{ padding: "8px 12px", fontSize: 14 }}>
-                  ⏭
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => setShowVolumeSlider((prev) => !prev)}
-                  style={{ padding: "8px 12px", fontSize: 14 }}
-                >
-                  {volumeIcon}
-                </Button>
-              </div>
-
-              <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 14, flexShrink: 0 }}>
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </div>
-
-              <input
-                type="range"
-                min="0"
-                max={Number.isFinite(duration) && duration > 0 ? duration : 0}
-                step="0.1"
-                value={Math.min(currentTime, duration || 0)}
-                onChange={(e) => onSeek(Number(e.target.value))}
-                style={{ width: "100%", flexShrink: 0 }}
-              />
-
-              {showVolumeSlider ? (
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    flexShrink: 0,
-                  }}
-                >
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={isMuted ? 0 : volume}
-                    onChange={(e) => onVolumeChange(Number(e.target.value))}
-                    style={{ width: "170px" }}
-                  />
-                  <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 14 }}>
-                    {Math.round((isMuted ? 0 : volume) * 100)}%
-                  </div>
-                </div>
-              ) : null}
-
-              <div
-                style={{
-                  width: "100%",
-                  aspectRatio: "1 / 1",
-                  borderRadius: 22,
-                  overflow: "hidden",
-                  background:
-                    "linear-gradient(135deg, rgba(89,55,150,0.8), rgba(41,73,120,0.8))",
-                  display: "grid",
-                  placeItems: "center",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  flexShrink: 0,
-                }}
-              >
-                {song.coverUrl ? (
-                  <img
-                    src={song.coverUrl}
-                    alt={song.title}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-                ) : (
-                  <span style={{ fontSize: 70 }}>🎧</span>
-                )}
-              </div>
-            </div>
-
-            <div style={{ minHeight: 0, display: "flex", flexDirection: "column" }}>
-              <h3 style={{ marginTop: 0, marginBottom: 10, flexShrink: 0 }}>Lyrics</h3>
-              <div
-                style={{
-                  background: "rgba(8,12,24,0.60)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: 18,
-                  padding: 16,
-                  minHeight: 0,
-                  flex: 1,
-                  overflowY: "auto",
-                }}
-              >
-                <pre
-                  style={{
-                    margin: 0,
-                    whiteSpace: "pre-wrap",
-                    lineHeight: 1.6,
-                    fontFamily: "inherit",
-                    color: "rgba(255,255,255,0.9)",
-                  }}
-                >
-                  {song.lyrics || "No lyrics added yet."}
-                </pre>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function MiniPlayer({
-  song,
-  onExpand,
-  onClose,
-  onNext,
-  onPrevious,
-  isPlaying,
-  currentTime,
-  duration,
-  volume,
-  isMuted,
-  onPlayPause,
-  onSeek,
-  onVolumeChange,
-  onToggleMute,
-  isMobile,
-  showVolumeSlider,
-  onToggleVolumeSlider,
-}) {
-  if (!song) return null;
-
-  return (
-    <div
-      style={{
-        position: "fixed",
-        left: isMobile ? 12 : 18,
-        right: isMobile ? 12 : 18,
-        bottom: isMobile ? 12 : 18,
-        zIndex: 999,
-        ...shellCardStyle({
-          padding: isMobile ? 12 : 10,
-          borderRadius: 18,
-          background:
-            "linear-gradient(180deg, rgba(12,17,31,0.98), rgba(8,11,21,0.99))",
-        }),
-      }}
-    >
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            fontWeight: 700,
-            fontSize: isMobile ? 18 : 15,
-            lineHeight: 1.2,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            marginBottom: 10,
-          }}
-        >
-          {song.title}
-        </div>
-
-        {!isMobile ? (
-          <div
-            style={{
-              color: "rgba(255,255,255,0.68)",
-              fontSize: 13,
-              lineHeight: 1.2,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              marginBottom: 10,
-            }}
-          >
-            {song.artist} • {getSongTypeLabel(song)}
-          </div>
-        ) : null}
-
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-          <Button
-            variant="secondary"
-            onClick={onPrevious}
-            style={{ padding: "7px 10px", fontSize: 13, minWidth: isMobile ? 44 : undefined }}
-          >
-            ⏮
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={onPlayPause}
-            style={{ padding: "7px 10px", fontSize: 13, minWidth: isMobile ? 86 : undefined }}
-          >
-            {isPlaying ? "Pause" : "Play"}
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={onNext}
-            style={{ padding: "7px 10px", fontSize: 13, minWidth: isMobile ? 44 : undefined }}
-          >
-            ⏭
-          </Button>
-          <Button variant="secondary" onClick={onExpand} style={{ padding: "7px 10px", fontSize: 13 }}>
-            Expand
-          </Button>
-          <Button variant="secondary" onClick={onClose} style={{ padding: "7px 10px", fontSize: 13 }}>
-            Close
-          </Button>
-        </div>
-
-        {song.audioUrl ? (
-          <AudioControls
-            isPlaying={isPlaying}
-            currentTime={currentTime}
-            duration={duration}
-            volume={volume}
-            isMuted={isMuted}
-            onPlayPause={onPlayPause}
-            onSeek={onSeek}
-            onVolumeChange={onVolumeChange}
-            onToggleMute={onToggleMute}
-            compact
-            isMobile={isMobile}
-            hidePlayButton
-            showVolumeSlider={!isMobile || showVolumeSlider}
-            onToggleVolumeSlider={onToggleVolumeSlider}
-          />
-        ) : null}
-      </div>
-    </div>
-  );
-}
+/* ===== PART 5/6: APP STATE + REFS + EFFECTS + MEMO LOGIC ===== */
 
 function App() {
   const [songs, setSongs] = useState(() => {
     clearOldDemoDataOnce();
     return [];
   });
+
   const [songAnalytics, setSongAnalytics] = useState({});
   const [editingSongId, setEditingSongId] = useState(null);
   const [hasUnsavedSongChanges, setHasUnsavedSongChanges] = useState(false);
   const [editingOriginalSong, setEditingOriginalSong] = useState(null);
+
   const [requests, setRequests] = useState([]);
   const [messages, setMessages] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
+
   const [adminLoggedIn, setAdminLoggedIn] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEYS.admin) || "false");
@@ -1728,26 +1107,32 @@ function App() {
       return false;
     }
   });
+
   const [view, setView] = useState("home");
   const [adminPassword, setAdminPassword] = useState("");
   const [loginError, setLoginError] = useState("");
+
   const [search, setSearch] = useState("");
   const [filterMode, setFilterMode] = useState("all");
   const [requestFilter, setRequestFilter] = useState("all");
   const [adminSongFilter, setAdminSongFilter] = useState("all");
+
   const [playerSong, setPlayerSong] = useState(null);
   const [playerMinimized, setPlayerMinimized] = useState(false);
   const [playerCurrentTime, setPlayerCurrentTime] = useState(0);
   const [playerDuration, setPlayerDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+
   const [isUploading, setIsUploading] = useState(false);
   const [isReorderingSongs, setIsReorderingSongs] = useState(false);
+
   const [volume, setVolume] = useState(1);
   const [previousVolume, setPreviousVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(
-    () => (typeof window !== "undefined" ? window.innerWidth : 1200)
+
+  const [windowWidth, setWindowWidth] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth : 1200
   );
 
   const trackedOpenSongIdsRef = useRef(new Set());
@@ -1785,6 +1170,7 @@ function App() {
   const [requestSent, setRequestSent] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState("");
   const [messageSuccess, setMessageSuccess] = useState("");
+
   const [messageForm, setMessageForm] = useState({
     from: "",
     replyPlatform: "",
@@ -1803,13 +1189,19 @@ function App() {
       featured: false,
       visibility: "public",
     });
-    setNewSongFiles({ coverFile: null, audioFile: null });
+
+    setNewSongFiles({
+      coverFile: null,
+      audioFile: null,
+    });
+
     setEditingSongId(null);
     setEditingOriginalSong(null);
     setHasUnsavedSongChanges(false);
 
     const coverInput = document.getElementById("song-cover-input");
     const audioInput = document.getElementById("song-audio-input");
+
     if (coverInput) coverInput.value = "";
     if (audioInput) audioInput.value = "";
   }
@@ -1824,6 +1216,7 @@ function App() {
 
     setEditingSongId(song.id);
     setEditingOriginalSong(song);
+
     setNewSong({
       title: song.title || "",
       artist: song.artist || "DJ-Buang",
@@ -1834,11 +1227,17 @@ function App() {
       featured: !!song.featured,
       visibility: song.visibility || "public",
     });
-    setNewSongFiles({ coverFile: null, audioFile: null });
+
+    setNewSongFiles({
+      coverFile: null,
+      audioFile: null,
+    });
+
     setHasUnsavedSongChanges(false);
 
     const coverInput = document.getElementById("song-cover-input");
     const audioInput = document.getElementById("song-audio-input");
+
     if (coverInput) coverInput.value = "";
     if (audioInput) audioInput.value = "";
   }
@@ -1853,8 +1252,10 @@ function App() {
     async function loadSongs() {
       try {
         const cloudSongs = await fetchSongsFromCloudflare();
+
         if (!cancelled) {
           const normalizedSongs = ensureSongSortOrders(cloudSongs);
+
           const { data: likesData, error: likesError } = await supabase
             .from("song_likes")
             .select("*");
@@ -1865,7 +1266,9 @@ function App() {
 
           const songsWithLiveLikes = normalizedSongs.map((song) => ({
             ...song,
-            likes: likesMap.has(song.id) ? likesMap.get(song.id) : Number(song.likes || 0),
+            likes: likesMap.has(song.id)
+              ? likesMap.get(song.id)
+              : Number(song.likes || 0),
           }));
 
           if (likesError) {
@@ -1881,10 +1284,14 @@ function App() {
           }
         }
       } catch (error) {
-        console.warn("Could not load songs from Cloudflare, trying Supabase backup:", error);
+        console.warn(
+          "Could not load songs from Cloudflare, trying Supabase backup:",
+          error
+        );
 
         try {
           const backupSongs = await fetchSongsFromSupabaseBackup();
+
           if (!cancelled && backupSongs.length > 0) {
             setSongs(ensureSongSortOrders(backupSongs));
             return;
@@ -1894,7 +1301,9 @@ function App() {
         }
 
         if (!cancelled) {
-          const localSongs = ensureSongSortOrders(getStored(STORAGE_KEYS.songs, DEFAULT_SONGS));
+          const localSongs = ensureSongSortOrders(
+            getStored(STORAGE_KEYS.songs, DEFAULT_SONGS)
+          );
           setSongs(localSongs);
         }
       }
@@ -1902,10 +1311,12 @@ function App() {
 
     async function loadAnalytics() {
       const { data, error } = await supabase.from("song_analytics").select("*");
+
       if (error) {
         console.error("Could not load analytics:", error);
         return;
       }
+
       if (cancelled) return;
 
       const nextMap = {};
@@ -1913,6 +1324,7 @@ function App() {
         const normalized = normalizeAnalyticsRow(row);
         nextMap[normalized.song_id] = normalized;
       });
+
       setSongAnalytics(nextMap);
     }
 
@@ -2055,7 +1467,9 @@ function App() {
           setSongs((prev) =>
             prev.map((song) => ({
               ...song,
-              likes: likesMap.has(song.id) ? likesMap.get(song.id) : Number(song.likes || 0),
+              likes: likesMap.has(song.id)
+                ? likesMap.get(song.id)
+                : Number(song.likes || 0),
             }))
           );
         }
@@ -2068,7 +1482,10 @@ function App() {
         "postgres_changes",
         { event: "*", schema: "public", table: "song_analytics" },
         async () => {
-          const { data, error } = await supabase.from("song_analytics").select("*");
+          const { data, error } = await supabase
+            .from("song_analytics")
+            .select("*");
+
           if (error) {
             console.error("Could not refresh analytics:", error);
             return;
@@ -2079,6 +1496,7 @@ function App() {
             const normalized = normalizeAnalyticsRow(row);
             nextMap[normalized.song_id] = normalized;
           });
+
           setSongAnalytics(nextMap);
         }
       )
@@ -2109,6 +1527,7 @@ function App() {
         createdAt: song.createdAt,
         sortOrder: song.sortOrder,
       }));
+
       localStorage.setItem(STORAGE_KEYS.songs, JSON.stringify(safeSongs));
     } catch (error) {
       console.warn("Skipping local song cache:", error);
@@ -2121,16 +1540,20 @@ function App() {
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
+
     window.addEventListener("resize", handleResize);
+
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const songId = params.get("song");
+
     if (!songId) return;
 
     const foundSong = songs.find((song) => song.id === songId);
+
     if (foundSong) {
       setView("home");
       setPlayerSong(foundSong);
@@ -2153,13 +1576,16 @@ function App() {
 
     const handlePlay = async () => {
       setIsPlaying(true);
+
       const currentSongId = playerSong?.id;
       if (!currentSongId) return;
       if (lastTrackedPlaySongIdRef.current === currentSongId) return;
+
       lastTrackedPlaySongIdRef.current = currentSongId;
 
       try {
         const updatedRow = await incrementSongAnalytics(currentSongId, "plays");
+
         if (updatedRow) {
           setSongAnalytics((prev) => ({
             ...prev,
@@ -2199,6 +1625,7 @@ function App() {
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+
     audio.volume = isMuted ? 0 : volume;
     audio.muted = isMuted;
   }, [volume, isMuted]);
@@ -2213,6 +1640,7 @@ function App() {
 
     if (shouldAutoplayOnSongChangeRef.current) {
       const playPromise = audio.play();
+
       if (playPromise && typeof playPromise.catch === "function") {
         playPromise.catch((error) => {
           console.warn("Autoplay blocked:", error);
@@ -2222,6 +1650,7 @@ function App() {
 
     shouldAutoplayOnSongChangeRef.current = false;
   }, [playerSong]);
+
   const publicSongs = useMemo(
     () =>
       ensureSongSortOrders(songs)
@@ -2235,6 +1664,7 @@ function App() {
 
     if (search.trim()) {
       const q = search.toLowerCase();
+
       list = list.filter(
         (song) =>
           song.title.toLowerCase().includes(q) ||
@@ -2251,9 +1681,11 @@ function App() {
         if (!!b.featured !== !!a.featured) {
           return b.featured ? 1 : -1;
         }
+
         if ((b.likes || 0) !== (a.likes || 0)) {
           return (b.likes || 0) - (a.likes || 0);
         }
+
         return compareSongsForDisplay(a, b);
       });
     } else if (filterMode === "requested") {
@@ -2264,13 +1696,16 @@ function App() {
       list.sort(compareSongsForDisplay);
     } else if (filterMode === "newest") {
       const newestSongs = list.filter((song) => isNewSong(song));
+
       if (newestSongs.length > 0) {
         list = newestSongs;
       }
+
       list.sort((a, b) => {
         if (!!b.featured !== !!a.featured) {
           return b.featured ? 1 : -1;
         }
+
         return new Date(b.createdAt) - new Date(a.createdAt);
       });
     } else {
@@ -2297,7 +1732,9 @@ function App() {
   }, [songs, adminSongFilter]);
 
   const topLikedSongs = useMemo(() => {
-    return [...publicSongs].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 3);
+    return [...publicSongs]
+      .sort((a, b) => (b.likes || 0) - (a.likes || 0))
+      .slice(0, 3);
   }, [publicSongs]);
 
   const featuredSpotlightSongs = useMemo(() => {
@@ -2309,6 +1746,7 @@ function App() {
 
   const newestSpotlightSongs = useMemo(() => {
     const featuredIds = new Set(featuredSpotlightSongs.map((song) => song.id));
+
     return [...publicSongs]
       .filter((song) => isNewSong(song) && !featuredIds.has(song.id))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -2326,6 +1764,7 @@ function App() {
     if (filterMode !== "all") {
       return filteredSongs;
     }
+
     return filteredSongs.filter((song) => !spotlightSongIds.has(song.id));
   }, [filteredSongs, spotlightSongIds, filterMode]);
 
@@ -2364,6 +1803,7 @@ function App() {
       if (a.status !== b.status) {
         return a.status === "pending" ? -1 : 1;
       }
+
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
@@ -2373,15 +1813,22 @@ function App() {
   const pendingRequests = requests.filter((r) => r.status === "pending").length;
   const doneRequests = requests.filter((r) => r.status === "done").length;
   const newMessages = messages.filter((m) => m.status === "new").length;
+
   const totalLikes = songs.reduce((sum, song) => sum + (song.likes || 0), 0);
+
   const totalOpens = Object.values(songAnalytics).reduce(
     (sum, row) => sum + Number(row.opens || 0),
     0
   );
+
   const totalPlays = Object.values(songAnalytics).reduce(
     (sum, row) => sum + Number(row.plays || 0),
     0
   );
+
+/* ===== END PART 5/6 ===== */
+
+/* ===== PART 6/6: HANDLERS + JSX RETURN + EXPORT ===== */
 
   const openPayPalDonation = () => {
     window.open(PAYPAL_URL, "_blank", "noopener,noreferrer");
@@ -2419,13 +1866,17 @@ function App() {
     const finalLikes = Number(refreshedLikeRow?.likes || nextLikes);
 
     setSongs((prev) =>
-      prev.map((song) => (song.id === songId ? { ...song, likes: finalLikes } : song))
+      prev.map((song) =>
+        song.id === songId ? { ...song, likes: finalLikes } : song
+      )
     );
+
     localStorage.setItem(likedKey, "true");
   };
 
   const handleAdminLogin = async (e) => {
     e.preventDefault();
+
     try {
       await loginAdmin(adminPassword);
       setAdminLoggedIn(true);
@@ -2496,12 +1947,16 @@ function App() {
       });
 
       if (editingSongId) {
-        setSongs((prev) => prev.map((song) => (song.id === editingSongId ? item : song)));
+        setSongs((prev) =>
+          prev.map((song) => (song.id === editingSongId ? item : song))
+        );
+
         await autoCleanReplacedFiles({
           oldSong: editingOriginalSong,
           newCoverUrl: uploadedCoverUrl,
           newAudioUrl: uploadedAudioUrl,
         });
+
         setUploadSuccess(`✅ "${item.title}" was updated successfully.`);
       } else {
         setSongs((prev) => [...prev, item]);
@@ -2517,7 +1972,8 @@ function App() {
     }
   };
 
-  const handleDeleteSong = async (id) => {
+  const handleDeleteSong = async (songOrId) => {
+    const id = typeof songOrId === "string" ? songOrId : songOrId?.id;
     const songToDelete = songs.find((song) => song.id === id);
     if (!songToDelete) return;
 
@@ -2529,6 +1985,7 @@ function App() {
       await deleteSongFromSupabaseBackup(id).catch((error) => {
         console.warn("Could not delete Supabase song backup:", error);
       });
+
       setSongs((prev) => prev.filter((song) => song.id !== id));
       await autoCleanDeletedSongFiles(songToDelete);
 
@@ -2543,6 +2000,7 @@ function App() {
           audio.removeAttribute("src");
           audio.load();
         }
+
         setPlayerSong(null);
         setPlayerMinimized(false);
         setPlayerCurrentTime(0);
@@ -2561,11 +2019,15 @@ function App() {
     if (!requestToDelete) return;
 
     const confirmed = window.confirm(
-  `Delete request "${requestToDelete.title}" from ${requestToDelete.name}?`
-);
+      `Delete request "${requestToDelete.title}" from ${requestToDelete.name}?`
+    );
     if (!confirmed) return;
 
-    const { error } = await supabase.from("song_requests").delete().eq("id", requestId);
+    const { error } = await supabase
+      .from("song_requests")
+      .delete()
+      .eq("id", requestId);
+
     if (error) {
       console.error("Could not delete request:", error);
       alert("Could not delete request.");
@@ -2573,6 +2035,7 @@ function App() {
     }
 
     setRequests((prev) => prev.filter((req) => req.id !== requestId));
+
     if (selectedRequest?.id === requestId) {
       setSelectedRequest(null);
     }
@@ -2582,10 +2045,16 @@ function App() {
     const messageToDelete = messages.find((msg) => msg.id === messageId);
     if (!messageToDelete) return;
 
-    const confirmed = window.confirm(`Delete private message from "${messageToDelete.from}"?`);
+    const confirmed = window.confirm(
+      `Delete private message from "${messageToDelete.from}"?`
+    );
     if (!confirmed) return;
 
-    const { error } = await supabase.from("private_messages").delete().eq("id", messageId);
+    const { error } = await supabase
+      .from("private_messages")
+      .delete()
+      .eq("id", messageId);
+
     if (error) {
       console.error("Could not delete private message:", error);
       alert("Could not delete private message.");
@@ -2600,6 +2069,7 @@ function App() {
     if (!currentMessage) return;
 
     const nextStatus = currentMessage.status === "new" ? "read" : "new";
+
     const { error } = await supabase
       .from("private_messages")
       .update({ status: nextStatus })
@@ -2612,15 +2082,19 @@ function App() {
     }
 
     setMessages((prev) =>
-      prev.map((msg) => (msg.id === messageId ? { ...msg, status: nextStatus } : msg))
+      prev.map((msg) =>
+        msg.id === messageId ? { ...msg, status: nextStatus } : msg
+      )
     );
   };
 
-  const handleMoveSong = async (songId, direction) => {
+  const handleMoveSong = async (songOrId, direction) => {
     if (isReorderingSongs) return;
 
+    const songId = typeof songOrId === "string" ? songOrId : songOrId?.id;
     const visibleList = [...adminSongs];
     const currentIndex = visibleList.findIndex((song) => song.id === songId);
+
     if (currentIndex === -1) return;
 
     const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
@@ -2632,13 +2106,13 @@ function App() {
     const currentSortOrder = Number.isFinite(Number(currentSong.sortOrder))
       ? Number(currentSong.sortOrder)
       : currentIndex + 1;
+
     const targetSortOrder = Number.isFinite(Number(targetSong.sortOrder))
       ? Number(targetSong.sortOrder)
       : targetIndex + 1;
 
     const updatedCurrentSong = { ...currentSong, sortOrder: targetSortOrder };
     const updatedTargetSong = { ...targetSong, sortOrder: currentSortOrder };
-
     const previousSongs = songs;
 
     setSongs((prev) =>
@@ -2651,6 +2125,7 @@ function App() {
 
     try {
       setIsReorderingSongs(true);
+
       await Promise.all([
         saveSongToCloudflare(updatedCurrentSong),
         saveSongToCloudflare(updatedTargetSong),
@@ -2670,6 +2145,7 @@ function App() {
     if (!requestForm.name.trim() || !requestForm.title.trim()) return;
 
     const email = requestForm.email.trim();
+
     if (requestForm.notify && !email) {
       alert("Please enter your email address if you want notification.");
       return;
@@ -2717,6 +2193,7 @@ function App() {
     };
 
     setRequests((prev) => [newRequest, ...prev]);
+
     setRequestForm({
       name: "",
       title: "",
@@ -2725,6 +2202,7 @@ function App() {
       notify: false,
       delivery: "public",
     });
+
     setRequestSent(true);
   };
 
@@ -2749,9 +2227,9 @@ function App() {
     const payload = {
       sender_name: trimmedName,
       sender_email:
-  trimmedReplyPlatform && trimmedReplyContact
-    ? `${trimmedReplyPlatform}: ${trimmedReplyContact}`
-    : trimmedReplyContact,
+        trimmedReplyPlatform && trimmedReplyContact
+          ? `${trimmedReplyPlatform}: ${trimmedReplyContact}`
+          : trimmedReplyContact,
       message: trimmedMessage,
       status: "new",
     };
@@ -2778,7 +2256,12 @@ function App() {
     };
 
     setMessages((prev) => [newMessage, ...prev]);
-    setMessageForm({ from: "", replyPlatform: "", replyContact: "", message: "" });
+    setMessageForm({
+      from: "",
+      replyPlatform: "",
+      replyContact: "",
+      message: "",
+    });
     setMessageSuccess("✉️ Private message sent successfully.");
   };
 
@@ -2787,6 +2270,7 @@ function App() {
     if (!request) return;
 
     const nextStatus = request.status === "pending" ? "done" : "pending";
+
     const { error } = await supabase
       .from("song_requests")
       .update({ status: nextStatus })
@@ -2805,7 +2289,10 @@ function App() {
   const linkSongToRequest = async (requestId, songId) => {
     const { error } = await supabase
       .from("song_requests")
-      .update({ linked_song_id: songId, status: songId ? "done" : "pending" })
+      .update({
+        linked_song_id: songId,
+        status: songId ? "done" : "pending",
+      })
       .eq("id", requestId);
 
     if (error) {
@@ -2816,7 +2303,11 @@ function App() {
     setRequests((prev) =>
       prev.map((r) =>
         r.id === requestId
-          ? { ...r, linkedSongId: songId, status: songId ? "done" : "pending" }
+          ? {
+              ...r,
+              linkedSongId: songId,
+              status: songId ? "done" : "pending",
+            }
           : r
       )
     );
@@ -2829,8 +2320,10 @@ function App() {
 
     if (!trackedOpenSongIdsRef.current.has(song.id)) {
       trackedOpenSongIdsRef.current.add(song.id);
+
       try {
         const updatedRow = await incrementSongAnalytics(song.id, "opens");
+
         if (updatedRow) {
           setSongAnalytics((prev) => ({
             ...prev,
@@ -2846,6 +2339,7 @@ function App() {
   const handleSeek = (time) => {
     const audio = audioRef.current;
     if (!audio) return;
+
     audio.currentTime = time;
     setPlayerCurrentTime(time);
   };
@@ -2853,6 +2347,7 @@ function App() {
   const handlePlayPause = () => {
     const audio = audioRef.current;
     if (!audio) return;
+
     if (audio.paused) {
       audio.play();
     } else {
@@ -2862,10 +2357,13 @@ function App() {
 
   const handleNextSong = () => {
     if (!playerSong) return;
+
     const index = publicSongs.findIndex((s) => s.id === playerSong.id);
     if (index === -1) return;
+
     const next = publicSongs[index + 1];
     if (!next) return;
+
     shouldAutoplayOnSongChangeRef.current = isPlaying;
     setPlayerSong(next);
     lastTrackedPlaySongIdRef.current = null;
@@ -2873,8 +2371,10 @@ function App() {
 
   const handlePreviousSong = () => {
     if (!playerSong) return;
+
     const index = publicSongs.findIndex((s) => s.id === playerSong.id);
     if (index <= 0) return;
+
     const prev = publicSongs[index - 1];
     shouldAutoplayOnSongChangeRef.current = isPlaying;
     setPlayerSong(prev);
@@ -2883,6 +2383,7 @@ function App() {
 
   const handleVolumeChange = (value) => {
     setVolume(value);
+
     if (value > 0) {
       setPreviousVolume(value);
       setIsMuted(false);
@@ -2901,11 +2402,13 @@ function App() {
 
   const handleClosePlayer = () => {
     const audio = audioRef.current;
+
     if (audio) {
       audio.pause();
       audio.removeAttribute("src");
       audio.load();
     }
+
     setPlayerSong(null);
     setPlayerMinimized(false);
     setPlayerCurrentTime(0);
@@ -2958,10 +2461,18 @@ function App() {
 
       try {
         const logoData = await loadImageAsDataUrl("/hero-logo.png");
+
         if (logoData) {
           const logoWidth = 42;
           const logoHeight = 22;
-          doc.addImage(logoData, "PNG", (pageWidth - logoWidth) / 2, y, logoWidth, logoHeight);
+          doc.addImage(
+            logoData,
+            "PNG",
+            (pageWidth - logoWidth) / 2,
+            y,
+            logoWidth,
+            logoHeight
+          );
           y += 28;
         }
       } catch (logoError) {
@@ -2970,14 +2481,19 @@ function App() {
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(22);
-      doc.text(song.title || "Untitled Song", pageWidth / 2, y, { align: "center" });
+      doc.text(song.title || "Untitled Song", pageWidth / 2, y, {
+        align: "center",
+      });
       y += 10;
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
       doc.setTextColor(90, 90, 90);
-      doc.text(`Artist: ${song.artist || "DJ-Buang"}`, pageWidth / 2, y, { align: "center" });
+      doc.text(`Artist: ${song.artist || "DJ-Buang"}`, pageWidth / 2, y, {
+        align: "center",
+      });
       y += 6;
+
       doc.text(songType, pageWidth / 2, y, { align: "center" });
       y += 10;
 
@@ -2995,12 +2511,15 @@ function App() {
         doc.setFont("helvetica", "italic");
         doc.setFontSize(10);
         doc.setTextColor(110, 110, 110);
-        doc.text(footerText, pageWidth / 2, pageHeight - 10, { align: "center" });
+        doc.text(footerText, pageWidth / 2, pageHeight - 10, {
+          align: "center",
+        });
       };
 
       addFooter();
 
       const lineHeight = 6.6;
+
       for (let i = 0; i < lyricsLines.length; i += 1) {
         if (y > pageHeight - 18) {
           doc.addPage();
@@ -3010,11 +2529,15 @@ function App() {
           doc.setFontSize(12);
           doc.setTextColor(20, 20, 20);
         }
+
         doc.text(lyricsLines[i], marginX, y);
         y += lineHeight;
       }
 
-      const safeTitle = (song.title || "lyrics").replace(/[<>:"/\\|?*]+/g, "").trim();
+      const safeTitle = (song.title || "lyrics")
+        .replace(/[<>:"/\\|?*]+/g, "")
+        .trim();
+
       doc.save(`${safeTitle}-lyrics.pdf`);
     } catch (error) {
       console.error("Could not create lyrics PDF:", error);
@@ -3024,6 +2547,7 @@ function App() {
 
   const copySongLink = async (songId) => {
     const url = `${window.location.origin}${window.location.pathname}?song=${songId}`;
+
     try {
       await navigator.clipboard.writeText(url);
       alert("Song link copied!");
@@ -3031,6 +2555,7 @@ function App() {
       alert(url);
     }
   };
+
   return (
     <div
       style={{
@@ -3064,15 +2589,15 @@ function App() {
             >
               <div
                 style={{
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: 18,
-  flexWrap: "wrap",
-  width: "100%",
-  maxWidth: "100%",
-  overflowX: "hidden",
-}}
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: 18,
+                  flexWrap: "wrap",
+                  width: "100%",
+                  maxWidth: "100%",
+                  overflowX: "hidden",
+                }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
@@ -3090,7 +2615,7 @@ function App() {
                         display: "flex",
                         gap: 10,
                         flexWrap: "nowrap",
-overflow: "hidden",
+                        overflow: "hidden",
                         alignItems: "center",
                         minWidth: 0,
                         flex: 1,
@@ -3105,6 +2630,7 @@ overflow: "hidden",
                       >
                         DJ-Buang Official
                       </Badge>
+
                       <Badge
                         style={{
                           flex: isMobile ? "1 1 auto" : "0 0 auto",
@@ -3114,6 +2640,7 @@ overflow: "hidden",
                       >
                         🎤 Mobile ready
                       </Badge>
+
                       {isMobile ? (
                         <Button
                           variant="secondary"
@@ -3157,27 +2684,30 @@ overflow: "hidden",
                       color: "rgba(255,255,255,0.76)",
                     }}
                   >
-                    I’m DJ-BUANG, also known as OwGusson — making songs for the Date In Asia
-                    community, friends, and the occasional private request along the way.
+                    I’m DJ-BUANG, also known as OwGusson — making songs for the
+                    Date In Asia community, friends, and the occasional private
+                    request along the way.
                     <br />
                     <br />
-                    Feel free to explore the library, give your favorite tracks a thumbs-up,
-                    and download songs or lyrics if something speaks to you. If you enjoy the
-                    music and want to support what I do, it’s always appreciated — but most of
-                    all, I’m just glad you’re here listening.
+                    Feel free to explore the library, give your favorite tracks a
+                    thumbs-up, and download songs or lyrics if something speaks
+                    to you. If you enjoy the music and want to support what I do,
+                    it’s always appreciated — but most of all, I’m just glad
+                    you’re here listening.
                   </p>
 
                   <div
-  style={{
-    display: "flex",
-    gap: 10,
-    flexWrap: "wrap",
-    marginTop: isMobile ? 14 : 24,
-  }}
->
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      flexWrap: "wrap",
+                      marginTop: isMobile ? 14 : 24,
+                    }}
+                  >
                     <Button variant="secondary" onClick={openPayPalDonation}>
                       ♡ Support / Donate
                     </Button>
+
                     <Button
                       variant="secondary"
                       onClick={() => {
@@ -3189,6 +2719,7 @@ overflow: "hidden",
                     >
                       🗒 Song Request
                     </Button>
+
                     <Button
                       variant="secondary"
                       onClick={() => {
@@ -3220,7 +2751,11 @@ overflow: "hidden",
                         setUploadSuccess("");
                         setView(adminLoggedIn ? "admin" : "login");
                       }}
-                      style={{ minWidth: "auto", padding: "10px 14px", fontSize: 14 }}
+                      style={{
+                        minWidth: "auto",
+                        padding: "10px 14px",
+                        fontSize: 14,
+                      }}
                     >
                       🔒 Admin
                     </Button>
@@ -3283,7 +2818,11 @@ overflow: "hidden",
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                     />
-                    <Select value={filterMode} onChange={(e) => setFilterMode(e.target.value)}>
+
+                    <Select
+                      value={filterMode}
+                      onChange={(e) => setFilterMode(e.target.value)}
+                    >
                       <option value="all" style={{ color: "black" }}>
                         All songs
                       </option>
@@ -3308,7 +2847,12 @@ overflow: "hidden",
                   <div style={{ display: "grid", gap: 14 }}>
                     {showSpotlights && featuredSpotlightSongs.length > 0 ? (
                       <div style={{ display: "grid", gap: 12 }}>
-                        <SectionHeading icon="⭐" title="Featured Spotlight" tone="featured" />
+                        <SectionHeading
+                          icon="⭐"
+                          title="Featured Spotlight"
+                          tone="featured"
+                        />
+
                         {featuredSpotlightSongs.map((song) => (
                           <SongRow
                             key={`featured-${song.id}`}
@@ -3319,6 +2863,7 @@ overflow: "hidden",
                             onDownloadSong={downloadSong}
                             onDownloadLyrics={downloadLyrics}
                             isMobile={isMobile}
+                            onCopyLink={copySongLink}
                           />
                         ))}
                       </div>
@@ -3326,7 +2871,12 @@ overflow: "hidden",
 
                     {showSpotlights && newestSpotlightSongs.length > 0 ? (
                       <div style={{ display: "grid", gap: 12 }}>
-                        <SectionHeading icon="🆕" title="Newest Drops" tone="new" />
+                        <SectionHeading
+                          icon="🆕"
+                          title="Newest Drops"
+                          tone="new"
+                        />
+
                         {newestSpotlightSongs.map((song) => (
                           <SongRow
                             key={`newest-${song.id}`}
@@ -3337,6 +2887,7 @@ overflow: "hidden",
                             onDownloadSong={downloadSong}
                             onDownloadLyrics={downloadLyrics}
                             isMobile={isMobile}
+                            onCopyLink={copySongLink}
                           />
                         ))}
                       </div>
@@ -3345,6 +2896,7 @@ overflow: "hidden",
                     {remainingSongs.length > 0 ? (
                       <div style={{ display: "grid", gap: 12 }}>
                         <SectionHeading icon="🎵" title="More Songs" />
+
                         {remainingSongs.map((song) => (
                           <SongRow
                             key={song.id}
@@ -3355,18 +2907,24 @@ overflow: "hidden",
                             onDownloadSong={downloadSong}
                             onDownloadLyrics={downloadLyrics}
                             isMobile={isMobile}
+                            onCopyLink={copySongLink}
                           />
                         ))}
                       </div>
                     ) : (
-                      <div style={{ color: "rgba(255,255,255,0.70)" }}>No more songs found.</div>
+                      <div style={{ color: "rgba(255,255,255,0.70)" }}>
+                        No more songs found.
+                      </div>
                     )}
                   </div>
                 </div>
               </Panel>
 
               <div style={{ display: "grid", gap: 22, alignContent: "start" }}>
-                <Panel title="♡ Top 3 Most Liked Songs" subtitle="The crowd favorites as they build up.">
+                <Panel
+                  title="♡ Top 3 Most Liked Songs"
+                  subtitle="The crowd favorites as they build up."
+                >
                   <div style={{ display: "grid", gap: 12 }}>
                     {topLikedSongs.length > 0 ? (
                       topLikedSongs.map((song, i) => (
@@ -3395,7 +2953,11 @@ overflow: "hidden",
                               <div
                                 style={{
                                   color:
-                                    i === 0 ? "#fde68a" : i === 1 ? "#cbd5e1" : "#fdba74",
+                                    i === 0
+                                      ? "#fde68a"
+                                      : i === 1
+                                      ? "#cbd5e1"
+                                      : "#fdba74",
                                   marginBottom: 8,
                                   fontWeight: 800,
                                   letterSpacing: "0.08em",
@@ -3403,11 +2965,21 @@ overflow: "hidden",
                               >
                                 #{i + 1}
                               </div>
-                              <div style={{ fontSize: 20, fontWeight: 700 }}>{song.title}</div>
-                              <div style={{ color: "rgba(255,255,255,0.70)", marginTop: 4 }}>
+
+                              <div style={{ fontSize: 20, fontWeight: 700 }}>
+                                {song.title}
+                              </div>
+
+                              <div
+                                style={{
+                                  color: "rgba(255,255,255,0.70)",
+                                  marginTop: 4,
+                                }}
+                              >
                                 {getSongTypeLabel(song)}
                               </div>
                             </div>
+
                             <Badge>{song.likes} likes</Badge>
                           </div>
                         </div>
@@ -3420,7 +2992,10 @@ overflow: "hidden",
                   </div>
                 </Panel>
 
-                <Panel title="◉ Connect" subtitle="Song requests, private messages, and support are open.">
+                <Panel
+                  title="◉ Connect"
+                  subtitle="Song requests, private messages, and support are open."
+                >
                   <div style={{ display: "grid", gap: 12 }}>
                     <Button
                       variant="primary"
@@ -3433,6 +3008,7 @@ overflow: "hidden",
                     >
                       🗒 Open Song Request Form
                     </Button>
+
                     <Button
                       variant="secondary"
                       onClick={() => {
@@ -3443,6 +3019,7 @@ overflow: "hidden",
                     >
                       💬 Open Private Message Form
                     </Button>
+
                     <Button variant="secondary" onClick={openPayPalDonation}>
                       ♡ Support on PayPal
                     </Button>
@@ -3454,7 +3031,10 @@ overflow: "hidden",
         )}
 
         {view === "request" && (
-          <Panel title="Song Request" subtitle="Send a request and it will show up in the admin panel.">
+          <Panel
+            title="Song Request"
+            subtitle="Send a request and it will show up in the admin panel."
+          >
             {requestSent && (
               <div
                 style={{
@@ -3467,31 +3047,48 @@ overflow: "hidden",
                 }}
               >
                 <strong>🎶 Request received!</strong>
-                <div style={{ marginTop: 6, lineHeight: 1.5 }}>Thanks for sending a request.</div>
+                <div style={{ marginTop: 6, lineHeight: 1.5 }}>
+                  Thanks for sending a request.
+                </div>
               </div>
             )}
 
-            <form onSubmit={handleRequestSubmit} style={{ display: "grid", gap: 16, maxWidth: 760 }}>
+            <form
+              onSubmit={handleRequestSubmit}
+              style={{ display: "grid", gap: 16, maxWidth: 760 }}
+            >
               <Input
                 label="Name"
                 value={requestForm.name}
-                onChange={(e) => setRequestForm((prev) => ({ ...prev, name: e.target.value }))}
+                onChange={(e) =>
+                  setRequestForm((prev) => ({ ...prev, name: e.target.value }))
+                }
               />
+
               <Input
                 label="Song title / idea"
                 value={requestForm.title}
-                onChange={(e) => setRequestForm((prev) => ({ ...prev, title: e.target.value }))}
+                onChange={(e) =>
+                  setRequestForm((prev) => ({ ...prev, title: e.target.value }))
+                }
               />
+
               <TextArea
                 label="Details"
                 value={requestForm.details}
-                onChange={(e) => setRequestForm((prev) => ({ ...prev, details: e.target.value }))}
+                onChange={(e) =>
+                  setRequestForm((prev) => ({ ...prev, details: e.target.value }))
+                }
               />
+
               <Select
                 label="Delivery"
                 value={requestForm.delivery}
                 onChange={(e) =>
-                  setRequestForm((prev) => ({ ...prev, delivery: e.target.value }))
+                  setRequestForm((prev) => ({
+                    ...prev,
+                    delivery: e.target.value,
+                  }))
                 }
               >
                 <option value="public" style={{ color: "black" }}>
@@ -3501,27 +3098,40 @@ overflow: "hidden",
                   Send to me privately
                 </option>
               </Select>
+
               <Input
                 label="E-mail"
                 type="email"
                 value={requestForm.email}
-                onChange={(e) => setRequestForm((prev) => ({ ...prev, email: e.target.value }))}
+                onChange={(e) =>
+                  setRequestForm((prev) => ({ ...prev, email: e.target.value }))
+                }
               />
+
               <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <input
                   type="checkbox"
                   checked={requestForm.notify}
                   onChange={(e) =>
-                    setRequestForm((prev) => ({ ...prev, notify: e.target.checked }))
+                    setRequestForm((prev) => ({
+                      ...prev,
+                      notify: e.target.checked,
+                    }))
                   }
                 />
                 Notify me if the song is ready
               </label>
+
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <Button type="submit" variant="primary">
                   Send Request
                 </Button>
-                <Button type="button" variant="secondary" onClick={() => setView("home")}>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setView("home")}
+                >
                   Back Home
                 </Button>
               </div>
@@ -3530,7 +3140,10 @@ overflow: "hidden",
         )}
 
         {view === "message" && (
-          <Panel title="Private Message" subtitle="This goes to a separate private admin area.">
+          <Panel
+            title="Private Message"
+            subtitle="This goes to a separate private admin area."
+          >
             {messageSuccess && (
               <div
                 style={{
@@ -3546,17 +3159,26 @@ overflow: "hidden",
               </div>
             )}
 
-            <form onSubmit={handleMessageSubmit} style={{ display: "grid", gap: 16, maxWidth: 760 }}>
+            <form
+              onSubmit={handleMessageSubmit}
+              style={{ display: "grid", gap: 16, maxWidth: 760 }}
+            >
               <Input
                 label="Name or username"
                 value={messageForm.from}
-                onChange={(e) => setMessageForm((prev) => ({ ...prev, from: e.target.value }))}
+                onChange={(e) =>
+                  setMessageForm((prev) => ({ ...prev, from: e.target.value }))
+                }
               />
+
               <Select
                 label="Reply platform (optional)"
                 value={messageForm.replyPlatform}
                 onChange={(e) =>
-                  setMessageForm((prev) => ({ ...prev, replyPlatform: e.target.value }))
+                  setMessageForm((prev) => ({
+                    ...prev,
+                    replyPlatform: e.target.value,
+                  }))
                 }
               >
                 <option value="" style={{ color: "black" }}>
@@ -3572,22 +3194,27 @@ overflow: "hidden",
                   DIA username
                 </option>
               </Select>
+
               <Input
                 label="Reply contact (optional)"
                 helper={
                   messageForm.replyPlatform === "email"
                     ? "Enter your e-mail address if you want DJ-BUANG to reply."
                     : messageForm.replyPlatform === "discord"
-                      ? "Enter your Discord username if you want DJ-BUANG to reply."
-                      : messageForm.replyPlatform === "dia"
-                        ? "Enter your DIA username if you want DJ-BUANG to reply."
-                        : "Choose a reply platform above, then enter your contact if you want DJ-BUANG to reply."
+                    ? "Enter your Discord username if you want DJ-BUANG to reply."
+                    : messageForm.replyPlatform === "dia"
+                    ? "Enter your DIA username if you want DJ-BUANG to reply."
+                    : "Choose a reply platform above, then enter your contact if you want DJ-BUANG to reply."
                 }
                 value={messageForm.replyContact}
                 onChange={(e) =>
-                  setMessageForm((prev) => ({ ...prev, replyContact: e.target.value }))
+                  setMessageForm((prev) => ({
+                    ...prev,
+                    replyContact: e.target.value,
+                  }))
                 }
               />
+
               <TextArea
                 label="Message"
                 value={messageForm.message}
@@ -3595,11 +3222,17 @@ overflow: "hidden",
                   setMessageForm((prev) => ({ ...prev, message: e.target.value }))
                 }
               />
+
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <Button type="submit" variant="primary">
                   Send Message
                 </Button>
-                <Button type="button" variant="secondary" onClick={() => setView("home")}>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setView("home")}
+                >
                   Back Home
                 </Button>
               </div>
@@ -3608,14 +3241,21 @@ overflow: "hidden",
         )}
 
         {view === "login" && !adminLoggedIn && (
-          <Panel title="Admin Login" subtitle="Use this to open the private admin dashboard.">
-            <form onSubmit={handleAdminLogin} style={{ display: "grid", gap: 16, maxWidth: 460 }}>
+          <Panel
+            title="Admin Login"
+            subtitle="Use this to open the private admin dashboard."
+          >
+            <form
+              onSubmit={handleAdminLogin}
+              style={{ display: "grid", gap: 16, maxWidth: 460 }}
+            >
               <Input
                 type="password"
                 label="Password"
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
               />
+
               {loginError ? (
                 <div
                   style={{
@@ -3629,11 +3269,17 @@ overflow: "hidden",
                   {loginError}
                 </div>
               ) : null}
+
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <Button type="submit" variant="primary">
                   Login
                 </Button>
-                <Button type="button" variant="secondary" onClick={() => setView("home")}>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setView("home")}
+                >
                   Back Home
                 </Button>
               </div>
@@ -3725,6 +3371,7 @@ overflow: "hidden",
                     if (editingSongId) setHasUnsavedSongChanges(true);
                   }}
                 />
+
                 <Input
                   label="Artist"
                   value={newSong.artist}
@@ -3733,6 +3380,7 @@ overflow: "hidden",
                     if (editingSongId) setHasUnsavedSongChanges(true);
                   }}
                 />
+
                 <Input
                   label="Requested by"
                   value={newSong.requestedBy}
@@ -3741,6 +3389,7 @@ overflow: "hidden",
                     if (editingSongId) setHasUnsavedSongChanges(true);
                   }}
                 />
+
                 <Select
                   label="Collection"
                   value={newSong.visibility}
@@ -3758,9 +3407,16 @@ overflow: "hidden",
                 </Select>
 
                 <div>
-                  <div style={{ marginBottom: 8, fontSize: 14, color: "rgba(255,255,255,0.82)" }}>
+                  <div
+                    style={{
+                      marginBottom: 8,
+                      fontSize: 14,
+                      color: "rgba(255,255,255,0.82)",
+                    }}
+                  >
                     Upload cover image
                   </div>
+
                   <input
                     id="song-cover-input"
                     type="file"
@@ -3770,6 +3426,7 @@ overflow: "hidden",
                         ...prev,
                         coverFile: e.target.files?.[0] || null,
                       }));
+
                       if (editingSongId) setHasUnsavedSongChanges(true);
                     }}
                     style={{
@@ -3785,9 +3442,16 @@ overflow: "hidden",
                 </div>
 
                 <div>
-                  <div style={{ marginBottom: 8, fontSize: 14, color: "rgba(255,255,255,0.82)" }}>
+                  <div
+                    style={{
+                      marginBottom: 8,
+                      fontSize: 14,
+                      color: "rgba(255,255,255,0.82)",
+                    }}
+                  >
                     Upload MP3 song
                   </div>
+
                   <input
                     id="song-audio-input"
                     type="file"
@@ -3797,6 +3461,7 @@ overflow: "hidden",
                         ...prev,
                         audioFile: e.target.files?.[0] || null,
                       }));
+
                       if (editingSongId) setHasUnsavedSongChanges(true);
                     }}
                     style={{
@@ -3843,10 +3508,18 @@ overflow: "hidden",
                   />
                 </div>
 
-                <div style={{ gridColumn: "1 / -1", display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <div
+                  style={{
+                    gridColumn: "1 / -1",
+                    display: "flex",
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
                   <Button type="submit" variant="primary" disabled={isUploading}>
                     {isUploading ? "Saving..." : editingSongId ? "Save Changes" : "Upload Song"}
                   </Button>
+
                   {editingSongId ? (
                     <Button type="button" variant="secondary" onClick={cancelEditSong}>
                       Cancel Edit
@@ -3861,7 +3534,10 @@ overflow: "hidden",
               subtitle="Compact view of your uploaded songs, including private ones."
               right={
                 <div style={{ minWidth: 220 }}>
-                  <Select value={adminSongFilter} onChange={(e) => setAdminSongFilter(e.target.value)}>
+                  <Select
+                    value={adminSongFilter}
+                    onChange={(e) => setAdminSongFilter(e.target.value)}
+                  >
                     <option value="all" style={{ color: "black" }}>
                       All songs
                     </option>
@@ -3890,20 +3566,23 @@ overflow: "hidden",
                       analytics={songAnalytics[song.id]}
                       isAdmin
                       isMobile={isMobile}
+                      onLike={handleLikeSong}
                       onOpenPlayer={handleOpenSong}
                       onDownloadSong={downloadSong}
                       onDownloadLyrics={downloadLyrics}
                       onDelete={handleDeleteSong}
                       onCopyLink={copySongLink}
                       onEdit={startEditSong}
-                      onMoveUp={(songId) => handleMoveSong(songId, "up")}
-                      onMoveDown={(songId) => handleMoveSong(songId, "down")}
+                      onMoveUp={(songItem) => handleMoveSong(songItem, "up")}
+                      onMoveDown={(songItem) => handleMoveSong(songItem, "down")}
                       canMoveUp={index > 0 && !isReorderingSongs}
                       canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
                     />
                   ))
                 ) : (
-                  <div style={{ color: "rgba(255,255,255,0.72)" }}>No songs uploaded yet.</div>
+                  <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                    No songs uploaded yet.
+                  </div>
                 )}
               </div>
             </Panel>
@@ -3913,7 +3592,10 @@ overflow: "hidden",
               subtitle="Live requests with review popup and song linking."
               right={
                 <div style={{ minWidth: 220 }}>
-                  <Select value={requestFilter} onChange={(e) => setRequestFilter(e.target.value)}>
+                  <Select
+                    value={requestFilter}
+                    onChange={(e) => setRequestFilter(e.target.value)}
+                  >
                     <option value="all" style={{ color: "black" }}>
                       All requests
                     </option>
@@ -3935,7 +3617,9 @@ overflow: "hidden",
             >
               <div style={{ display: "grid", gap: 14 }}>
                 {filteredRequests.length === 0 ? (
-                  <div style={{ color: "rgba(255,255,255,0.72)" }}>No requests yet.</div>
+                  <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                    No requests yet.
+                  </div>
                 ) : (
                   filteredRequests.map((req) => (
                     <div
@@ -3949,12 +3633,16 @@ overflow: "hidden",
                     >
                       <div style={{ display: "grid", gap: 10 }}>
                         <strong>{req.title}</strong>
+
                         <div style={{ color: "rgba(255,255,255,0.65)" }}>
                           by {req.name} • {timeAgo(req.createdAt)}
                         </div>
+
                         <div style={{ color: "rgba(255,255,255,0.78)" }}>
-                          Status: {req.status} • Delivery: {req.delivery === "private" ? "Private" : "Public"}
+                          Status: {req.status} • Delivery:{" "}
+                          {req.delivery === "private" ? "Private" : "Public"}
                         </div>
+
                         <Select
                           label="Attach uploaded song"
                           value={req.linkedSongId || ""}
@@ -3963,25 +3651,39 @@ overflow: "hidden",
                           <option value="" style={{ color: "black" }}>
                             Select a song
                           </option>
+
                           {ensureSongSortOrders(songs)
                             .sort(compareSongsForDisplay)
                             .map((song) => (
-                              <option key={song.id} value={song.id} style={{ color: "black" }}>
+                              <option
+                                key={song.id}
+                                value={song.id}
+                                style={{ color: "black" }}
+                              >
                                 {song.title} — {song.artist}
                               </option>
                             ))}
                         </Select>
+
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                          <Button variant="secondary" onClick={() => setSelectedRequest(req)}>
+                          <Button
+                            variant="secondary"
+                            onClick={() => setSelectedRequest(req)}
+                          >
                             Review
                           </Button>
+
                           <Button
                             variant={req.status === "done" ? "secondary" : "success"}
                             onClick={() => toggleRequestStatus(req.id)}
                           >
                             {req.status === "done" ? "Mark Pending" : "Mark Done"}
                           </Button>
-                          <Button variant="danger" onClick={() => handleDeleteRequest(req.id)}>
+
+                          <Button
+                            variant="danger"
+                            onClick={() => handleDeleteRequest(req.id)}
+                          >
                             Delete
                           </Button>
                         </div>
@@ -3995,7 +3697,9 @@ overflow: "hidden",
             <Panel title="Private Messages">
               <div style={{ display: "grid", gap: 14 }}>
                 {messages.length === 0 ? (
-                  <div style={{ color: "rgba(255,255,255,0.72)" }}>No messages yet.</div>
+                  <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                    No messages yet.
+                  </div>
                 ) : (
                   [...messages]
                     .sort((a, b) => {
@@ -4025,6 +3729,7 @@ overflow: "hidden",
                         >
                           <div style={{ display: "grid", gap: 6 }}>
                             <strong>{msg.from}</strong>
+
                             <div
                               style={{
                                 color: "rgba(255,255,255,0.65)",
@@ -4035,6 +3740,7 @@ overflow: "hidden",
                               }}
                             >
                               <span>{formatDate(msg.createdAt)}</span>
+
                               <Badge
                                 style={{
                                   background:
@@ -4045,7 +3751,10 @@ overflow: "hidden",
                                     msg.status === "new"
                                       ? "1px solid rgba(74,222,128,0.30)"
                                       : "1px solid rgba(255,255,255,0.10)",
-                                  color: msg.status === "new" ? "#bbf7d0" : "rgba(255,255,255,0.78)",
+                                  color:
+                                    msg.status === "new"
+                                      ? "#bbf7d0"
+                                      : "rgba(255,255,255,0.78)",
                                   fontWeight: 800,
                                   padding: "5px 10px",
                                 }}
@@ -4053,10 +3762,15 @@ overflow: "hidden",
                                 {msg.status === "new" ? "NEW" : "READ"}
                               </Badge>
                             </div>
+
                             <div style={{ color: "rgba(255,255,255,0.78)" }}>
-                              Reply via: {msg.replyContact ? msg.replyContact : "No reply contact left"}
+                              Reply via:{" "}
+                              {msg.replyContact
+                                ? msg.replyContact
+                                : "No reply contact left"}
                             </div>
                           </div>
+
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                             <Button
                               variant={msg.status === "new" ? "success" : "secondary"}
@@ -4065,6 +3779,7 @@ overflow: "hidden",
                             >
                               {msg.status === "new" ? "Mark Read" : "Mark New"}
                             </Button>
+
                             <Button
                               variant="danger"
                               onClick={() => handleDeleteMessage(msg.id)}
@@ -4074,7 +3789,10 @@ overflow: "hidden",
                             </Button>
                           </div>
                         </div>
-                        <p style={{ margin: "14px 0 0", lineHeight: 1.55 }}>{msg.message}</p>
+
+                        <p style={{ margin: "14px 0 0", lineHeight: 1.55 }}>
+                          {msg.message}
+                        </p>
                       </div>
                     ))
                 )}
@@ -4096,42 +3814,22 @@ overflow: "hidden",
       {playerSong && !playerMinimized ? (
         <PlayerModal
           song={playerSong}
-          onClose={handleClosePlayer}
-          onMinimize={handleMinimizePlayer}
-          onNext={handleNextSong}
-          onPrevious={handlePreviousSong}
           isPlaying={isPlaying}
-          currentTime={playerCurrentTime}
-          duration={playerDuration}
-          volume={volume}
-          isMuted={isMuted}
           onPlayPause={handlePlayPause}
-          onSeek={handleSeek}
-          onVolumeChange={handleVolumeChange}
-          onToggleMute={handleToggleMute}
-          isMobile={isMobile}
+          onClose={handleClosePlayer}
+          onNext={handleNextSong}
+          onPrev={handlePreviousSong}
         />
       ) : null}
 
       {playerSong && playerMinimized ? (
         <MiniPlayer
           song={playerSong}
-          onExpand={handleExpandPlayer}
-          onClose={handleClosePlayer}
-          onNext={handleNextSong}
-          onPrevious={handlePreviousSong}
           isPlaying={isPlaying}
-          currentTime={playerCurrentTime}
-          duration={playerDuration}
-          volume={volume}
-          isMuted={isMuted}
           onPlayPause={handlePlayPause}
-          onSeek={handleSeek}
-          onVolumeChange={handleVolumeChange}
-          onToggleMute={handleToggleMute}
-          isMobile={isMobile}
-          showVolumeSlider={showVolumeSlider}
-          onToggleVolumeSlider={() => setShowVolumeSlider((prev) => !prev)}
+          onExpand={handleExpandPlayer}
+          onNext={handleNextSong}
+          onPrev={handlePreviousSong}
         />
       ) : null}
     </div>
@@ -4139,3 +3837,5 @@ overflow: "hidden",
 }
 
 export default App;
+
+/* ===== END PART 6/6 ===== */
