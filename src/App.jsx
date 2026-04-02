@@ -1440,29 +1440,63 @@ async function summarizeSongEvents(songId) {
    SONG ANALYTICS: EVENT TRACKING
 ================================ */
 
-async function trackSongEvent(songId, eventType, options = {}) {
-  if (!songId || !eventType) return null;
+async function trackSongEvent(songId, eventType, extra = {}) {
+  if (!songId) return;
 
-  const payload = {
-    song_id: songId,
-    event_type: eventType,
-    listener_id: options.listenerId || null,
-    progress_percent:
-      typeof options.progressPercent === "number"
-        ? options.progressPercent
-        : null,
-    created_at: new Date().toISOString(),
-  };
+  try {
+    const listenerId = getListenerId();
 
-  const { error: insertError } = await supabase
-    .from("song_events")
-    .insert([payload]);
+    /* ================================
+       INSERT RAW EVENT
+    ================================ */
 
-  if (insertError) {
-    throw insertError;
+    await supabase.from("song_events").insert({
+      song_id: songId,
+      event_type: eventType,
+      listener_id: listenerId,
+      progress_percent: extra.progressPercent ?? null,
+    });
+
+    /* ================================
+       UPDATE SUMMARY COUNTERS
+    ================================ */
+
+    const columnMap = {
+      open: "opens",
+      play_start: "plays",
+      play_25: "play_25_count",
+      download_song: "song_downloads",
+      download_lyrics: "lyrics_downloads",
+    };
+
+    const column = columnMap[eventType];
+
+    if (!column) return;
+
+    const { data: existing } = await supabase
+      .from("song_analytics")
+      .select("*")
+      .eq("song_id", songId)
+      .single();
+
+    if (!existing) {
+      await supabase.from("song_analytics").insert({
+        song_id: songId,
+        [column]: 1,
+      });
+      return;
+    }
+
+    await supabase
+      .from("song_analytics")
+      .update({
+        [column]: (existing[column] || 0) + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("song_id", songId);
+  } catch (err) {
+    console.warn("trackSongEvent failed:", err.message);
   }
-
-  return summarizeSongEvents(songId);
 }
 
 async function incrementSongAnalytics(songId, field, options = {}) {
