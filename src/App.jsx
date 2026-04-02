@@ -917,7 +917,7 @@ function SongRow({
           }}
         >
           <span>♡ {Number(song.likes || 0)}</span>
-          <span>▶ {Number(songAnalytics.opens != null ? songAnalytics.plays : 0)}</span>
+          <span>▶ {Number(songAnalytics.plays || 0)}</span>
           <span>👁 {Number(songAnalytics.opens || 0)}</span>
 
           {isAdmin ? (
@@ -1062,14 +1062,16 @@ function MiniPlayer({
         bottom: 0,
         left: 0,
         right: 0,
-        padding: isMobile ? "10px 14px 12px" : "12px 20px 14px",
+        padding: isMobile ? "10px 12px 12px" : "12px 18px 14px",
         background:
-          "linear-gradient(180deg, rgba(10,14,28,0.96), rgba(6,10,22,0.99))",
+          "linear-gradient(180deg, rgba(9,13,26,0.97), rgba(5,9,20,0.995))",
         borderTop: "1px solid rgba(255,255,255,0.08)",
+        boxShadow: "0 -14px 34px rgba(0,0,0,0.28)",
         display: "grid",
-        gap: 10,
+        gap: isMobile ? 9 : 10,
         zIndex: 999,
-        backdropFilter: "blur(14px)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
       }}
     >
       {/* ================================
@@ -1096,10 +1098,10 @@ function MiniPlayer({
 
       <div
         style={{
-          display: "flex",
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) auto",
+          gap: isMobile ? 10 : 14,
           alignItems: "center",
-          justifyContent: "space-between",
-          gap: 14,
         }}
       >
         {/* ================================
@@ -1112,7 +1114,6 @@ function MiniPlayer({
             cursor: "pointer",
             overflow: "hidden",
             minWidth: 0,
-            flex: 1,
           }}
         >
           <strong
@@ -1130,10 +1131,11 @@ function MiniPlayer({
           <div
             style={{
               fontSize: isMobile ? 12 : 13,
-              opacity: 0.6,
+              opacity: 0.62,
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
+              marginTop: 2,
             }}
           >
             {song.artist}
@@ -1147,15 +1149,18 @@ function MiniPlayer({
         <div
           style={{
             display: "flex",
-            gap: isMobile ? 6 : 10,
+            gap: isMobile ? 8 : 10,
             alignItems: "center",
-            flexShrink: 0,
+            justifyContent: isMobile ? "space-between" : "flex-end",
           }}
         >
           <Button
             variant="ghost"
             onClick={onExpand}
-            style={{ padding: isMobile ? "8px 10px" : "10px 12px" }}
+            style={{
+              padding: isMobile ? "9px 12px" : "10px 12px",
+              minWidth: isMobile ? 48 : "auto",
+            }}
           >
             ⤢
           </Button>
@@ -1163,7 +1168,10 @@ function MiniPlayer({
           <Button
             variant="ghost"
             onClick={onPrev}
-            style={{ padding: isMobile ? "8px 10px" : "10px 12px" }}
+            style={{
+              padding: isMobile ? "9px 12px" : "10px 12px",
+              minWidth: isMobile ? 48 : "auto",
+            }}
           >
             ⏮
           </Button>
@@ -1171,7 +1179,10 @@ function MiniPlayer({
           <Button
             variant="secondary"
             onClick={onPlayPause}
-            style={{ padding: isMobile ? "8px 16px" : "10px 18px" }}
+            style={{
+              padding: isMobile ? "9px 18px" : "10px 18px",
+              minWidth: isMobile ? 96 : 104,
+            }}
           >
             {isPlaying ? "Pause" : "Play"}
           </Button>
@@ -1179,7 +1190,10 @@ function MiniPlayer({
           <Button
             variant="ghost"
             onClick={onNext}
-            style={{ padding: isMobile ? "8px 10px" : "10px 12px" }}
+            style={{
+              padding: isMobile ? "9px 12px" : "10px 12px",
+              minWidth: isMobile ? 48 : "auto",
+            }}
           >
             ⏭
           </Button>
@@ -1195,8 +1209,9 @@ function MiniPlayer({
           display: "flex",
           justifyContent: "space-between",
           gap: 12,
-          fontSize: 12,
-          color: "rgba(255,255,255,0.6)",
+          fontSize: isMobile ? 11 : 12,
+          color: "rgba(255,255,255,0.60)",
+          lineHeight: 1,
         }}
       >
         <span>{formatTime(currentTime)}</span>
@@ -1257,7 +1272,7 @@ function PlayerModal({
     >
       <div
         style={{
-          width: isMobile ? "100%" : "min(1120px, 100%)",
+          width: isMobile ? "100%" : "min(1240px, 100%)",
           maxHeight: isMobile ? "94vh" : "92vh",
           overflow: "hidden",
           borderRadius: isMobile ? 22 : 28,
@@ -1266,7 +1281,7 @@ function PlayerModal({
           border: "1px solid rgba(255,255,255,0.08)",
           boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
           display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "380px minmax(0, 1fr)",
+          gridTemplateColumns: isMobile ? "1fr" : "430px minmax(0, 1fr)",
         }}
       >
         {/* ================================
@@ -1275,13 +1290,13 @@ function PlayerModal({
 
         <div
           style={{
-            padding: isMobile ? 16 : 28,
+            padding: isMobile ? 16 : 30,
             borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.06)",
             borderBottom: isMobile
               ? "1px solid rgba(255,255,255,0.06)"
               : "none",
             display: "grid",
-            gap: isMobile ? 14 : 18,
+            gap: isMobile ? 14 : 20,
             alignContent: "start",
           }}
         >
@@ -1293,7 +1308,7 @@ function PlayerModal({
             style={{
               width: "100%",
               aspectRatio: "1 / 1",
-              borderRadius: 22,
+              borderRadius: 24,
               overflow: "hidden",
               background:
                 "linear-gradient(135deg, rgba(89,55,150,0.8), rgba(41,73,120,0.8))",
@@ -1325,8 +1340,8 @@ function PlayerModal({
             <h2
               style={{
                 margin: 0,
-                fontSize: isMobile ? 24 : 30,
-                lineHeight: 1.08,
+                fontSize: isMobile ? 24 : 34,
+                lineHeight: 1.06,
                 wordBreak: "break-word",
               }}
             >
@@ -1335,9 +1350,9 @@ function PlayerModal({
 
             <p
               style={{
-                margin: "8px 0 0",
+                margin: "10px 0 0",
                 opacity: 0.72,
-                fontSize: isMobile ? 14 : 16,
+                fontSize: isMobile ? 14 : 17,
               }}
             >
               {song.artist}
@@ -1346,7 +1361,7 @@ function PlayerModal({
             {song.requestedBy ? (
               <p
                 style={{
-                  margin: "10px 0 0",
+                  margin: "12px 0 0",
                   fontSize: 13,
                   color: "rgba(255,255,255,0.62)",
                 }}
@@ -1360,7 +1375,7 @@ function PlayerModal({
               PLAYER MODAL: PROGRESS
           ================================ */}
 
-          <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "grid", gap: 10 }}>
             <input
               type="range"
               min={0}
@@ -1395,24 +1410,30 @@ function PlayerModal({
 
           <div
             style={{
-              display: "flex",
+              display: "grid",
+              gridTemplateColumns: isMobile
+                ? "repeat(3, minmax(0, 1fr))"
+                : "repeat(5, minmax(0, 1fr))",
               gap: 10,
-              flexWrap: "wrap",
             }}
           >
-            <Button onClick={onPrev}>⏮</Button>
+            <Button onClick={onPrev} style={{ width: "100%" }}>
+              ⏮
+            </Button>
 
-            <Button onClick={onPlayPause}>
+            <Button onClick={onPlayPause} style={{ width: "100%" }}>
               {isPlaying ? "Pause" : "Play"}
             </Button>
 
-            <Button onClick={onNext}>⏭</Button>
+            <Button onClick={onNext} style={{ width: "100%" }}>
+              ⏭
+            </Button>
 
-            <Button variant="ghost" onClick={onMinimize}>
+            <Button variant="ghost" onClick={onMinimize} style={{ width: "100%" }}>
               Minimize
             </Button>
 
-            <Button variant="ghost" onClick={onClose}>
+            <Button variant="ghost" onClick={onClose} style={{ width: "100%" }}>
               Close
             </Button>
           </div>
@@ -1421,11 +1442,12 @@ function PlayerModal({
               PLAYER MODAL: VOLUME
           ================================ */}
 
-          <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "grid", gap: 10 }}>
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "space-between",
                 gap: 10,
                 flexWrap: "wrap",
               }}
@@ -1466,11 +1488,11 @@ function PlayerModal({
         {!isMobile ? (
           <div
             style={{
-              padding: 28,
+              padding: 30,
               overflowY: "auto",
               display: "grid",
               alignContent: "start",
-              gap: 14,
+              gap: 16,
               minWidth: 0,
             }}
           >
@@ -1481,7 +1503,7 @@ function PlayerModal({
                   letterSpacing: "0.24em",
                   textTransform: "uppercase",
                   color: "rgba(255,255,255,0.48)",
-                  marginBottom: 8,
+                  marginBottom: 10,
                 }}
               >
                 Lyrics
@@ -1491,11 +1513,11 @@ function PlayerModal({
                 <div
                   style={{
                     whiteSpace: "pre-wrap",
-                    lineHeight: 1.8,
-                    fontSize: 15,
+                    lineHeight: 1.9,
+                    fontSize: 16,
                     color: "rgba(255,255,255,0.88)",
-                    padding: 20,
-                    borderRadius: 20,
+                    padding: 24,
+                    borderRadius: 22,
                     background: "rgba(255,255,255,0.04)",
                     border: "1px solid rgba(255,255,255,0.08)",
                   }}
@@ -1505,8 +1527,8 @@ function PlayerModal({
               ) : (
                 <div
                   style={{
-                    padding: 18,
-                    borderRadius: 20,
+                    padding: 20,
+                    borderRadius: 22,
                     background: "rgba(255,255,255,0.04)",
                     border: "1px solid rgba(255,255,255,0.08)",
                     color: "rgba(255,255,255,0.62)",
@@ -3794,7 +3816,7 @@ function App() {
           "radial-gradient(circle at top left, rgba(62,28,96,0.26), transparent 26%), radial-gradient(circle at top right, rgba(70,28,102,0.14), transparent 18%), linear-gradient(180deg, #04070f 0%, #070c18 52%, #090f1d 100%)",
         fontFamily:
           'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        paddingBottom: playerSong && playerMinimized ? (isMobile ? 240 : 180) : 0,
+        paddingBottom: playerSong && playerMinimized ? (isMobile ? 250 : 210) : 0,
       }}
     >
       {/* ================================
@@ -4574,7 +4596,7 @@ function App() {
           </Panel>
         )}
 
-        {/* ================================
+                {/* ================================
             SECTION 12: ADMIN RENDER + MODALS + PLAYER RENDER + EXPORT
         ================================ */}
 
