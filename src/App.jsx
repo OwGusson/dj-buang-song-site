@@ -1314,15 +1314,15 @@ function PlayerModal({
         display: "grid",
         placeItems: "center",
         zIndex: 1000,
-        padding: isMobile ? 8 : 18,
+        padding: isMobile ? 10 : 20,
       }}
     >
       <div
         style={{
-          width: isMobile ? "100%" : "min(1480px, 100%)",
-          maxHeight: isMobile ? "96vh" : "94vh",
+          width: isMobile ? "100%" : "min(1380px, 96vw)",
+          maxHeight: isMobile ? "94vh" : "92vh",
           overflow: "hidden",
-          borderRadius: isMobile ? 22 : 28,
+          borderRadius: isMobile ? 22 : 30,
           background:
             "linear-gradient(180deg, rgba(10,14,28,0.985), rgba(6,10,22,0.985))",
           border: "1px solid rgba(255,255,255,0.08)",
@@ -1337,12 +1337,14 @@ function PlayerModal({
 
         <div
           style={{
-            padding: isMobile ? 14 : 28,
+            padding: isMobile ? 16 : 28,
             borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.06)",
+            borderBottom: isMobile
+              ? "1px solid rgba(255,255,255,0.06)"
+              : "none",
             display: "grid",
-            gap: isMobile ? 12 : 18,
+            gap: isMobile ? 14 : 18,
             alignContent: "start",
-            overflowY: isMobile ? "auto" : "hidden",
           }}
         >
           {/* ================================
@@ -1352,8 +1354,10 @@ function PlayerModal({
           <div
             style={{
               width: "100%",
-              aspectRatio: isMobile ? "1.45 / 1" : "1 / 1",
-              borderRadius: isMobile ? 22 : 24,
+              aspectRatio: "1 / 1",
+              maxWidth: isMobile ? "100%" : 320,
+              justifySelf: "center",
+              borderRadius: 24,
               overflow: "hidden",
               background:
                 "linear-gradient(135deg, rgba(89,55,150,0.8), rgba(41,73,120,0.8))",
@@ -1385,7 +1389,7 @@ function PlayerModal({
             <h2
               style={{
                 margin: 0,
-                fontSize: isMobile ? 24 : 30,
+                fontSize: isMobile ? 24 : 28,
                 lineHeight: 1.08,
                 wordBreak: "break-word",
               }}
@@ -1454,161 +1458,225 @@ function PlayerModal({
           ================================ */}
 
           {isMobile ? (
-  <>
-    {/* ================================
-        PLAYER MODAL: MOBILE CONTROL ROW 1
-    ================================ */}
+            <>
+              {/* ================================
+                  PLAYER MODAL: MOBILE CONTROL ROW 1
+              ================================ */}
 
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-        gap: 10,
-      }}
-    >
-      <Button onClick={onPrev} style={{ width: "100%" }}>
-        ⏮
-      </Button>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: 10,
+                }}
+              >
+                <Button onClick={onPrev} style={{ width: "100%" }}>
+                  ⏮
+                </Button>
 
-      <Button onClick={onPlayPause} style={{ width: "100%" }}>
-        {isPlaying ? "Pause" : "Play"}
-      </Button>
+                <Button onClick={onPlayPause} style={{ width: "100%" }}>
+                  {isPlaying ? "Pause" : "Play"}
+                </Button>
 
-      <Button onClick={onNext} style={{ width: "100%" }}>
-        ⏭
-      </Button>
-    </div>
+                <Button onClick={onNext} style={{ width: "100%" }}>
+                  ⏭
+                </Button>
+              </div>
 
-    {/* ================================
-        PLAYER MODAL: MOBILE CONTROL ROW 2
-    ================================ */}
+              {/* ================================
+                  PLAYER MODAL: MOBILE CONTROL ROW 2
+              ================================ */}
 
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-        gap: 10,
-      }}
-    >
-      <Button variant="ghost" onClick={onMinimize} style={{ width: "100%" }}>
-        Minimize
-      </Button>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: 10,
+                }}
+              >
+                <Button
+                  variant="ghost"
+                  onClick={onMinimize}
+                  style={{ width: "100%" }}
+                >
+                  Minimize
+                </Button>
 
-      <Button variant="ghost" onClick={onClose} style={{ width: "100%" }}>
-        Close
-      </Button>
+                <Button
+                  variant="ghost"
+                  onClick={onClose}
+                  style={{ width: "100%" }}
+                >
+                  Close
+                </Button>
 
-      <Button
-        variant="ghost"
-        onClick={onToggleVolumeSlider}
-        style={{ width: "100%" }}
-      >
-        🔊
-      </Button>
-    </div>
-  </>
-) : (
-  <div
-    style={{
-      display: "flex",
-      gap: 10,
-      flexWrap: "wrap",
-      alignItems: "center",
-    }}
-  >
-    <Button
-      onClick={onPrev}
-      style={{
-        padding: "10px 14px",
-        minWidth: 50,
-      }}
-    >
-      ⏮
-    </Button>
+                <Button
+                  variant="ghost"
+                  onClick={onToggleVolumeSlider}
+                  style={{ width: "100%" }}
+                >
+                  🔊
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* ================================
+                  PLAYER MODAL: DESKTOP CONTROL BAR
+              ================================ */}
 
-    <Button
-      onClick={onPlayPause}
-      style={{
-        padding: "10px 18px",
-        minWidth: 88,
-      }}
-    >
-      {isPlaying ? "Pause" : "Play"}
-    </Button>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr auto 1fr",
+                  alignItems: "center",
+                  gap: 16,
+                  padding: "10px 14px",
+                  borderRadius: 20,
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                }}
+              >
+                {/* ================================
+                    PLAYER MODAL: DESKTOP CONTROL LEFT
+                ================================ */}
 
-    <Button
-      onClick={onNext}
-      style={{
-        padding: "10px 14px",
-        minWidth: 50,
-      }}
-    >
-      ⏭
-    </Button>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    justifyContent: "flex-start",
+                  }}
+                >
+                  <Button
+                    onClick={onPrev}
+                    style={{
+                      padding: "10px 14px",
+                      minWidth: 52,
+                    }}
+                  >
+                    ⏮
+                  </Button>
 
-    <Button
-      variant="ghost"
-      onClick={onMinimize}
-      style={{
-        padding: "10px 16px",
-        minWidth: 104,
-      }}
-    >
-      Minimize
-    </Button>
+                  <Button
+                    onClick={onPlayPause}
+                    style={{
+                      padding: "10px 20px",
+                      minWidth: 94,
+                    }}
+                  >
+                    {isPlaying ? "Pause" : "Play"}
+                  </Button>
 
-    <Button
-      variant="ghost"
-      onClick={onClose}
-      style={{
-        padding: "10px 16px",
-        minWidth: 84,
-      }}
-    >
-      Close
-    </Button>
-  </div>
-)}
+                  <Button
+                    onClick={onNext}
+                    style={{
+                      padding: "10px 14px",
+                      minWidth: 52,
+                    }}
+                  >
+                    ⏭
+                  </Button>
+                </div>
+
+                {/* ================================
+                    PLAYER MODAL: DESKTOP CONTROL CENTER
+                ================================ */}
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    justifyContent: "center",
+                  }}
+                >
+                  <Button
+                    variant="ghost"
+                    onClick={onMinimize}
+                    style={{
+                      padding: "10px 16px",
+                      minWidth: 108,
+                    }}
+                  >
+                    Minimize
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    onClick={onClose}
+                    style={{
+                      padding: "10px 16px",
+                      minWidth: 84,
+                    }}
+                  >
+                    Close
+                  </Button>
+                </div>
+
+                {/* ================================
+                    PLAYER MODAL: DESKTOP CONTROL RIGHT
+                ================================ */}
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-end",
+                    gap: 12,
+                    minWidth: 0,
+                  }}
+                >
+                  <Button
+                    variant="ghost"
+                    onClick={onToggleVolumeSlider}
+                    style={{
+                      padding: "10px 14px",
+                      minWidth: 54,
+                      flexShrink: 0,
+                    }}
+                  >
+                    🔊
+                  </Button>
+
+                  {showVolumeSlider ? (
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={volume}
+                      onChange={(e) => onVolumeChange(Number(e.target.value))}
+                      style={{
+                        width: 150,
+                        maxWidth: "100%",
+                        cursor: "pointer",
+                      }}
+                    />
+                  ) : null}
+
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "rgba(255,255,255,0.68)",
+                      minWidth: 44,
+                      textAlign: "right",
+                    }}
+                  >
+                    {Math.round(volume * 100)}%
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
 
           {/* ================================
               PLAYER MODAL: VOLUME
           ================================ */}
 
-          <div style={{ display: "grid", gap: 8 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-              }}
-            >
-              {!isMobile ? (
-                <Button variant="ghost" onClick={onToggleVolumeSlider}>
-                  🔊 Volume
-                </Button>
-              ) : (
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: "rgba(255,255,255,0.60)",
-                  }}
-                >
-                  Volume
-                </div>
-              )}
-
-              <div
-                style={{
-                  fontSize: 13,
-                  color: "rgba(255,255,255,0.68)",
-                }}
-              >
-                {Math.round(volume * 100)}%
-              </div>
-            </div>
-
-            {showVolumeSlider ? (
+          {isMobile && showVolumeSlider ? (
+            <div style={{ display: "grid", gap: 8 }}>
               <input
                 type="range"
                 min={0}
@@ -1621,8 +1689,8 @@ function PlayerModal({
                   cursor: "pointer",
                 }}
               />
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </div>
 
         {/* ================================
@@ -1632,13 +1700,14 @@ function PlayerModal({
         {!isMobile ? (
           <div
             style={{
-              padding: 28,
-              minWidth: 0,
-              height: "100%",
+              padding: 24,
               overflow: "hidden",
               display: "grid",
               gridTemplateRows: "auto minmax(0, 1fr)",
+              alignContent: "stretch",
               gap: 12,
+              minWidth: 0,
+              minHeight: 0,
             }}
           >
             <div
@@ -1652,28 +1721,45 @@ function PlayerModal({
               Lyrics
             </div>
 
-            <div
-              style={{
-                minHeight: 0,
-                overflowY: "auto",
-                whiteSpace: "pre-wrap",
-                lineHeight: 1.85,
-                fontSize: 15,
-                color: "rgba(255,255,255,0.88)",
-                padding: 20,
-                borderRadius: 22,
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              {song.lyrics || "No lyrics added yet."}
-            </div>
+            {song.lyrics ? (
+              <div
+                style={{
+                  whiteSpace: "pre-wrap",
+                  lineHeight: 1.85,
+                  fontSize: 15,
+                  color: "rgba(255,255,255,0.88)",
+                  padding: 22,
+                  borderRadius: 22,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  overflowY: "auto",
+                  minHeight: 0,
+                }}
+              >
+                {song.lyrics}
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: 20,
+                  borderRadius: 22,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  color: "rgba(255,255,255,0.62)",
+                }}
+              >
+                No lyrics added yet.
+              </div>
+            )}
           </div>
         ) : (
           <div
             style={{
-              padding: "0 14px 14px",
-              overflowY: "auto",
+              padding: 16,
+              display: "grid",
+              gap: 10,
+              maxHeight: "34vh",
+              overflow: "hidden",
             }}
           >
             <div
@@ -1682,28 +1768,41 @@ function PlayerModal({
                 letterSpacing: "0.24em",
                 textTransform: "uppercase",
                 color: "rgba(255,255,255,0.48)",
-                marginBottom: 10,
               }}
             >
               Lyrics
             </div>
 
-            <div
-              style={{
-                whiteSpace: "pre-wrap",
-                lineHeight: 1.7,
-                fontSize: 14,
-                color: "rgba(255,255,255,0.88)",
-                padding: 18,
-                borderRadius: 22,
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                maxHeight: "34vh",
-                overflowY: "auto",
-              }}
-            >
-              {song.lyrics || "No lyrics added yet."}
-            </div>
+            {song.lyrics ? (
+              <div
+                style={{
+                  whiteSpace: "pre-wrap",
+                  lineHeight: 1.75,
+                  fontSize: 14,
+                  color: "rgba(255,255,255,0.88)",
+                  padding: 18,
+                  borderRadius: 20,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  overflowY: "auto",
+                  minHeight: 0,
+                }}
+              >
+                {song.lyrics}
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: 18,
+                  borderRadius: 20,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  color: "rgba(255,255,255,0.62)",
+                }}
+              >
+                No lyrics added yet.
+              </div>
+            )}
           </div>
         )}
       </div>
