@@ -4035,7 +4035,7 @@ function App() {
           </Panel>
         )}
 
-                  {/* ================================
+                {/* ================================
             SECTION 12: ADMIN RENDER + MODALS + PLAYER RENDER + EXPORT
         ================================ */}
 
@@ -4154,10 +4154,6 @@ function App() {
                     gap: 16,
                   }}
                 >
-                  {/* ================================
-                      ADMIN UPLOAD: BASIC INFO
-                  ================================ */}
-
                   <Input
                     label="Song title"
                     value={newSong.title}
@@ -4200,10 +4196,6 @@ function App() {
                       Private collection
                     </option>
                   </Select>
-
-                  {/* ================================
-                      ADMIN UPLOAD: FILES
-                  ================================ */}
 
                   <div>
                     <div
@@ -4275,10 +4267,6 @@ function App() {
                     />
                   </div>
 
-                  {/* ================================
-                      ADMIN UPLOAD: FLAGS
-                  ================================ */}
-
                   <label
                     style={{
                       display: "flex",
@@ -4299,10 +4287,6 @@ function App() {
                     Featured song
                   </label>
 
-                  {/* ================================
-                      ADMIN UPLOAD: LYRICS
-                  ================================ */}
-
                   <div style={{ gridColumn: "1 / -1" }}>
                     <TextArea
                       label="Lyrics"
@@ -4314,10 +4298,6 @@ function App() {
                       style={{ minHeight: 180 }}
                     />
                   </div>
-
-                  {/* ================================
-                      ADMIN UPLOAD: ACTIONS
-                  ================================ */}
 
                   <div
                     style={{
@@ -4584,6 +4564,7 @@ function App() {
             isPlaying={isPlaying}
             onPlayPause={handlePlayPause}
             onClose={handleClosePlayer}
+            onMinimize={handleMinimizePlayer}
             onNext={handleNextSong}
             onPrev={handlePreviousSong}
           />
