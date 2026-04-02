@@ -3231,7 +3231,7 @@ function App() {
     }
   };
 
-  const copySongLink = async (songId) => {
+    const copySongLink = async (songId) => {
     const url = `${window.location.origin}${window.location.pathname}?song=${songId}`;
 
     try {
@@ -3241,6 +3241,172 @@ function App() {
       alert(url);
     }
   };
+
+  /* ================================
+     LOCAL COMPONENT: REQUEST REVIEW MODAL
+  ================================ */
+
+  function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
+    if (!request) return null;
+
+    const linkedSong = songs.find((song) => song.id === request.linkedSongId);
+
+    return (
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.72)",
+          display: "grid",
+          placeItems: "center",
+          zIndex: 1100,
+          padding: 16,
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: "min(680px, 100%)",
+            maxHeight: "85vh",
+            overflowY: "auto",
+            padding: 24,
+            borderRadius: 24,
+            background:
+              "linear-gradient(180deg, rgba(10,14,28,0.98), rgba(6,10,22,0.98))",
+            border: "1px solid rgba(255,255,255,0.08)",
+            boxShadow: "0 18px 60px rgba(0,0,0,0.38)",
+            color: "white",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              alignItems: "flex-start",
+              marginBottom: 18,
+            }}
+          >
+            <div>
+              <h2 style={{ margin: 0, fontSize: 24 }}>Request Review</h2>
+              <p style={{ margin: "8px 0 0", color: "rgba(255,255,255,0.70)" }}>
+                Full request details and linked song preview.
+              </p>
+            </div>
+
+            <Button variant="ghost" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+
+          <div style={{ display: "grid", gap: 14 }}>
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 18,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 6 }}>
+                Requested by
+              </div>
+              <strong>{request.name || "Unknown"}</strong>
+            </div>
+
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 18,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 6 }}>
+                Song idea
+              </div>
+              <strong>{request.title || "Untitled request"}</strong>
+            </div>
+
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 18,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 6 }}>
+                Details
+              </div>
+              <div style={{ lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                {request.details || "No extra details provided."}
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 18,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 6 }}>
+                Delivery / notify / contact
+              </div>
+              <div style={{ lineHeight: 1.6 }}>
+                <div>
+                  Delivery: {request.delivery === "private" ? "Private" : "Public"}
+                </div>
+                <div>Notify: {request.notify ? "Yes" : "No"}</div>
+                <div>Email: {request.email || "No email provided"}</div>
+                <div>Status: {request.status || "pending"}</div>
+                <div>Created: {formatDate(request.createdAt)}</div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 18,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 10 }}>
+                Linked song
+              </div>
+
+              {linkedSong ? (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                  }}
+                >
+                  <strong>
+                    {linkedSong.title} — {linkedSong.artist}
+                  </strong>
+
+                  <Button variant="secondary" onClick={() => onOpenSong(linkedSong)}>
+                    Open Song
+                  </Button>
+                </div>
+              ) : (
+                <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                  No uploaded song linked yet.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   /* ================================
      SECTION 11: PUBLIC PAGES RENDER
