@@ -747,7 +747,14 @@ function SongRow({
   ================================ */
 
   const songTypeLabel = getSongTypeLabel(song);
-  const songAnalytics = analytics || { opens: 0, plays: 0 };
+  const songAnalytics = analytics || {
+    opens: 0,
+    plays: 0,
+    unique_listeners: 0,
+    play_25_count: 0,
+    song_downloads: 0,
+    lyrics_downloads: 0,
+  };
   const isNew = isNewSong(song);
   const isRequested = isRequestedSong(song);
   const isFeatured = !!song.featured;
@@ -909,9 +916,18 @@ function SongRow({
             opacity: 0.65,
           }}
         >
-          <span>♡ {song.likes || 0}</span>
-          <span>▶ {songAnalytics.plays}</span>
-          <span>👁 {songAnalytics.opens}</span>
+          <span>♡ {Number(song.likes || 0)}</span>
+          <span>▶ {Number(songAnalytics.opens != null ? songAnalytics.plays : 0)}</span>
+          <span>👁 {Number(songAnalytics.opens || 0)}</span>
+
+          {isAdmin ? (
+            <>
+              <span>◎ {Number(songAnalytics.unique_listeners || 0)}</span>
+              <span>25% {Number(songAnalytics.play_25_count || 0)}</span>
+              <span>⬇🎵 {Number(songAnalytics.song_downloads || 0)}</span>
+              <span>⬇📄 {Number(songAnalytics.lyrics_downloads || 0)}</span>
+            </>
+          ) : null}
         </div>
 
         {/* ================================
@@ -2431,7 +2447,7 @@ function App() {
     shouldAutoplayOnSongChangeRef.current = false;
   }, [playerSong]);
 
-  /* ================================
+    /* ================================
      SECTION 9: MEMO / COMPUTED VALUES
   ================================ */
 
@@ -2582,6 +2598,51 @@ function App() {
       .slice(0, 3);
   }, [songs, songAnalytics]);
 
+  const topOpenedSongs = useMemo(() => {
+    return [...songs]
+      .map(normalizeSong)
+      .map((song) => ({
+        ...song,
+        opens: Number(songAnalytics[song.id]?.opens || 0),
+        plays: Number(songAnalytics[song.id]?.plays || 0),
+        uniqueListeners: Number(songAnalytics[song.id]?.unique_listeners || 0),
+        play25: Number(songAnalytics[song.id]?.play_25_count || 0),
+        songDownloads: Number(songAnalytics[song.id]?.song_downloads || 0),
+        lyricsDownloads: Number(songAnalytics[song.id]?.lyrics_downloads || 0),
+      }))
+      .sort((a, b) => {
+        if (b.opens !== a.opens) return b.opens - a.opens;
+        if (b.plays !== a.plays) return b.plays - a.plays;
+        return compareSongsForDisplay(a, b);
+      })
+      .slice(0, 5);
+  }, [songs, songAnalytics]);
+
+  const topDownloadedSongs = useMemo(() => {
+    return [...songs]
+      .map(normalizeSong)
+      .map((song) => ({
+        ...song,
+        opens: Number(songAnalytics[song.id]?.opens || 0),
+        plays: Number(songAnalytics[song.id]?.plays || 0),
+        uniqueListeners: Number(songAnalytics[song.id]?.unique_listeners || 0),
+        play25: Number(songAnalytics[song.id]?.play_25_count || 0),
+        songDownloads: Number(songAnalytics[song.id]?.song_downloads || 0),
+        lyricsDownloads: Number(songAnalytics[song.id]?.lyrics_downloads || 0),
+        totalDownloads:
+          Number(songAnalytics[song.id]?.song_downloads || 0) +
+          Number(songAnalytics[song.id]?.lyrics_downloads || 0),
+      }))
+      .sort((a, b) => {
+        if (b.totalDownloads !== a.totalDownloads) {
+          return b.totalDownloads - a.totalDownloads;
+        }
+        if (b.plays !== a.plays) return b.plays - a.plays;
+        return compareSongsForDisplay(a, b);
+      })
+      .slice(0, 5);
+  }, [songs, songAnalytics]);
+
   /* ================================
      MEMO: FILTERED REQUESTS
   ================================ */
@@ -2618,17 +2679,53 @@ function App() {
   const doneRequests = requests.filter((r) => r.status === "done").length;
   const newMessages = messages.filter((m) => m.status === "new").length;
 
-  const totalLikes = songs.reduce((sum, song) => sum + (song.likes || 0), 0);
+  const totalLikes = songs.reduce((sum, song) => sum + Number(song.likes || 0), 0);
 
-  const totalOpens = Object.values(songAnalytics).reduce(
+  const analyticsRows = useMemo(
+    () => Object.values(songAnalytics || {}),
+    [songAnalytics]
+  );
+
+  const totalOpens = analyticsRows.reduce(
     (sum, row) => sum + Number(row.opens || 0),
     0
   );
 
-  const totalPlays = Object.values(songAnalytics).reduce(
+  const totalPlays = analyticsRows.reduce(
     (sum, row) => sum + Number(row.plays || 0),
     0
   );
+
+  const totalUniqueOpens = analyticsRows.reduce(
+    (sum, row) => sum + Number(row.unique_opens || 0),
+    0
+  );
+
+  const totalUniqueListeners = analyticsRows.reduce(
+    (sum, row) => sum + Number(row.unique_listeners || 0),
+    0
+  );
+
+  const totalPlay25 = analyticsRows.reduce(
+    (sum, row) => sum + Number(row.play_25_count || 0),
+    0
+  );
+
+  const totalSongDownloads = analyticsRows.reduce(
+    (sum, row) => sum + Number(row.song_downloads || 0),
+    0
+  );
+
+  const totalLyricsDownloads = analyticsRows.reduce(
+    (sum, row) => sum + Number(row.lyrics_downloads || 0),
+    0
+  );
+
+  const openToPlayRate =
+    totalOpens > 0 ? Math.round((totalPlays / totalOpens) * 100) : 0;
+
+  const playTo25Rate =
+    totalPlays > 0 ? Math.round((totalPlay25 / totalPlays) * 100) : 0;
 
   /* ================================
      SECTION 10: DATA HANDLERS
@@ -4394,7 +4491,7 @@ function App() {
           </Panel>
         )}
 
-                {/* ================================
+        {/* ================================
             SECTION 12: ADMIN RENDER + MODALS + PLAYER RENDER + EXPORT
         ================================ */}
 
@@ -4465,7 +4562,7 @@ function App() {
                 </Button>
               </div>
 
-              {/* ================================
+                            {/* ================================
                   ADMIN: QUICK STATS
               ================================ */}
 
@@ -4482,6 +4579,14 @@ function App() {
                 <StatPill label="Likes" value={totalLikes} />
                 <StatPill label="Opens" value={totalOpens} />
                 <StatPill label="Plays" value={totalPlays} />
+                <StatPill label="Unique opens" value={totalUniqueOpens} />
+                <StatPill label="Unique listeners" value={totalUniqueListeners} />
+                <StatPill label="25% reached" value={totalPlay25} />
+                <StatPill label="Song downloads" value={totalSongDownloads} />
+                <StatPill label="Lyrics downloads" value={totalLyricsDownloads} />
+                <StatPill label="Open → Play" value={`${openToPlayRate}%`} />
+                <StatPill label="Play → 25%" value={`${playTo25Rate}%`} />
+                <StatPill label="Pending requests" value={pendingRequests} />
               </div>
             </Panel>
 
