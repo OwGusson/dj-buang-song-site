@@ -3631,267 +3631,512 @@ function App() {
           </Panel>
         )}
 
-        {view === "admin" && adminLoggedIn && (
-          <Panel
-            title="Admin Dashboard"
-            subtitle="Manage songs, requests, and private messages."
-            right={
-              <Button variant="secondary" onClick={handleLogout}>
-                Logout
-              </Button>
-            }
-          >
-            {/* ADMIN TAB NAV */}
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                marginBottom: 18,
-                flexWrap: "wrap",
-              }}
+                {view === "admin" && adminLoggedIn && (
+          <div style={{ display: "grid", gap: 22 }}>
+            <Panel
+              title="Admin Dashboard"
+              subtitle="Manage songs, requests, private messages, and uploads."
+              right={
+                <Button variant="secondary" onClick={handleLogout}>
+                  Logout
+                </Button>
+              }
             >
-              <Button
-                variant={adminSection === "dashboard" ? "primary" : "secondary"}
-                onClick={() => setAdminSection("dashboard")}
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  marginBottom: 18,
+                  flexWrap: "wrap",
+                }}
               >
-                Dashboard
-              </Button>
+                <Button
+                  variant={adminSection === "dashboard" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("dashboard")}
+                >
+                  Dashboard
+                </Button>
 
-              <Button
-                variant={adminSection === "songs" ? "primary" : "secondary"}
-                onClick={() => setAdminSection("songs")}
-              >
-                Songs
-              </Button>
+                <Button
+                  variant={adminSection === "upload" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("upload")}
+                >
+                  Upload
+                </Button>
 
-              <Button
-                variant={adminSection === "requests" ? "primary" : "secondary"}
-                onClick={() => setAdminSection("requests")}
-              >
-                Requests ({pendingRequests})
-              </Button>
+                <Button
+                  variant={adminSection === "songs" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("songs")}
+                >
+                  Songs
+                </Button>
 
-              <Button
-                variant={adminSection === "messages" ? "primary" : "secondary"}
-                onClick={() => setAdminSection("messages")}
-              >
-                Messages ({newMessages})
-              </Button>
-            </div>
+                <Button
+                  variant={adminSection === "requests" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("requests")}
+                >
+                  Requests ({pendingRequests})
+                </Button>
 
-            {/* DASHBOARD */}
-            {adminSection === "dashboard" && (
-              <div style={{ display: "grid", gap: 16 }}>
-                <div
+                <Button
+                  variant={adminSection === "messages" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("messages")}
+                >
+                  Messages ({newMessages})
+                </Button>
+              </div>
+
+              {adminSection === "dashboard" && (
+                <div style={{ display: "grid", gap: 16 }}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: isMobile
+                        ? "repeat(2, minmax(0, 1fr))"
+                        : "repeat(4, minmax(0, 1fr))",
+                      gap: 14,
+                    }}
+                  >
+                    <StatPill label="Songs" value={songs.length} />
+                    <StatPill label="Likes" value={totalLikes} />
+                    <StatPill label="Opens" value={totalOpens} />
+                    <StatPill label="Plays" value={totalPlays} />
+                  </div>
+
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setAdminSection("upload")}
+                    >
+                      Open Upload
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      onClick={() => setAdminSection("songs")}
+                    >
+                      See All Songs
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      onClick={() => setAdminSection("requests")}
+                    >
+                      See All Requests
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      onClick={() => setAdminSection("messages")}
+                    >
+                      See All Messages
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Panel>
+
+            {adminSection === "upload" && (
+              <Panel title={editingSongId ? "Edit Song" : "Admin Upload Panel"}>
+                {uploadSuccess && (
+                  <div
+                    style={{
+                      padding: 18,
+                      borderRadius: 18,
+                      background: "rgba(34,197,94,0.15)",
+                      border: "1px solid rgba(74,222,128,0.35)",
+                      marginBottom: 18,
+                    }}
+                  >
+                    <strong>{uploadSuccess}</strong>
+                  </div>
+                )}
+
+                <form
+                  onSubmit={handleAddSong}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: isMobile
-                      ? "repeat(2, minmax(0, 1fr))"
-                      : "repeat(4, minmax(0, 1fr))",
-                    gap: 14,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                    gap: 16,
                   }}
                 >
-                  <StatPill label="Songs" value={songs.length} />
-                  <StatPill label="Likes" value={totalLikes} />
-                  <StatPill label="Opens" value={totalOpens} />
-                  <StatPill label="Plays" value={totalPlays} />
-                </div>
+                  <Input
+                    label="Song title"
+                    value={newSong.title}
+                    onChange={(e) => {
+                      setNewSong((p) => ({ ...p, title: e.target.value }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
+                  />
 
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                  <Button
-                    variant="secondary"
-                    onClick={() => setAdminSection("songs")}
+                  <Input
+                    label="Artist"
+                    value={newSong.artist}
+                    onChange={(e) => {
+                      setNewSong((p) => ({ ...p, artist: e.target.value }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
+                  />
+
+                  <Input
+                    label="Requested by"
+                    value={newSong.requestedBy}
+                    onChange={(e) => {
+                      setNewSong((p) => ({ ...p, requestedBy: e.target.value }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
+                  />
+
+                  <Select
+                    label="Collection"
+                    value={newSong.visibility}
+                    onChange={(e) => {
+                      setNewSong((p) => ({ ...p, visibility: e.target.value }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
                   >
-                    See All Songs
-                  </Button>
+                    <option value="public" style={{ color: "black" }}>
+                      Main website / Public
+                    </option>
+                    <option value="private" style={{ color: "black" }}>
+                      Private collection
+                    </option>
+                  </Select>
 
-                  <Button
-                    variant="secondary"
-                    onClick={() => setAdminSection("requests")}
-                  >
-                    See All Requests
-                  </Button>
+                  <div>
+                    <div
+                      style={{
+                        marginBottom: 8,
+                        fontSize: 14,
+                        color: "rgba(255,255,255,0.82)",
+                      }}
+                    >
+                      Upload cover image
+                    </div>
 
-                  <Button
-                    variant="secondary"
-                    onClick={() => setAdminSection("messages")}
-                  >
-                    See All Messages
-                  </Button>
-                </div>
-              </div>
-            )}
+                    <input
+                      id="song-cover-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        setNewSongFiles((prev) => ({
+                          ...prev,
+                          coverFile: e.target.files?.[0] || null,
+                        }));
 
-            {/* SONGS */}
-            {adminSection === "songs" && (
-              <div style={{ display: "grid", gap: 14 }}>
-                {adminSongs.length > 0 ? (
-                  adminSongs.map((song, index) => (
-                    <SongRow
-                      key={song.id}
-                      song={song}
-                      analytics={songAnalytics[song.id]}
-                      onLike={handleLikeSong}
-                      onOpenPlayer={handleOpenSong}
-                      onDownloadSong={downloadSong}
-                      onDownloadLyrics={downloadLyrics}
-                      onCopyLink={copySongLink}
-                      isMobile={isMobile}
-                      isAdmin
-                      onEdit={() => startEditSong(song)}
-                      onDelete={() => handleDeleteSong(song)}
-                      onMoveUp={() => handleMoveSong(song, "up")}
-                      onMoveDown={() => handleMoveSong(song, "down")}
-                      canMoveUp={index > 0 && !isReorderingSongs}
-                      canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
+                        if (editingSongId) setHasUnsavedSongChanges(true);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        borderRadius: 16,
+                        border: "1px solid rgba(255,255,255,0.10)",
+                        background: "rgba(8,12,24,0.64)",
+                        color: "white",
+                        boxSizing: "border-box",
+                      }}
                     />
-                  ))
-                ) : (
-                  <div style={{ color: "rgba(255,255,255,0.72)" }}>
-                    No songs yet.
                   </div>
-                )}
-              </div>
+
+                  <div>
+                    <div
+                      style={{
+                        marginBottom: 8,
+                        fontSize: 14,
+                        color: "rgba(255,255,255,0.82)",
+                      }}
+                    >
+                      Upload MP3 song
+                    </div>
+
+                    <input
+                      id="song-audio-input"
+                      type="file"
+                      accept="audio/*"
+                      onChange={(e) => {
+                        setNewSongFiles((prev) => ({
+                          ...prev,
+                          audioFile: e.target.files?.[0] || null,
+                        }));
+
+                        if (editingSongId) setHasUnsavedSongChanges(true);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        borderRadius: 16,
+                        border: "1px solid rgba(255,255,255,0.10)",
+                        background: "rgba(8,12,24,0.64)",
+                        color: "white",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      paddingTop: 34,
+                      color: "rgba(255,255,255,0.85)",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={newSong.featured}
+                      onChange={(e) => {
+                        setNewSong((p) => ({ ...p, featured: e.target.checked }));
+                        if (editingSongId) setHasUnsavedSongChanges(true);
+                      }}
+                    />
+                    Featured song
+                  </label>
+
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <TextArea
+                      label="Lyrics"
+                      value={newSong.lyrics}
+                      onChange={(e) => {
+                        setNewSong((p) => ({ ...p, lyrics: e.target.value }));
+                        if (editingSongId) setHasUnsavedSongChanges(true);
+                      }}
+                      style={{ minHeight: 180 }}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      gridColumn: "1 / -1",
+                      display: "flex",
+                      gap: 12,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Button type="submit" variant="primary" disabled={isUploading}>
+                      {isUploading
+                        ? "Saving..."
+                        : editingSongId
+                        ? "Save Changes"
+                        : "Upload Song"}
+                    </Button>
+
+                    {editingSongId ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={cancelEditSong}
+                      >
+                        Cancel Edit
+                      </Button>
+                    ) : null}
+                  </div>
+                </form>
+              </Panel>
             )}
 
-            {/* REQUESTS */}
+            {adminSection === "songs" && (
+              <Panel
+                title="Song Library"
+                subtitle="Manage uploaded songs, edit, delete, and reorder."
+                right={
+                  <div style={{ minWidth: 220 }}>
+                    <Select
+                      value={adminSongFilter}
+                      onChange={(e) => setAdminSongFilter(e.target.value)}
+                    >
+                      <option value="all" style={{ color: "black" }}>
+                        All songs
+                      </option>
+                      <option value="public" style={{ color: "black" }}>
+                        Public songs
+                      </option>
+                      <option value="private" style={{ color: "black" }}>
+                        Private songs
+                      </option>
+                      <option value="requested" style={{ color: "black" }}>
+                        Requested songs
+                      </option>
+                      <option value="originals" style={{ color: "black" }}>
+                        Originals
+                      </option>
+                    </Select>
+                  </div>
+                }
+              >
+                <div style={{ display: "grid", gap: 14 }}>
+                  {adminSongs.length > 0 ? (
+                    adminSongs.map((song, index) => (
+                      <SongRow
+                        key={song.id}
+                        song={song}
+                        analytics={songAnalytics[song.id]}
+                        onLike={handleLikeSong}
+                        onOpenPlayer={handleOpenSong}
+                        onDownloadSong={downloadSong}
+                        onDownloadLyrics={downloadLyrics}
+                        onCopyLink={copySongLink}
+                        isMobile={isMobile}
+                        isAdmin
+                        onEdit={() => startEditSong(song)}
+                        onDelete={() => handleDeleteSong(song)}
+                        onMoveUp={() => handleMoveSong(song, "up")}
+                        onMoveDown={() => handleMoveSong(song, "down")}
+                        canMoveUp={index > 0 && !isReorderingSongs}
+                        canMoveDown={
+                          index < adminSongs.length - 1 && !isReorderingSongs
+                        }
+                      />
+                    ))
+                  ) : (
+                    <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                      No songs yet.
+                    </div>
+                  )}
+                </div>
+              </Panel>
+            )}
+
             {adminSection === "requests" && (
-              <div style={{ display: "grid", gap: 12 }}>
-                {filteredRequests.length > 0 ? (
-                  filteredRequests.map((req) => (
-                    <div
-                      key={req.id}
-                      style={{
-                        padding: 16,
-                        borderRadius: 18,
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                      }}
-                    >
-                      <strong>{req.title}</strong>
-
+              <Panel title="Requests" subtitle="Review and manage song requests.">
+                <div style={{ display: "grid", gap: 12 }}>
+                  {filteredRequests.length > 0 ? (
+                    filteredRequests.map((req) => (
                       <div
+                        key={req.id}
                         style={{
-                          fontSize: 13,
-                          opacity: 0.7,
-                          marginTop: 6,
+                          padding: 16,
+                          borderRadius: 18,
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(255,255,255,0.08)",
                         }}
                       >
-                        Requested by {req.name} • {timeAgo(req.createdAt)}
-                      </div>
+                        <strong>{req.title}</strong>
 
-                      <div
-                        style={{
-                          fontSize: 13,
-                          opacity: 0.7,
-                          marginTop: 6,
-                        }}
-                      >
-                        Status: {req.status} • Delivery:{" "}
-                        {req.delivery === "private" ? "Private" : "Public"}
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          marginTop: 12,
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <Button
-                          variant="secondary"
-                          onClick={() => setSelectedRequest(req)}
+                        <div
+                          style={{
+                            fontSize: 13,
+                            opacity: 0.7,
+                            marginTop: 6,
+                          }}
                         >
-                          Review
-                        </Button>
+                          Requested by {req.name} • {timeAgo(req.createdAt)}
+                        </div>
 
-                        <Button
-                          variant="secondary"
-                          onClick={() => toggleRequestStatus(req.id)}
+                        <div
+                          style={{
+                            fontSize: 13,
+                            opacity: 0.7,
+                            marginTop: 6,
+                          }}
                         >
-                          {req.status === "done" ? "Mark Pending" : "Mark Done"}
-                        </Button>
+                          Status: {req.status} • Delivery:{" "}
+                          {req.delivery === "private" ? "Private" : "Public"}
+                        </div>
 
-                        <Button
-                          variant="danger"
-                          onClick={() => handleDeleteRequest(req.id)}
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 8,
+                            marginTop: 12,
+                            flexWrap: "wrap",
+                          }}
                         >
-                          Delete
-                        </Button>
+                          <Button
+                            variant="secondary"
+                            onClick={() => setSelectedRequest(req)}
+                          >
+                            Review
+                          </Button>
+
+                          <Button
+                            variant="secondary"
+                            onClick={() => toggleRequestStatus(req.id)}
+                          >
+                            {req.status === "done" ? "Mark Pending" : "Mark Done"}
+                          </Button>
+
+                          <Button
+                            variant="danger"
+                            onClick={() => handleDeleteRequest(req.id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </div>
+                    ))
+                  ) : (
+                    <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                      No requests yet.
                     </div>
-                  ))
-                ) : (
-                  <div style={{ color: "rgba(255,255,255,0.72)" }}>
-                    No requests yet.
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </Panel>
             )}
 
-            {/* MESSAGES */}
             {adminSection === "messages" && (
-              <div style={{ display: "grid", gap: 12 }}>
-                {messages.length > 0 ? (
-                  messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      style={{
-                        padding: 16,
-                        borderRadius: 18,
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                      }}
-                    >
-                      <strong>{msg.from}</strong>
-
+              <Panel title="Messages" subtitle="Read and manage private messages.">
+                <div style={{ display: "grid", gap: 12 }}>
+                  {messages.length > 0 ? (
+                    messages.map((msg) => (
                       <div
+                        key={msg.id}
                         style={{
-                          fontSize: 13,
-                          opacity: 0.7,
-                          marginTop: 6,
+                          padding: 16,
+                          borderRadius: 18,
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(255,255,255,0.08)",
                         }}
                       >
-                        {msg.replyContact || "No reply contact"}
-                      </div>
+                        <strong>{msg.from}</strong>
 
-                      <p style={{ margin: "12px 0 0", lineHeight: 1.5 }}>
-                        {msg.message}
-                      </p>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          marginTop: 12,
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <Button
-                          variant="secondary"
-                          onClick={() => toggleMessageStatus(msg.id)}
+                        <div
+                          style={{
+                            fontSize: 13,
+                            opacity: 0.7,
+                            marginTop: 6,
+                          }}
                         >
-                          {msg.status === "new" ? "Mark Read" : "Mark New"}
-                        </Button>
+                          {msg.replyContact || "No reply contact"}
+                        </div>
 
-                        <Button
-                          variant="danger"
-                          onClick={() => handleDeleteMessage(msg.id)}
+                        <p style={{ margin: "12px 0 0", lineHeight: 1.5 }}>
+                          {msg.message}
+                        </p>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 8,
+                            marginTop: 12,
+                            flexWrap: "wrap",
+                          }}
                         >
-                          Delete
-                        </Button>
+                          <Button
+                            variant="secondary"
+                            onClick={() => toggleMessageStatus(msg.id)}
+                          >
+                            {msg.status === "new" ? "Mark Read" : "Mark New"}
+                          </Button>
+
+                          <Button
+                            variant="danger"
+                            onClick={() => handleDeleteMessage(msg.id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </div>
+                    ))
+                  ) : (
+                    <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                      No messages yet.
                     </div>
-                  ))
-                ) : (
-                  <div style={{ color: "rgba(255,255,255,0.72)" }}>
-                    No messages yet.
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </Panel>
             )}
-          </Panel>
+          </div>
         )}
 
         <RequestReviewModal
