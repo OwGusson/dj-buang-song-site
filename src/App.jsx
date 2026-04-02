@@ -1,3 +1,39 @@
+/* ============================================================
+   APP.JSX ROOT STRUCTURE
+   DJ-BUANG.COM MAIN APPLICATION FILE
+
+   SECTION MAP
+
+   1. Imports + constants + storage helpers
+   2. Normalize / format / utility helpers
+   3. Shared UI components
+   4. SongRow + song display components
+   5. Player components
+   6. API / cloud / supabase helpers
+   7. App state + refs + local handlers
+   8. Effects
+   9. Memo / computed values
+   10. Data handlers
+   11. Public pages render
+   12. Admin render + modals + player render + export
+
+   Analytics System (Event-based tracking)
+   - song_events table (raw events)
+   - song_analytics table (summaries)
+
+   Listener identity stored locally via:
+   getOrCreateListenerId()
+
+============================================================ */
+
+/* ================================
+   SECTION 1: IMPORTS + CONSTANTS + STORAGE HELPERS
+================================ */
+
+/* ================================
+   IMPORTS
+================================ */
+
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
 import { supabase } from "./supabase";
@@ -8,19 +44,36 @@ import {
 } from "./songs";
 
 /* ================================
-   STORAGE + GLOBAL CONSTANTS
+   STORAGE KEYS
 ================================ */
 
 const STORAGE_KEYS = {
   songs: "djbuang_songs",
   admin: "djbuang_admin_logged_in",
   resetVersion: "djbuang_reset_version",
+  listenerId: "djbuang_listener_id",
 };
+
+/* ================================
+   GLOBAL CONSTANTS
+================================ */
 
 const PAYPAL_URL =
   "https://www.paypal.com/donate/?hosted_button_id=DWL7PTXG7BQ9A";
 
 const DEFAULT_SONGS = [];
+
+/* ================================
+   ANALYTICS CONSTANTS
+================================ */
+
+const ANALYTICS_EVENT_TYPES = {
+  open: "open",
+  playStart: "play_start",
+  play25: "play_25",
+  downloadSong: "download_song",
+  downloadLyrics: "download_lyrics",
+};
 
 /* ================================
    LOCAL STORAGE HELPERS
@@ -60,6 +113,10 @@ function clearOldDemoDataOnce() {
 }
 
 /* ================================
+   SECTION 2: NORMALIZE / FORMAT / UTILITY HELPERS
+================================ */
+
+/* ================================
    SONG NORMALIZATION
 ================================ */
 
@@ -94,6 +151,11 @@ function normalizeAnalyticsRow(row) {
     song_id: row.song_id,
     opens: Number(row.opens || 0),
     plays: Number(row.plays || 0),
+    unique_opens: Number(row.unique_opens || 0),
+    unique_listeners: Number(row.unique_listeners || 0),
+    play_25_count: Number(row.play_25_count || 0),
+    song_downloads: Number(row.song_downloads || 0),
+    lyrics_downloads: Number(row.lyrics_downloads || 0),
     updated_at: row.updated_at,
   };
 }
@@ -234,6 +296,38 @@ async function loadImageAsDataUrl(imageUrl) {
   }
 }
 
+/* ================================
+   LISTENER / SESSION HELPERS
+================================ */
+
+function createRandomId() {
+  try {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+  } catch {}
+
+  return `listener_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
+function getOrCreateListenerId() {
+  if (typeof window === "undefined") return "server";
+
+  try {
+    const existing = localStorage.getItem(STORAGE_KEYS.listenerId);
+    if (existing) return existing;
+
+    const nextId = createRandomId();
+    localStorage.setItem(STORAGE_KEYS.listenerId, nextId);
+    return nextId;
+  } catch {
+    return createRandomId();
+  }
+}
+
+/* ================================
+   SECTION 3: SHARED UI COMPONENTS
+================================ */
 
 /* ================================
    UI STYLE HELPERS
@@ -624,6 +718,10 @@ function SectionHeading({ icon, title, tone = "default" }) {
 }
 
 /* ================================
+   SECTION 4: SONGROW + SONG DISPLAY COMPONENTS
+================================ */
+
+/* ================================
    SONG ROW (LIBRARY LIST ITEM)
 ================================ */
 
@@ -644,6 +742,10 @@ function SongRow({
   canMoveUp = false,
   canMoveDown = false,
 }) {
+  /* ================================
+     SONG ROW: DERIVED VALUES
+  ================================ */
+
   const songTypeLabel = getSongTypeLabel(song);
   const songAnalytics = analytics || { opens: 0, plays: 0 };
   const isNew = isNewSong(song);
@@ -661,6 +763,10 @@ function SongRow({
         fontSize: 14,
         borderRadius: 14,
       };
+
+  /* ================================
+     SONG ROW: RENDER
+  ================================ */
 
   return (
     <div
@@ -681,7 +787,10 @@ function SongRow({
         cursor: "pointer",
       }}
     >
-      {/* COVER */}
+      {/* ================================
+          SONG ROW: COVER
+      ================================ */}
+
       <div
         style={{
           width: "100%",
@@ -711,8 +820,15 @@ function SongRow({
         )}
       </div>
 
-      {/* INFO */}
+      {/* ================================
+          SONG ROW: INFO COLUMN
+      ================================ */}
+
       <div style={{ display: "grid", gap: isMobile ? 5 : 8, minWidth: 0 }}>
+        {/* ================================
+            SONG ROW: TITLE + BADGES
+        ================================ */}
+
         <div
           style={{
             display: "flex",
@@ -765,6 +881,10 @@ function SongRow({
           )}
         </div>
 
+        {/* ================================
+            SONG ROW: META
+        ================================ */}
+
         <div
           style={{
             fontSize: isMobile ? 13 : 14,
@@ -775,6 +895,10 @@ function SongRow({
         >
           {song.artist} • {songTypeLabel}
         </div>
+
+        {/* ================================
+            SONG ROW: STATS
+        ================================ */}
 
         <div
           style={{
@@ -790,7 +914,10 @@ function SongRow({
           <span>👁 {songAnalytics.opens}</span>
         </div>
 
-        {/* ACTION ROW */}
+        {/* ================================
+            SONG ROW: ACTIONS
+        ================================ */}
+
         <div
           onClick={(e) => e.stopPropagation()}
           style={{
@@ -878,6 +1005,10 @@ function SongRow({
 }
 
 /* ================================
+   SECTION 5: PLAYER COMPONENTS
+================================ */
+
+/* ================================
    MINI PLAYER (BOTTOM BAR)
 ================================ */
 
@@ -889,10 +1020,18 @@ function MiniPlayer({
   onNext,
   onPrev,
 }) {
+  /* ================================
+     MINI PLAYER: GUARDS + FLAGS
+  ================================ */
+
   if (!song) return null;
 
   const isMobile =
     typeof window !== "undefined" ? window.innerWidth < 900 : false;
+
+  /* ================================
+     MINI PLAYER: RENDER
+  ================================ */
 
   return (
     <div
@@ -913,7 +1052,10 @@ function MiniPlayer({
         backdropFilter: "blur(14px)",
       }}
     >
-      {/* SONG INFO */}
+      {/* ================================
+          MINI PLAYER: SONG INFO
+      ================================ */}
+
       <div
         onClick={onExpand}
         style={{
@@ -947,7 +1089,10 @@ function MiniPlayer({
         </div>
       </div>
 
-      {/* CONTROLS */}
+      {/* ================================
+          MINI PLAYER: CONTROLS
+      ================================ */}
+
       <div
         style={{
           display: "flex",
@@ -994,10 +1139,18 @@ function PlayerModal({
   onNext,
   onPrev,
 }) {
+  /* ================================
+     PLAYER MODAL: GUARDS + FLAGS
+  ================================ */
+
   if (!song) return null;
 
   const isMobile =
     typeof window !== "undefined" ? window.innerWidth < 900 : false;
+
+  /* ================================
+     PLAYER MODAL: RENDER
+  ================================ */
 
   return (
     <div
@@ -1022,7 +1175,10 @@ function PlayerModal({
           boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
         }}
       >
-        {/* TITLE */}
+        {/* ================================
+            PLAYER MODAL: TITLE
+        ================================ */}
+
         <h2
           style={{
             marginTop: 0,
@@ -1033,7 +1189,10 @@ function PlayerModal({
           {song.title}
         </h2>
 
-        {/* ARTIST */}
+        {/* ================================
+            PLAYER MODAL: ARTIST
+        ================================ */}
+
         <p
           style={{
             margin: 0,
@@ -1044,7 +1203,10 @@ function PlayerModal({
           {song.artist}
         </p>
 
-        {/* CONTROLS */}
+        {/* ================================
+            PLAYER MODAL: CONTROLS
+        ================================ */}
+
         <div
           style={{
             display: "flex",
@@ -1069,6 +1231,10 @@ function PlayerModal({
     </div>
   );
 }
+
+/* ================================
+   SECTION 6: API / CLOUD / SUPABASE HELPERS
+================================ */
 
 /* ================================
    CLOUDFLARE FILE UPLOAD
@@ -1168,7 +1334,7 @@ async function deleteSongFromCloudflare(songId) {
 }
 
 /* ================================
-   ADMIN LOGIN
+   ADMIN AUTH API
 ================================ */
 
 async function loginAdmin(password) {
@@ -1197,43 +1363,122 @@ async function loginAdmin(password) {
 }
 
 /* ================================
-   SONG ANALYTICS
+   SONG ANALYTICS: EVENT SUMMARY
 ================================ */
 
-async function incrementSongAnalytics(songId, field) {
-  if (!songId || !field) return null;
+async function summarizeSongEvents(songId) {
+  if (!songId) return null;
 
-  const { data: existingRow, error: selectError } = await supabase
-    .from("song_analytics")
-    .select("*")
-    .eq("song_id", songId)
-    .maybeSingle();
-
-  if (selectError) {
-    throw selectError;
-  }
-
-  const currentOpens = Number(existingRow?.opens || 0);
-  const currentPlays = Number(existingRow?.plays || 0);
-
-  const payload = {
-    song_id: songId,
-    opens: field === "opens" ? currentOpens + 1 : currentOpens,
-    plays: field === "plays" ? currentPlays + 1 : currentPlays,
-    updated_at: new Date().toISOString(),
-  };
-
-  const { data, error } = await supabase
-    .from("song_analytics")
-    .upsert(payload, { onConflict: "song_id" })
-    .select()
-    .single();
+  const { data: events, error } = await supabase
+    .from("song_events")
+    .select("listener_id, event_type")
+    .eq("song_id", songId);
 
   if (error) {
     throw error;
   }
 
-  return normalizeAnalyticsRow(data);
+  const safeEvents = events || [];
+
+  const opens = safeEvents.filter(
+    (event) => event.event_type === ANALYTICS_EVENT_TYPES.open
+  );
+  const plays = safeEvents.filter(
+    (event) => event.event_type === ANALYTICS_EVENT_TYPES.playStart
+  );
+  const play25 = safeEvents.filter(
+    (event) => event.event_type === ANALYTICS_EVENT_TYPES.play25
+  );
+  const songDownloads = safeEvents.filter(
+    (event) => event.event_type === ANALYTICS_EVENT_TYPES.downloadSong
+  );
+  const lyricsDownloads = safeEvents.filter(
+    (event) => event.event_type === ANALYTICS_EVENT_TYPES.downloadLyrics
+  );
+
+  const uniqueOpenIds = new Set(
+    opens.map((event) => event.listener_id).filter(Boolean)
+  );
+
+  const uniqueListenerIds = new Set(
+    safeEvents
+      .filter(
+        (event) =>
+          event.event_type === ANALYTICS_EVENT_TYPES.playStart ||
+          event.event_type === ANALYTICS_EVENT_TYPES.play25
+      )
+      .map((event) => event.listener_id)
+      .filter(Boolean)
+  );
+
+  const payload = {
+    song_id: songId,
+    opens: opens.length,
+    plays: plays.length,
+    unique_opens: uniqueOpenIds.size,
+    unique_listeners: uniqueListenerIds.size,
+    play_25_count: play25.length,
+    song_downloads: songDownloads.length,
+    lyrics_downloads: lyricsDownloads.length,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: savedRow, error: upsertError } = await supabase
+    .from("song_analytics")
+    .upsert(payload, { onConflict: "song_id" })
+    .select()
+    .single();
+
+  if (upsertError) {
+    throw upsertError;
+  }
+
+  return normalizeAnalyticsRow(savedRow);
+}
+
+/* ================================
+   SONG ANALYTICS: EVENT TRACKING
+================================ */
+
+async function trackSongEvent(songId, eventType, options = {}) {
+  if (!songId || !eventType) return null;
+
+  const payload = {
+    song_id: songId,
+    event_type: eventType,
+    listener_id: options.listenerId || null,
+    progress_percent:
+      typeof options.progressPercent === "number"
+        ? options.progressPercent
+        : null,
+    created_at: new Date().toISOString(),
+  };
+
+  const { error: insertError } = await supabase
+    .from("song_events")
+    .insert([payload]);
+
+  if (insertError) {
+    throw insertError;
+  }
+
+  return summarizeSongEvents(songId);
+}
+
+async function incrementSongAnalytics(songId, field, options = {}) {
+  const fieldToEventTypeMap = {
+    opens: ANALYTICS_EVENT_TYPES.open,
+    plays: ANALYTICS_EVENT_TYPES.playStart,
+    play_25: ANALYTICS_EVENT_TYPES.play25,
+    download_song: ANALYTICS_EVENT_TYPES.downloadSong,
+    download_lyrics: ANALYTICS_EVENT_TYPES.downloadLyrics,
+  };
+
+  const eventType = fieldToEventTypeMap[field];
+
+  if (!eventType) return null;
+
+  return trackSongEvent(songId, eventType, options);
 }
 
 /* ================================
@@ -1306,7 +1551,15 @@ async function deleteSongFromSupabaseBackup(songId) {
   }
 }
 
+/* ================================
+   SECTION 7: APP STATE + REFS + LOCAL HANDLERS
+================================ */
+
 function App() {
+  /* ================================
+     APP STATE: CORE DATA
+  ================================ */
+
   const [songs, setSongs] = useState(() => {
     clearOldDemoDataOnce();
     return [];
@@ -1321,6 +1574,10 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
 
+  /* ================================
+     APP STATE: AUTH + VIEW
+  ================================ */
+
   const [adminLoggedIn, setAdminLoggedIn] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEYS.admin) || "false");
@@ -1334,16 +1591,28 @@ function App() {
   const [adminPassword, setAdminPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
+  /* ================================
+     APP STATE: FILTERS + SEARCH
+  ================================ */
+
   const [search, setSearch] = useState("");
   const [filterMode, setFilterMode] = useState("all");
   const [requestFilter, setRequestFilter] = useState("all");
   const [adminSongFilter, setAdminSongFilter] = useState("all");
+
+  /* ================================
+     APP STATE: PLAYER
+  ================================ */
 
   const [playerSong, setPlayerSong] = useState(null);
   const [playerMinimized, setPlayerMinimized] = useState(false);
   const [playerCurrentTime, setPlayerCurrentTime] = useState(0);
   const [playerDuration, setPlayerDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  /* ================================
+     APP STATE: UI STATUS
+  ================================ */
 
   const [isUploading, setIsUploading] = useState(false);
   const [isReorderingSongs, setIsReorderingSongs] = useState(false);
@@ -1357,12 +1626,25 @@ function App() {
     typeof window !== "undefined" ? window.innerWidth : 1200
   );
 
-  const trackedOpenSongIdsRef = useRef(new Set());
+  /* ================================
+     APP REFS
+  ================================ */
+
+  const listenerIdRef = useRef(getOrCreateListenerId());
   const lastTrackedPlaySongIdRef = useRef(null);
+  const lastTrackedPlay25SongIdRef = useRef(null);
   const shouldAutoplayOnSongChangeRef = useRef(false);
   const audioRef = useRef(null);
 
+  /* ================================
+     DERIVED FLAGS
+  ================================ */
+
   const isMobile = windowWidth < 900;
+
+  /* ================================
+     FORM STATE: SONG FORM
+  ================================ */
 
   const [newSong, setNewSong] = useState({
     title: "",
@@ -1380,6 +1662,10 @@ function App() {
     audioFile: null,
   });
 
+  /* ================================
+     FORM STATE: REQUEST FORM
+  ================================ */
+
   const [requestForm, setRequestForm] = useState({
     name: "",
     title: "",
@@ -1390,6 +1676,11 @@ function App() {
   });
 
   const [requestSent, setRequestSent] = useState(false);
+
+  /* ================================
+     FORM STATE: MESSAGE FORM
+  ================================ */
+
   const [uploadSuccess, setUploadSuccess] = useState("");
   const [messageSuccess, setMessageSuccess] = useState("");
 
@@ -1399,6 +1690,10 @@ function App() {
     replyContact: "",
     message: "",
   });
+
+  /* ================================
+     LOCAL HANDLERS: SONG FORM
+  ================================ */
 
   function resetSongForm() {
     setNewSong({
@@ -1468,6 +1763,14 @@ function App() {
   function cancelEditSong() {
     resetSongForm();
   }
+
+  /* ================================
+     SECTION 8: EFFECTS
+  ================================ */
+
+  /* ================================
+     EFFECTS: INITIAL SONGS + ANALYTICS LOAD
+  ================================ */
 
   useEffect(() => {
     let cancelled = false;
@@ -1559,6 +1862,10 @@ function App() {
     };
   }, []);
 
+  /* ================================
+     EFFECTS: INITIAL REQUESTS + MESSAGES LOAD
+  ================================ */
+
   useEffect(() => {
     async function loadRequestsAndMessages() {
       const { data: requestsData, error: requestsError } = await supabase
@@ -1608,6 +1915,10 @@ function App() {
 
     loadRequestsAndMessages();
   }, []);
+
+  /* ================================
+     EFFECTS: LIVE SUPABASE SUBSCRIPTIONS
+  ================================ */
 
   useEffect(() => {
     const requestsChannel = supabase
@@ -1733,6 +2044,10 @@ function App() {
     };
   }, []);
 
+  /* ================================
+     EFFECTS: LOCAL STORAGE SYNC
+  ================================ */
+
   useEffect(() => {
     try {
       const safeSongs = songs.map((song) => ({
@@ -1761,6 +2076,10 @@ function App() {
     localStorage.setItem(STORAGE_KEYS.admin, JSON.stringify(adminLoggedIn));
   }, [adminLoggedIn]);
 
+  /* ================================
+     EFFECTS: WINDOW + URL STATE
+  ================================ */
+
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
 
@@ -1785,12 +2104,44 @@ function App() {
     }
   }, [songs]);
 
+  /* ================================
+     EFFECTS: AUDIO EVENT TRACKING
+  ================================ */
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const handleTimeUpdate = () => {
-      setPlayerCurrentTime(audio.currentTime || 0);
+      const currentTime = audio.currentTime || 0;
+      const duration = audio.duration || 0;
+
+      setPlayerCurrentTime(currentTime);
+
+      const currentSongId = playerSong?.id;
+      if (!currentSongId || !duration) return;
+
+      const progress = currentTime / duration;
+
+      if (progress >= 0.25 && lastTrackedPlay25SongIdRef.current !== currentSongId) {
+        lastTrackedPlay25SongIdRef.current = currentSongId;
+
+        trackSongEvent(currentSongId, ANALYTICS_EVENT_TYPES.play25, {
+          listenerId: listenerIdRef.current,
+          progressPercent: 25,
+        })
+          .then((updatedRow) => {
+            if (!updatedRow) return;
+
+            setSongAnalytics((prev) => ({
+              ...prev,
+              [updatedRow.song_id]: updatedRow,
+            }));
+          })
+          .catch((error) => {
+            console.error("Could not track 25% play:", error);
+          });
+      }
     };
 
     const handleLoadedMetadata = () => {
@@ -1807,7 +2158,9 @@ function App() {
       lastTrackedPlaySongIdRef.current = currentSongId;
 
       try {
-        const updatedRow = await incrementSongAnalytics(currentSongId, "plays");
+        const updatedRow = await incrementSongAnalytics(currentSongId, "plays", {
+          listenerId: listenerIdRef.current,
+        });
 
         if (updatedRow) {
           setSongAnalytics((prev) => ({
@@ -1828,6 +2181,7 @@ function App() {
       setIsPlaying(false);
       setPlayerCurrentTime(0);
       lastTrackedPlaySongIdRef.current = null;
+      lastTrackedPlay25SongIdRef.current = null;
     };
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
@@ -1845,6 +2199,10 @@ function App() {
     };
   }, [playerSong]);
 
+  /* ================================
+     EFFECTS: AUDIO VOLUME + MUTE
+  ================================ */
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -1853,6 +2211,10 @@ function App() {
     audio.muted = isMuted;
   }, [volume, isMuted]);
 
+  /* ================================
+     EFFECTS: PLAYER SONG SOURCE CHANGES
+  ================================ */
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !playerSong?.audioUrl) return;
@@ -1860,6 +2222,8 @@ function App() {
     audio.load();
     setPlayerCurrentTime(0);
     setPlayerDuration(0);
+    lastTrackedPlaySongIdRef.current = null;
+    lastTrackedPlay25SongIdRef.current = null;
 
     if (shouldAutoplayOnSongChangeRef.current) {
       const playPromise = audio.play();
@@ -1873,6 +2237,14 @@ function App() {
 
     shouldAutoplayOnSongChangeRef.current = false;
   }, [playerSong]);
+
+  /* ================================
+     SECTION 9: MEMO / COMPUTED VALUES
+  ================================ */
+
+  /* ================================
+     MEMO: PUBLIC SONG COLLECTIONS
+  ================================ */
 
   const publicSongs = useMemo(
     () =>
@@ -1954,11 +2326,9 @@ function App() {
     return list.sort(compareSongsForDisplay);
   }, [songs, adminSongFilter]);
 
-  const topLikedSongs = useMemo(() => {
-    return [...publicSongs]
-      .sort((a, b) => (b.likes || 0) - (a.likes || 0))
-      .slice(0, 3);
-  }, [publicSongs]);
+  /* ================================
+     MEMO: SPOTLIGHT SONG GROUPS
+  ================================ */
 
   const featuredSpotlightSongs = useMemo(() => {
     return [...publicSongs]
@@ -1993,6 +2363,16 @@ function App() {
 
   const showSpotlights = filterMode === "all";
 
+  /* ================================
+     MEMO: TOP SONG LISTS
+  ================================ */
+
+  const topLikedSongs = useMemo(() => {
+    return [...publicSongs]
+      .sort((a, b) => (b.likes || 0) - (a.likes || 0))
+      .slice(0, 3);
+  }, [publicSongs]);
+
   const topPlayedSongs = useMemo(() => {
     return [...songs]
       .map(normalizeSong)
@@ -2008,6 +2388,10 @@ function App() {
       })
       .slice(0, 3);
   }, [songs, songAnalytics]);
+
+  /* ================================
+     MEMO: FILTERED REQUESTS
+  ================================ */
 
   const filteredRequests = useMemo(() => {
     let list = [...requests];
@@ -2033,6 +2417,10 @@ function App() {
     return list;
   }, [requests, requestFilter]);
 
+  /* ================================
+     COMPUTED COUNTS + TOTALS
+  ================================ */
+
   const pendingRequests = requests.filter((r) => r.status === "pending").length;
   const doneRequests = requests.filter((r) => r.status === "done").length;
   const newMessages = messages.filter((m) => m.status === "new").length;
@@ -2048,6 +2436,14 @@ function App() {
     (sum, row) => sum + Number(row.plays || 0),
     0
   );
+
+  /* ================================
+     SECTION 10: DATA HANDLERS
+  ================================ */
+
+  /* ================================
+     DATA HANDLERS: SONG LIKES
+  ================================ */
 
   const handleLikeSong = async (songId) => {
     const likedKey = `liked_${songId}`;
@@ -2089,6 +2485,10 @@ function App() {
     localStorage.setItem(likedKey, "true");
   };
 
+  /* ================================
+     DATA HANDLERS: ADMIN AUTH
+  ================================ */
+
   const handleAdminLogin = async (e) => {
     e.preventDefault();
 
@@ -2109,6 +2509,10 @@ function App() {
     setView("home");
     setAdminSection("dashboard");
   };
+
+  /* ================================
+     DATA HANDLERS: SONG CREATE / UPDATE
+  ================================ */
 
   const handleAddSong = async (e) => {
     e.preventDefault();
@@ -2192,6 +2596,10 @@ function App() {
     }
   };
 
+  /* ================================
+     DATA HANDLERS: SONG DELETE / REORDER
+  ================================ */
+
   const handleDeleteSong = async (songOrId) => {
     const id = typeof songOrId === "string" ? songOrId : songOrId?.id;
     const songToDelete = songs.find((song) => song.id === id);
@@ -2228,84 +2636,11 @@ function App() {
         setIsPlaying(false);
         setShowVolumeSlider(false);
         lastTrackedPlaySongIdRef.current = null;
+        lastTrackedPlay25SongIdRef.current = null;
       }
     } catch (error) {
       alert(error.message || "Failed to delete song");
     }
-  };
-
-  const handleDeleteRequest = async (requestId) => {
-    const requestToDelete = requests.find((req) => req.id === requestId);
-    if (!requestToDelete) return;
-
-    const confirmed = window.confirm(
-      `Delete request "${requestToDelete.title}" from ${requestToDelete.name}?`
-    );
-    if (!confirmed) return;
-
-    const { error } = await supabase
-      .from("song_requests")
-      .delete()
-      .eq("id", requestId);
-
-    if (error) {
-      console.error("Could not delete request:", error);
-      alert("Could not delete request.");
-      return;
-    }
-
-    setRequests((prev) => prev.filter((req) => req.id !== requestId));
-
-    if (selectedRequest?.id === requestId) {
-      setSelectedRequest(null);
-    }
-  };
-
-  const handleDeleteMessage = async (messageId) => {
-    const messageToDelete = messages.find((msg) => msg.id === messageId);
-    if (!messageToDelete) return;
-
-    const confirmed = window.confirm(
-      `Delete private message from "${messageToDelete.from}"?`
-    );
-    if (!confirmed) return;
-
-    const { error } = await supabase
-      .from("private_messages")
-      .delete()
-      .eq("id", messageId);
-
-    if (error) {
-      console.error("Could not delete private message:", error);
-      alert("Could not delete private message.");
-      return;
-    }
-
-    setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
-  };
-
-  const toggleMessageStatus = async (messageId) => {
-    const currentMessage = messages.find((msg) => msg.id === messageId);
-    if (!currentMessage) return;
-
-    const nextStatus = currentMessage.status === "new" ? "read" : "new";
-
-    const { error } = await supabase
-      .from("private_messages")
-      .update({ status: nextStatus })
-      .eq("id", messageId);
-
-    if (error) {
-      console.error("Could not update private message status:", error);
-      alert("Could not update message status.");
-      return;
-    }
-
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === messageId ? { ...msg, status: nextStatus } : msg
-      )
-    );
   };
 
   const handleMoveSong = async (songOrId, direction) => {
@@ -2365,6 +2700,10 @@ function App() {
       setIsReorderingSongs(false);
     }
   };
+
+  /* ================================
+     DATA HANDLERS: REQUESTS
+  ================================ */
 
   const handleRequestSubmit = async (e) => {
     e.preventDefault();
@@ -2433,6 +2772,85 @@ function App() {
     setRequestSent(true);
   };
 
+  const handleDeleteRequest = async (requestId) => {
+    const requestToDelete = requests.find((req) => req.id === requestId);
+    if (!requestToDelete) return;
+
+    const confirmed = window.confirm(
+      `Delete request "${requestToDelete.title}" from ${requestToDelete.name}?`
+    );
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("song_requests")
+      .delete()
+      .eq("id", requestId);
+
+    if (error) {
+      console.error("Could not delete request:", error);
+      alert("Could not delete request.");
+      return;
+    }
+
+    setRequests((prev) => prev.filter((req) => req.id !== requestId));
+
+    if (selectedRequest?.id === requestId) {
+      setSelectedRequest(null);
+    }
+  };
+
+  const toggleRequestStatus = async (id) => {
+    const request = requests.find((r) => r.id === id);
+    if (!request) return;
+
+    const nextStatus = request.status === "pending" ? "done" : "pending";
+
+    const { error } = await supabase
+      .from("song_requests")
+      .update({ status: nextStatus })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Could not update request status:", error);
+      return;
+    }
+
+    setRequests((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, status: nextStatus } : r))
+    );
+  };
+
+  const linkSongToRequest = async (requestId, songId) => {
+    const { error } = await supabase
+      .from("song_requests")
+      .update({
+        linked_song_id: songId,
+        status: songId ? "done" : "pending",
+      })
+      .eq("id", requestId);
+
+    if (error) {
+      console.error("Could not link request:", error);
+      return;
+    }
+
+    setRequests((prev) =>
+      prev.map((r) =>
+        r.id === requestId
+          ? {
+              ...r,
+              linkedSongId: songId,
+              status: songId ? "done" : "pending",
+            }
+          : r
+      )
+    );
+  };
+
+  /* ================================
+     DATA HANDLERS: PRIVATE MESSAGES
+  ================================ */
+
   const handleMessageSubmit = async (e) => {
     e.preventDefault();
 
@@ -2492,53 +2910,56 @@ function App() {
     setMessageSuccess("✉️ Private message sent successfully.");
   };
 
-  const toggleRequestStatus = async (id) => {
-    const request = requests.find((r) => r.id === id);
-    if (!request) return;
+  const handleDeleteMessage = async (messageId) => {
+    const messageToDelete = messages.find((msg) => msg.id === messageId);
+    if (!messageToDelete) return;
 
-    const nextStatus = request.status === "pending" ? "done" : "pending";
+    const confirmed = window.confirm(
+      `Delete private message from "${messageToDelete.from}"?`
+    );
+    if (!confirmed) return;
 
     const { error } = await supabase
-      .from("song_requests")
-      .update({ status: nextStatus })
-      .eq("id", id);
+      .from("private_messages")
+      .delete()
+      .eq("id", messageId);
 
     if (error) {
-      console.error("Could not update request status:", error);
+      console.error("Could not delete private message:", error);
+      alert("Could not delete private message.");
       return;
     }
 
-    setRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: nextStatus } : r))
-    );
+    setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
   };
 
-  const linkSongToRequest = async (requestId, songId) => {
+  const toggleMessageStatus = async (messageId) => {
+    const currentMessage = messages.find((msg) => msg.id === messageId);
+    if (!currentMessage) return;
+
+    const nextStatus = currentMessage.status === "new" ? "read" : "new";
+
     const { error } = await supabase
-      .from("song_requests")
-      .update({
-        linked_song_id: songId,
-        status: songId ? "done" : "pending",
-      })
-      .eq("id", requestId);
+      .from("private_messages")
+      .update({ status: nextStatus })
+      .eq("id", messageId);
 
     if (error) {
-      console.error("Could not link request:", error);
+      console.error("Could not update private message status:", error);
+      alert("Could not update message status.");
       return;
     }
 
-    setRequests((prev) =>
-      prev.map((r) =>
-        r.id === requestId
-          ? {
-              ...r,
-              linkedSongId: songId,
-              status: songId ? "done" : "pending",
-            }
-          : r
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === messageId ? { ...msg, status: nextStatus } : msg
       )
     );
   };
+
+  /* ================================
+     DATA HANDLERS: PLAYER + ANALYTICS
+  ================================ */
 
   const openPayPalDonation = () => {
     window.open(PAYPAL_URL, "_blank", "noopener,noreferrer");
@@ -2549,21 +2970,19 @@ function App() {
     setPlayerMinimized(false);
     setPlayerCurrentTime(0);
 
-    if (!trackedOpenSongIdsRef.current.has(song.id)) {
-      trackedOpenSongIdsRef.current.add(song.id);
+    try {
+      const updatedRow = await incrementSongAnalytics(song.id, "opens", {
+        listenerId: listenerIdRef.current,
+      });
 
-      try {
-        const updatedRow = await incrementSongAnalytics(song.id, "opens");
-
-        if (updatedRow) {
-          setSongAnalytics((prev) => ({
-            ...prev,
-            [updatedRow.song_id]: updatedRow,
-          }));
-        }
-      } catch (error) {
-        console.error("Could not track open:", error);
+      if (updatedRow) {
+        setSongAnalytics((prev) => ({
+          ...prev,
+          [updatedRow.song_id]: updatedRow,
+        }));
       }
+    } catch (error) {
+      console.error("Could not track open:", error);
     }
   };
 
@@ -2598,6 +3017,7 @@ function App() {
     shouldAutoplayOnSongChangeRef.current = isPlaying;
     setPlayerSong(next);
     lastTrackedPlaySongIdRef.current = null;
+    lastTrackedPlay25SongIdRef.current = null;
   };
 
   const handlePreviousSong = () => {
@@ -2610,6 +3030,7 @@ function App() {
     shouldAutoplayOnSongChangeRef.current = isPlaying;
     setPlayerSong(prev);
     lastTrackedPlaySongIdRef.current = null;
+    lastTrackedPlay25SongIdRef.current = null;
   };
 
   const handleVolumeChange = (value) => {
@@ -2646,6 +3067,7 @@ function App() {
     setPlayerDuration(0);
     setIsPlaying(false);
     lastTrackedPlaySongIdRef.current = null;
+    lastTrackedPlay25SongIdRef.current = null;
     shouldAutoplayOnSongChangeRef.current = false;
   };
 
@@ -2668,6 +3090,21 @@ function App() {
     a.download =
       getFileNameFromUrl(song.audioUrl) || `${song.title || "song"}.mp3`;
     a.click();
+
+    incrementSongAnalytics(song.id, "download_song", {
+      listenerId: listenerIdRef.current,
+    })
+      .then((updatedRow) => {
+        if (!updatedRow) return;
+
+        setSongAnalytics((prev) => ({
+          ...prev,
+          [updatedRow.song_id]: updatedRow,
+        }));
+      })
+      .catch((error) => {
+        console.error("Could not track song download:", error);
+      });
   };
 
   const downloadLyrics = async (song) => {
@@ -2773,6 +3210,21 @@ function App() {
         .trim();
 
       doc.save(`${safeTitle}-lyrics.pdf`);
+
+      incrementSongAnalytics(song.id, "download_lyrics", {
+        listenerId: listenerIdRef.current,
+      })
+        .then((updatedRow) => {
+          if (!updatedRow) return;
+
+          setSongAnalytics((prev) => ({
+            ...prev,
+            [updatedRow.song_id]: updatedRow,
+          }));
+        })
+        .catch((error) => {
+          console.error("Could not track lyrics download:", error);
+        });
     } catch (error) {
       console.error("Could not create lyrics PDF:", error);
       alert("Could not generate PDF.");
@@ -2790,167 +3242,9 @@ function App() {
     }
   };
 
-  function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
-    if (!request) return null;
-
-    const linkedSong = songs.find((song) => song.id === request.linkedSongId);
-
-    return (
-      <div
-        onClick={onClose}
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.72)",
-          display: "grid",
-          placeItems: "center",
-          zIndex: 1100,
-          padding: 16,
-        }}
-      >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            width: "min(680px, 100%)",
-            maxHeight: "85vh",
-            overflowY: "auto",
-            padding: 24,
-            borderRadius: 24,
-            background:
-              "linear-gradient(180deg, rgba(10,14,28,0.98), rgba(6,10,22,0.98))",
-            border: "1px solid rgba(255,255,255,0.08)",
-            boxShadow: "0 18px 60px rgba(0,0,0,0.38)",
-            color: "white",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              alignItems: "flex-start",
-              marginBottom: 18,
-            }}
-          >
-            <div>
-              <h2 style={{ margin: 0, fontSize: 24 }}>Request Review</h2>
-              <p style={{ margin: "8px 0 0", color: "rgba(255,255,255,0.70)" }}>
-                Full request details and linked song preview.
-              </p>
-            </div>
-
-            <Button variant="ghost" onClick={onClose}>
-              Close
-            </Button>
-          </div>
-
-          <div style={{ display: "grid", gap: 14 }}>
-            <div
-              style={{
-                padding: 16,
-                borderRadius: 18,
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 6 }}>
-                Requested by
-              </div>
-              <strong>{request.name || "Unknown"}</strong>
-            </div>
-
-            <div
-              style={{
-                padding: 16,
-                borderRadius: 18,
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 6 }}>
-                Song idea
-              </div>
-              <strong>{request.title || "Untitled request"}</strong>
-            </div>
-
-            <div
-              style={{
-                padding: 16,
-                borderRadius: 18,
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 6 }}>
-                Details
-              </div>
-              <div style={{ lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                {request.details || "No extra details provided."}
-              </div>
-            </div>
-
-            <div
-              style={{
-                padding: 16,
-                borderRadius: 18,
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 6 }}>
-                Delivery / notify / contact
-              </div>
-              <div style={{ lineHeight: 1.6 }}>
-                <div>
-                  Delivery: {request.delivery === "private" ? "Private" : "Public"}
-                </div>
-                <div>Notify: {request.notify ? "Yes" : "No"}</div>
-                <div>Email: {request.email || "No email provided"}</div>
-                <div>Status: {request.status || "pending"}</div>
-                <div>Created: {formatDate(request.createdAt)}</div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                padding: 16,
-                borderRadius: 18,
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 10 }}>
-                Linked song
-              </div>
-
-              {linkedSong ? (
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                  }}
-                >
-                  <strong>
-                    {linkedSong.title} — {linkedSong.artist}
-                  </strong>
-
-                  <Button variant="secondary" onClick={() => onOpenSong(linkedSong)}>
-                    Open Song
-                  </Button>
-                </div>
-              ) : (
-                <div style={{ color: "rgba(255,255,255,0.72)" }}>
-                  No uploaded song linked yet.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  /* ================================
+     SECTION 11: PUBLIC PAGES RENDER
+  ================================ */
 
   return (
     <div
@@ -2964,6 +3258,10 @@ function App() {
         paddingBottom: playerSong && playerMinimized ? (isMobile ? 240 : 180) : 0,
       }}
     >
+      {/* ================================
+          APP ROOT: AUDIO ELEMENT
+      ================================ */}
+
       <audio
         ref={audioRef}
         src={playerSong?.audioUrl || ""}
@@ -2971,9 +3269,21 @@ function App() {
         style={{ display: "none" }}
       />
 
+      {/* ================================
+          APP ROOT: PAGE CONTAINER
+      ================================ */}
+
       <div style={{ maxWidth: 1250, margin: "0 auto", padding: "22px 18px 50px" }}>
+        {/* ================================
+            PUBLIC: HOME PAGE
+        ================================ */}
+
         {view === "home" && (
           <div style={{ display: "grid", gap: 22 }}>
+            {/* ================================
+                PUBLIC HOME: HERO
+            ================================ */}
+
             <section
               style={{
                 ...shellCardStyle({
@@ -2995,6 +3305,10 @@ function App() {
                   overflowX: "hidden",
                 }}
               >
+                {/* ================================
+                    PUBLIC HOME: HERO TEXT
+                ================================ */}
+
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
@@ -3130,6 +3444,10 @@ function App() {
                   </div>
                 </div>
 
+                {/* ================================
+                    PUBLIC HOME: HERO SIDE
+                ================================ */}
+
                 <div
                   style={{
                     display: "flex",
@@ -3175,6 +3493,10 @@ function App() {
               </div>
             </section>
 
+            {/* ================================
+                PUBLIC HOME: MAIN CONTENT GRID
+            ================================ */}
+
             <div
               style={{
                 display: "grid",
@@ -3185,6 +3507,10 @@ function App() {
                 alignItems: "start",
               }}
             >
+              {/* ================================
+                  PUBLIC HOME: SONG LIBRARY PANEL
+              ================================ */}
+
               <Panel
                 title={
                   <div>
@@ -3204,6 +3530,10 @@ function App() {
                 subtitle="Mobile-friendly browsing with player preview and lyrics view."
               >
                 <div style={{ display: "grid", gap: 14 }}>
+                  {/* ================================
+                      PUBLIC HOME: LIBRARY FILTERS
+                  ================================ */}
+
                   <div
                     style={{
                       display: "grid",
@@ -3241,6 +3571,10 @@ function App() {
                       </option>
                     </Select>
                   </div>
+
+                  {/* ================================
+                      PUBLIC HOME: LIBRARY LISTS
+                  ================================ */}
 
                   <div style={{ display: "grid", gap: 14 }}>
                     {showSpotlights && featuredSpotlightSongs.length > 0 ? (
@@ -3317,6 +3651,10 @@ function App() {
                   </div>
                 </div>
               </Panel>
+
+              {/* ================================
+                  PUBLIC HOME: SIDE PANELS
+              ================================ */}
 
               <div style={{ display: "grid", gap: 22, alignContent: "start" }}>
                 <Panel
@@ -3428,6 +3766,10 @@ function App() {
           </div>
         )}
 
+        {/* ================================
+            PUBLIC: REQUEST PAGE
+        ================================ */}
+
         {view === "request" && (
           <Panel
             title="Song Request"
@@ -3537,6 +3879,10 @@ function App() {
           </Panel>
         )}
 
+        {/* ================================
+            PUBLIC: MESSAGE PAGE
+        ================================ */}
+
         {view === "message" && (
           <Panel
             title="Private Message"
@@ -3638,6 +3984,10 @@ function App() {
           </Panel>
         )}
 
+        {/* ================================
+            PUBLIC: LOGIN PAGE
+        ================================ */}
+
         {view === "login" && !adminLoggedIn && (
           <Panel
             title="Admin Login"
@@ -3685,477 +4035,537 @@ function App() {
           </Panel>
         )}
 
-                {view === "admin" && adminLoggedIn && (
-  <div style={{ display: "grid", gap: 22 }}>
-    <Panel
-      title="Admin Dashboard"
-      subtitle="Manage songs, requests, private messages, and uploads."
-      right={
-        <Button variant="secondary" onClick={handleLogout}>
-          Logout
-        </Button>
-      }
-    >
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          marginBottom: 18,
-          flexWrap: "wrap",
-        }}
-      >
-        <Button
-          variant={adminSection === "dashboard" ? "primary" : "secondary"}
-          onClick={() => setAdminSection("dashboard")}
-        >
-          Dashboard
-        </Button>
+                  {/* ================================
+            SECTION 12: ADMIN RENDER + MODALS + PLAYER RENDER + EXPORT
+        ================================ */}
 
-        <Button
-          variant={adminSection === "upload" ? "primary" : "secondary"}
-          onClick={() => setAdminSection("upload")}
-        >
-          Upload
-        </Button>
+        {/* ================================
+            ADMIN RENDER
+        ================================ */}
 
-        <Button
-          variant={adminSection === "songs" ? "primary" : "secondary"}
-          onClick={() => setAdminSection("songs")}
-        >
-          Songs
-        </Button>
+        {view === "admin" && adminLoggedIn && (
+          <div style={{ display: "grid", gap: 22 }}>
+            {/* ================================
+                ADMIN: DASHBOARD SHELL
+            ================================ */}
 
-        <Button
-          variant={adminSection === "requests" ? "primary" : "secondary"}
-          onClick={() => setAdminSection("requests")}
-        >
-          Requests ({pendingRequests})
-        </Button>
+            <Panel
+              title="Admin Dashboard"
+              subtitle="Manage songs, requests, private messages, and uploads."
+              right={
+                <Button variant="secondary" onClick={handleLogout}>
+                  Logout
+                </Button>
+              }
+            >
+              {/* ================================
+                  ADMIN: TOP NAV
+              ================================ */}
 
-        <Button
-          variant={adminSection === "messages" ? "primary" : "secondary"}
-          onClick={() => setAdminSection("messages")}
-        >
-          Messages ({newMessages})
-        </Button>
-      </div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  marginBottom: 18,
+                  flexWrap: "wrap",
+                }}
+              >
+                <Button
+                  variant={adminSection === "dashboard" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("dashboard")}
+                >
+                  Dashboard
+                </Button>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: isMobile
-            ? "repeat(2, minmax(0, 1fr))"
-            : "repeat(4, minmax(0, 1fr))",
-          gap: 14,
-        }}
-      >
-        <StatPill label="Songs" value={songs.length} />
-        <StatPill label="Likes" value={totalLikes} />
-        <StatPill label="Opens" value={totalOpens} />
-        <StatPill label="Plays" value={totalPlays} />
-      </div>
-    </Panel>
+                <Button
+                  variant={adminSection === "upload" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("upload")}
+                >
+                  Upload
+                </Button>
 
-    {(adminSection === "dashboard" || adminSection === "upload") && (
-      <Panel title={editingSongId ? "Edit Song" : "Admin Upload Panel"}>
-        {uploadSuccess && (
-          <div
-            style={{
-              padding: 18,
-              borderRadius: 18,
-              background: "rgba(34,197,94,0.15)",
-              border: "1px solid rgba(74,222,128,0.35)",
-              marginBottom: 18,
-            }}
-          >
-            <strong>{uploadSuccess}</strong>
+                <Button
+                  variant={adminSection === "songs" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("songs")}
+                >
+                  Songs
+                </Button>
+
+                <Button
+                  variant={adminSection === "requests" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("requests")}
+                >
+                  Requests ({pendingRequests})
+                </Button>
+
+                <Button
+                  variant={adminSection === "messages" ? "primary" : "secondary"}
+                  onClick={() => setAdminSection("messages")}
+                >
+                  Messages ({newMessages})
+                </Button>
+              </div>
+
+              {/* ================================
+                  ADMIN: QUICK STATS
+              ================================ */}
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile
+                    ? "repeat(2, minmax(0, 1fr))"
+                    : "repeat(4, minmax(0, 1fr))",
+                  gap: 14,
+                }}
+              >
+                <StatPill label="Songs" value={songs.length} />
+                <StatPill label="Likes" value={totalLikes} />
+                <StatPill label="Opens" value={totalOpens} />
+                <StatPill label="Plays" value={totalPlays} />
+              </div>
+            </Panel>
+
+            {/* ================================
+                ADMIN: UPLOAD PANEL
+            ================================ */}
+
+            {(adminSection === "dashboard" || adminSection === "upload") && (
+              <Panel title={editingSongId ? "Edit Song" : "Admin Upload Panel"}>
+                {uploadSuccess && (
+                  <div
+                    style={{
+                      padding: 18,
+                      borderRadius: 18,
+                      background: "rgba(34,197,94,0.15)",
+                      border: "1px solid rgba(74,222,128,0.35)",
+                      marginBottom: 18,
+                    }}
+                  >
+                    <strong>{uploadSuccess}</strong>
+                  </div>
+                )}
+
+                <form
+                  onSubmit={handleAddSong}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                    gap: 16,
+                  }}
+                >
+                  {/* ================================
+                      ADMIN UPLOAD: BASIC INFO
+                  ================================ */}
+
+                  <Input
+                    label="Song title"
+                    value={newSong.title}
+                    onChange={(e) => {
+                      setNewSong((p) => ({ ...p, title: e.target.value }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
+                  />
+
+                  <Input
+                    label="Artist"
+                    value={newSong.artist}
+                    onChange={(e) => {
+                      setNewSong((p) => ({ ...p, artist: e.target.value }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
+                  />
+
+                  <Input
+                    label="Requested by"
+                    value={newSong.requestedBy}
+                    onChange={(e) => {
+                      setNewSong((p) => ({ ...p, requestedBy: e.target.value }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
+                  />
+
+                  <Select
+                    label="Collection"
+                    value={newSong.visibility}
+                    onChange={(e) => {
+                      setNewSong((p) => ({ ...p, visibility: e.target.value }));
+                      if (editingSongId) setHasUnsavedSongChanges(true);
+                    }}
+                  >
+                    <option value="public" style={{ color: "black" }}>
+                      Main website / Public
+                    </option>
+                    <option value="private" style={{ color: "black" }}>
+                      Private collection
+                    </option>
+                  </Select>
+
+                  {/* ================================
+                      ADMIN UPLOAD: FILES
+                  ================================ */}
+
+                  <div>
+                    <div
+                      style={{
+                        marginBottom: 8,
+                        fontSize: 14,
+                        color: "rgba(255,255,255,0.82)",
+                      }}
+                    >
+                      Upload cover image
+                    </div>
+
+                    <input
+                      id="song-cover-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        setNewSongFiles((prev) => ({
+                          ...prev,
+                          coverFile: e.target.files?.[0] || null,
+                        }));
+
+                        if (editingSongId) setHasUnsavedSongChanges(true);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        borderRadius: 16,
+                        border: "1px solid rgba(255,255,255,0.10)",
+                        background: "rgba(8,12,24,0.64)",
+                        color: "white",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <div
+                      style={{
+                        marginBottom: 8,
+                        fontSize: 14,
+                        color: "rgba(255,255,255,0.82)",
+                      }}
+                    >
+                      Upload MP3 song
+                    </div>
+
+                    <input
+                      id="song-audio-input"
+                      type="file"
+                      accept="audio/*"
+                      onChange={(e) => {
+                        setNewSongFiles((prev) => ({
+                          ...prev,
+                          audioFile: e.target.files?.[0] || null,
+                        }));
+
+                        if (editingSongId) setHasUnsavedSongChanges(true);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        borderRadius: 16,
+                        border: "1px solid rgba(255,255,255,0.10)",
+                        background: "rgba(8,12,24,0.64)",
+                        color: "white",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+
+                  {/* ================================
+                      ADMIN UPLOAD: FLAGS
+                  ================================ */}
+
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      paddingTop: 34,
+                      color: "rgba(255,255,255,0.85)",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={newSong.featured}
+                      onChange={(e) => {
+                        setNewSong((p) => ({ ...p, featured: e.target.checked }));
+                        if (editingSongId) setHasUnsavedSongChanges(true);
+                      }}
+                    />
+                    Featured song
+                  </label>
+
+                  {/* ================================
+                      ADMIN UPLOAD: LYRICS
+                  ================================ */}
+
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <TextArea
+                      label="Lyrics"
+                      value={newSong.lyrics}
+                      onChange={(e) => {
+                        setNewSong((p) => ({ ...p, lyrics: e.target.value }));
+                        if (editingSongId) setHasUnsavedSongChanges(true);
+                      }}
+                      style={{ minHeight: 180 }}
+                    />
+                  </div>
+
+                  {/* ================================
+                      ADMIN UPLOAD: ACTIONS
+                  ================================ */}
+
+                  <div
+                    style={{
+                      gridColumn: "1 / -1",
+                      display: "flex",
+                      gap: 12,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Button type="submit" variant="primary" disabled={isUploading}>
+                      {isUploading
+                        ? "Saving..."
+                        : editingSongId
+                        ? "Save Changes"
+                        : "Upload Song"}
+                    </Button>
+
+                    {editingSongId ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={cancelEditSong}
+                      >
+                        Cancel Edit
+                      </Button>
+                    ) : null}
+                  </div>
+                </form>
+              </Panel>
+            )}
+
+            {/* ================================
+                ADMIN: SONG LIBRARY
+            ================================ */}
+
+            {(adminSection === "dashboard" || adminSection === "songs") && (
+              <Panel
+                title="Song Library"
+                subtitle="Manage uploaded songs, edit, delete, and reorder."
+                right={
+                  <div style={{ minWidth: 220 }}>
+                    <Select
+                      value={adminSongFilter}
+                      onChange={(e) => setAdminSongFilter(e.target.value)}
+                    >
+                      <option value="all" style={{ color: "black" }}>
+                        All songs
+                      </option>
+                      <option value="public" style={{ color: "black" }}>
+                        Public songs
+                      </option>
+                      <option value="private" style={{ color: "black" }}>
+                        Private songs
+                      </option>
+                      <option value="requested" style={{ color: "black" }}>
+                        Requested songs
+                      </option>
+                      <option value="originals" style={{ color: "black" }}>
+                        Originals
+                      </option>
+                    </Select>
+                  </div>
+                }
+              >
+                <div style={{ display: "grid", gap: 14 }}>
+                  {adminSongs.length > 0 ? (
+                    adminSongs.map((song, index) => (
+                      <SongRow
+                        key={song.id}
+                        song={song}
+                        analytics={songAnalytics[song.id]}
+                        onLike={handleLikeSong}
+                        onOpenPlayer={handleOpenSong}
+                        onDownloadSong={downloadSong}
+                        onDownloadLyrics={downloadLyrics}
+                        onCopyLink={copySongLink}
+                        isMobile={isMobile}
+                        isAdmin
+                        onEdit={() => startEditSong(song)}
+                        onDelete={() => handleDeleteSong(song)}
+                        onMoveUp={() => handleMoveSong(song, "up")}
+                        onMoveDown={() => handleMoveSong(song, "down")}
+                        canMoveUp={index > 0 && !isReorderingSongs}
+                        canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
+                      />
+                    ))
+                  ) : (
+                    <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                      No songs yet.
+                    </div>
+                  )}
+                </div>
+              </Panel>
+            )}
+
+            {/* ================================
+                ADMIN: REQUESTS
+            ================================ */}
+
+            {(adminSection === "dashboard" || adminSection === "requests") && (
+              <Panel title="Requests" subtitle="Review and manage song requests.">
+                <div style={{ display: "grid", gap: 12 }}>
+                  {filteredRequests.length > 0 ? (
+                    filteredRequests.map((req) => (
+                      <div
+                        key={req.id}
+                        style={{
+                          padding: 16,
+                          borderRadius: 18,
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                        }}
+                      >
+                        <strong>{req.title}</strong>
+
+                        <div
+                          style={{
+                            fontSize: 13,
+                            opacity: 0.7,
+                            marginTop: 6,
+                          }}
+                        >
+                          Requested by {req.name} • {timeAgo(req.createdAt)}
+                        </div>
+
+                        <div
+                          style={{
+                            fontSize: 13,
+                            opacity: 0.7,
+                            marginTop: 6,
+                          }}
+                        >
+                          Status: {req.status} • Delivery:{" "}
+                          {req.delivery === "private" ? "Private" : "Public"}
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 8,
+                            marginTop: 12,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <Button
+                            variant="secondary"
+                            onClick={() => setSelectedRequest(req)}
+                          >
+                            Review
+                          </Button>
+
+                          <Button
+                            variant="secondary"
+                            onClick={() => toggleRequestStatus(req.id)}
+                          >
+                            {req.status === "done" ? "Mark Pending" : "Mark Done"}
+                          </Button>
+
+                          <Button
+                            variant="danger"
+                            onClick={() => handleDeleteRequest(req.id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                      No requests yet.
+                    </div>
+                  )}
+                </div>
+              </Panel>
+            )}
+
+            {/* ================================
+                ADMIN: MESSAGES
+            ================================ */}
+
+            {(adminSection === "dashboard" || adminSection === "messages") && (
+              <Panel title="Messages" subtitle="Read and manage private messages.">
+                <div style={{ display: "grid", gap: 12 }}>
+                  {messages.length > 0 ? (
+                    messages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        style={{
+                          padding: 16,
+                          borderRadius: 18,
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                        }}
+                      >
+                        <strong>{msg.from}</strong>
+
+                        <div
+                          style={{
+                            fontSize: 13,
+                            opacity: 0.7,
+                            marginTop: 6,
+                          }}
+                        >
+                          {msg.replyContact || "No reply contact"}
+                        </div>
+
+                        <p style={{ margin: "12px 0 0", lineHeight: 1.5 }}>
+                          {msg.message}
+                        </p>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 8,
+                            marginTop: 12,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <Button
+                            variant="secondary"
+                            onClick={() => toggleMessageStatus(msg.id)}
+                          >
+                            {msg.status === "new" ? "Mark Read" : "Mark New"}
+                          </Button>
+
+                          <Button
+                            variant="danger"
+                            onClick={() => handleDeleteMessage(msg.id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ color: "rgba(255,255,255,0.72)" }}>
+                      No messages yet.
+                    </div>
+                  )}
+                </div>
+              </Panel>
+            )}
           </div>
         )}
 
-        <form
-          onSubmit={handleAddSong}
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-            gap: 16,
-          }}
-        >
-          <Input
-            label="Song title"
-            value={newSong.title}
-            onChange={(e) => {
-              setNewSong((p) => ({ ...p, title: e.target.value }));
-              if (editingSongId) setHasUnsavedSongChanges(true);
-            }}
-          />
-
-          <Input
-            label="Artist"
-            value={newSong.artist}
-            onChange={(e) => {
-              setNewSong((p) => ({ ...p, artist: e.target.value }));
-              if (editingSongId) setHasUnsavedSongChanges(true);
-            }}
-          />
-
-          <Input
-            label="Requested by"
-            value={newSong.requestedBy}
-            onChange={(e) => {
-              setNewSong((p) => ({ ...p, requestedBy: e.target.value }));
-              if (editingSongId) setHasUnsavedSongChanges(true);
-            }}
-          />
-
-          <Select
-            label="Collection"
-            value={newSong.visibility}
-            onChange={(e) => {
-              setNewSong((p) => ({ ...p, visibility: e.target.value }));
-              if (editingSongId) setHasUnsavedSongChanges(true);
-            }}
-          >
-            <option value="public" style={{ color: "black" }}>
-              Main website / Public
-            </option>
-            <option value="private" style={{ color: "black" }}>
-              Private collection
-            </option>
-          </Select>
-
-          <div>
-            <div
-              style={{
-                marginBottom: 8,
-                fontSize: 14,
-                color: "rgba(255,255,255,0.82)",
-              }}
-            >
-              Upload cover image
-            </div>
-
-            <input
-              id="song-cover-input"
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                setNewSongFiles((prev) => ({
-                  ...prev,
-                  coverFile: e.target.files?.[0] || null,
-                }));
-
-                if (editingSongId) setHasUnsavedSongChanges(true);
-              }}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                borderRadius: 16,
-                border: "1px solid rgba(255,255,255,0.10)",
-                background: "rgba(8,12,24,0.64)",
-                color: "white",
-                boxSizing: "border-box",
-              }}
-            />
-          </div>
-
-          <div>
-            <div
-              style={{
-                marginBottom: 8,
-                fontSize: 14,
-                color: "rgba(255,255,255,0.82)",
-              }}
-            >
-              Upload MP3 song
-            </div>
-
-            <input
-              id="song-audio-input"
-              type="file"
-              accept="audio/*"
-              onChange={(e) => {
-                setNewSongFiles((prev) => ({
-                  ...prev,
-                  audioFile: e.target.files?.[0] || null,
-                }));
-
-                if (editingSongId) setHasUnsavedSongChanges(true);
-              }}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                borderRadius: 16,
-                border: "1px solid rgba(255,255,255,0.10)",
-                background: "rgba(8,12,24,0.64)",
-                color: "white",
-                boxSizing: "border-box",
-              }}
-            />
-          </div>
-
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              paddingTop: 34,
-              color: "rgba(255,255,255,0.85)",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={newSong.featured}
-              onChange={(e) => {
-                setNewSong((p) => ({ ...p, featured: e.target.checked }));
-                if (editingSongId) setHasUnsavedSongChanges(true);
-              }}
-            />
-            Featured song
-          </label>
-
-          <div style={{ gridColumn: "1 / -1" }}>
-            <TextArea
-              label="Lyrics"
-              value={newSong.lyrics}
-              onChange={(e) => {
-                setNewSong((p) => ({ ...p, lyrics: e.target.value }));
-                if (editingSongId) setHasUnsavedSongChanges(true);
-              }}
-              style={{ minHeight: 180 }}
-            />
-          </div>
-
-          <div
-            style={{
-              gridColumn: "1 / -1",
-              display: "flex",
-              gap: 12,
-              flexWrap: "wrap",
-            }}
-          >
-            <Button type="submit" variant="primary" disabled={isUploading}>
-              {isUploading
-                ? "Saving..."
-                : editingSongId
-                ? "Save Changes"
-                : "Upload Song"}
-            </Button>
-
-            {editingSongId ? (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={cancelEditSong}
-              >
-                Cancel Edit
-              </Button>
-            ) : null}
-          </div>
-        </form>
-      </Panel>
-    )}
-
-    {(adminSection === "dashboard" || adminSection === "songs") && (
-      <Panel
-        title="Song Library"
-        subtitle="Manage uploaded songs, edit, delete, and reorder."
-        right={
-          <div style={{ minWidth: 220 }}>
-            <Select
-              value={adminSongFilter}
-              onChange={(e) => setAdminSongFilter(e.target.value)}
-            >
-              <option value="all" style={{ color: "black" }}>
-                All songs
-              </option>
-              <option value="public" style={{ color: "black" }}>
-                Public songs
-              </option>
-              <option value="private" style={{ color: "black" }}>
-                Private songs
-              </option>
-              <option value="requested" style={{ color: "black" }}>
-                Requested songs
-              </option>
-              <option value="originals" style={{ color: "black" }}>
-                Originals
-              </option>
-            </Select>
-          </div>
-        }
-      >
-        <div style={{ display: "grid", gap: 14 }}>
-          {adminSongs.length > 0 ? (
-            adminSongs.map((song, index) => (
-              <SongRow
-                key={song.id}
-                song={song}
-                analytics={songAnalytics[song.id]}
-                onLike={handleLikeSong}
-                onOpenPlayer={handleOpenSong}
-                onDownloadSong={downloadSong}
-                onDownloadLyrics={downloadLyrics}
-                onCopyLink={copySongLink}
-                isMobile={isMobile}
-                isAdmin
-                onEdit={() => startEditSong(song)}
-                onDelete={() => handleDeleteSong(song)}
-                onMoveUp={() => handleMoveSong(song, "up")}
-                onMoveDown={() => handleMoveSong(song, "down")}
-                canMoveUp={index > 0 && !isReorderingSongs}
-                canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
-              />
-            ))
-          ) : (
-            <div style={{ color: "rgba(255,255,255,0.72)" }}>
-              No songs yet.
-            </div>
-          )}
-        </div>
-      </Panel>
-    )}
-
-    {(adminSection === "dashboard" || adminSection === "requests") && (
-      <Panel title="Requests" subtitle="Review and manage song requests.">
-        <div style={{ display: "grid", gap: 12 }}>
-          {filteredRequests.length > 0 ? (
-            filteredRequests.map((req) => (
-              <div
-                key={req.id}
-                style={{
-                  padding: 16,
-                  borderRadius: 18,
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                }}
-              >
-                <strong>{req.title}</strong>
-
-                <div
-                  style={{
-                    fontSize: 13,
-                    opacity: 0.7,
-                    marginTop: 6,
-                  }}
-                >
-                  Requested by {req.name} • {timeAgo(req.createdAt)}
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 13,
-                    opacity: 0.7,
-                    marginTop: 6,
-                  }}
-                >
-                  Status: {req.status} • Delivery:{" "}
-                  {req.delivery === "private" ? "Private" : "Public"}
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    marginTop: 12,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <Button
-                    variant="secondary"
-                    onClick={() => setSelectedRequest(req)}
-                  >
-                    Review
-                  </Button>
-
-                  <Button
-                    variant="secondary"
-                    onClick={() => toggleRequestStatus(req.id)}
-                  >
-                    {req.status === "done" ? "Mark Pending" : "Mark Done"}
-                  </Button>
-
-                  <Button
-                    variant="danger"
-                    onClick={() => handleDeleteRequest(req.id)}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div style={{ color: "rgba(255,255,255,0.72)" }}>
-              No requests yet.
-            </div>
-          )}
-        </div>
-      </Panel>
-    )}
-
-    {(adminSection === "dashboard" || adminSection === "messages") && (
-      <Panel title="Messages" subtitle="Read and manage private messages.">
-        <div style={{ display: "grid", gap: 12 }}>
-          {messages.length > 0 ? (
-            messages.map((msg) => (
-              <div
-                key={msg.id}
-                style={{
-                  padding: 16,
-                  borderRadius: 18,
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                }}
-              >
-                <strong>{msg.from}</strong>
-
-                <div
-                  style={{
-                    fontSize: 13,
-                    opacity: 0.7,
-                    marginTop: 6,
-                  }}
-                >
-                  {msg.replyContact || "No reply contact"}
-                </div>
-
-                <p style={{ margin: "12px 0 0", lineHeight: 1.5 }}>
-                  {msg.message}
-                </p>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    marginTop: 12,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <Button
-                    variant="secondary"
-                    onClick={() => toggleMessageStatus(msg.id)}
-                  >
-                    {msg.status === "new" ? "Mark Read" : "Mark New"}
-                  </Button>
-
-                  <Button
-                    variant="danger"
-                    onClick={() => handleDeleteMessage(msg.id)}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div style={{ color: "rgba(255,255,255,0.72)" }}>
-              No messages yet.
-            </div>
-          )}
-        </div>
-      </Panel>
-    )}
-  </div>
-)}
+        {/* ================================
+            MODALS
+        ================================ */}
 
         <RequestReviewModal
           request={selectedRequest}
@@ -4164,7 +4574,10 @@ function App() {
           onOpenSong={handleOpenSong}
         />
 
-        {/* PLAYER UI */}
+        {/* ================================
+            PLAYER RENDER
+        ================================ */}
+
         {playerSong && !playerMinimized ? (
           <PlayerModal
             song={playerSong}
