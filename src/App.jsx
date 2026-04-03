@@ -1326,56 +1326,51 @@ function PlayerModal({
       }}
     >
       <div
-        style={{
-          width: isMobile ? "100%" : "min(1460px, 96vw)",
-          height: isMobile ? "auto" : "min(900px, 92vh)",
-          maxHeight: isMobile ? "94vh" : "92vh",
-          overflow: "hidden",
-          borderRadius: isMobile ? 22 : 30,
-          background:
-            "linear-gradient(180deg, rgba(10,14,28,0.985), rgba(6,10,22,0.985))",
-          border: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
-          display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "460px minmax(0, 1fr)",
-        }}
-      >
+  style={{
+    width: isMobile ? "100%" : "min(1520px, 96vw)",
+    maxHeight: isMobile ? "94vh" : "94vh",
+    overflow: "hidden",
+    borderRadius: isMobile ? 22 : 32,
+    background:
+      "linear-gradient(180deg, rgba(10,14,28,0.985), rgba(6,10,22,0.985))",
+    border: "1px solid rgba(255,255,255,0.08)",
+    boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "460px minmax(0, 1fr)",
+  }}
+>
         {/* ================================
             PLAYER MODAL: LEFT SIDE
         ================================ */}
 
         <div
-          style={{
-            padding: isMobile ? 16 : 28,
-            borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.06)",
-            borderBottom: isMobile
-              ? "1px solid rgba(255,255,255,0.06)"
-              : "none",
-            display: "grid",
-            gap: isMobile ? 14 : 18,
-            alignContent: "start",
-            minHeight: 0,
-          }}
-        >
+  style={{
+    padding: isMobile ? 16 : 34,
+    borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.06)",
+    borderBottom: isMobile
+      ? "1px solid rgba(255,255,255,0.06)"
+      : "none",
+    display: "grid",
+    gap: isMobile ? 14 : 22,
+    alignContent: "start",
+  }}
+>
           {/* ================================
               PLAYER MODAL: COVER
           ================================ */}
 
           <div
-            style={{
-              width: "100%",
-              aspectRatio: "1 / 1",
-              maxWidth: isMobile ? "100%" : 320,
-              justifySelf: "center",
-              borderRadius: 24,
-              overflow: "hidden",
-              background:
-                "linear-gradient(135deg, rgba(89,55,150,0.8), rgba(41,73,120,0.8))",
-              display: "grid",
-              placeItems: "center",
-              boxShadow: "0 18px 40px rgba(0,0,0,0.28)",
-            }}
-          >
+  style={{
+    padding: isMobile ? 16 : 34,
+    borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.06)",
+    borderBottom: isMobile
+      ? "1px solid rgba(255,255,255,0.06)"
+      : "none",
+    display: "grid",
+    gap: isMobile ? 14 : 22,
+    alignContent: "start",
+  }}
+>
             {song.coverUrl ? (
               <img
                 src={song.coverUrl}
@@ -1397,34 +1392,34 @@ function PlayerModal({
 
           <div>
             <h2
-              style={{
-                margin: 0,
-                fontSize: isMobile ? 24 : 28,
-                lineHeight: 1.08,
-                wordBreak: "break-word",
-              }}
-            >
+  style={{
+    margin: 0,
+    fontSize: isMobile ? 24 : 32,
+    lineHeight: 1.06,
+    wordBreak: "break-word",
+  }}
+>
               {song.title}
             </h2>
 
             <p
-              style={{
-                margin: "8px 0 0",
-                opacity: 0.72,
-                fontSize: isMobile ? 14 : 16,
-              }}
-            >
+  style={{
+    margin: "10px 0 0",
+    opacity: 0.76,
+    fontSize: isMobile ? 14 : 17,
+  }}
+>
               {song.artist}
             </p>
 
             {song.requestedBy ? (
               <p
-                style={{
-                  margin: "10px 0 0",
-                  fontSize: 13,
-                  color: "rgba(255,255,255,0.62)",
-                }}
-              >
+  style={{
+    margin: "12px 0 0",
+    fontSize: 13,
+    color: "rgba(255,255,255,0.66)",
+  }}
+>
                 Requested by: {song.requestedBy}
               </p>
             ) : null}
@@ -1679,61 +1674,61 @@ function PlayerModal({
 
         {!isMobile ? (
           <div
-            style={{
-              padding: 24,
-              display: "grid",
-              gridTemplateRows: "auto minmax(0, 1fr)",
-              gap: 12,
-              minWidth: 0,
-              minHeight: 0,
-              height: "100%",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                fontSize: 13,
-                letterSpacing: "0.24em",
-                textTransform: "uppercase",
-                color: "rgba(255,255,255,0.48)",
-              }}
-            >
-              Lyrics
-            </div>
+  style={{
+    padding: 30,
+    display: "grid",
+    gridTemplateRows: "auto minmax(0, 1fr)",
+    gap: 14,
+    minWidth: 0,
+    minHeight: 0,
+    height: "100%",
+    overflow: "hidden",
+  }}
+>
+  <div
+    style={{
+      fontSize: 13,
+      letterSpacing: "0.26em",
+      textTransform: "uppercase",
+      color: "rgba(255,255,255,0.52)",
+    }}
+  >
+    Lyrics
+  </div>
 
-            {song.lyrics ? (
-              <div
-                style={{
-  whiteSpace: "pre-wrap",
-  lineHeight: 1.9,
-  fontSize: 17,
-  fontWeight: 600,
-  letterSpacing: "0.01em",
-  color: "rgba(255,255,255,0.94)",
-  padding: 24,
-  borderRadius: 22,
-  background: "rgba(255,255,255,0.045)",
-  border: "1px solid rgba(255,255,255,0.10)",
-  overflowY: "auto",
-  minHeight: 0,
-}}
-              >
-                {song.lyrics}
-              </div>
-            ) : (
-              <div
-                style={{
-                  padding: 20,
-                  borderRadius: 22,
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  color: "rgba(255,255,255,0.62)",
-                }}
-              >
-                No lyrics added yet.
-              </div>
-            )}
-          </div>
+  {song.lyrics ? (
+    <div
+      style={{
+        whiteSpace: "pre-wrap",
+        lineHeight: 2.05,
+        fontSize: 17,
+        fontWeight: 700,
+        color: "rgba(255,255,255,0.95)",
+        padding: 28,
+        borderRadius: 24,
+        background: "rgba(255,255,255,0.045)",
+        border: "1px solid rgba(255,255,255,0.09)",
+        overflowY: "auto",
+        minHeight: 0,
+        height: "100%",
+      }}
+    >
+      {song.lyrics}
+    </div>
+  ) : (
+    <div
+      style={{
+        padding: 22,
+        borderRadius: 24,
+        background: "rgba(255,255,255,0.045)",
+        border: "1px solid rgba(255,255,255,0.09)",
+        color: "rgba(255,255,255,0.68)",
+      }}
+    >
+      No lyrics added yet.
+    </div>
+  )}
+</div>
         ) : (
           <div
             style={{
