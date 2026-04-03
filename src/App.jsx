@@ -1531,11 +1531,14 @@ function PlayerModal({
 <div
   style={{
     display: "grid",
-    gap: 12,
-    padding: 14,
-    borderRadius: 20,
-    background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(255,255,255,0.07)",
+    gap: 14,
+    padding: 18,
+    borderRadius: 22,
+    background: "rgba(255,255,255,0.035)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    justifyItems: "center",
+    maxWidth: 320,
+    margin: "0 auto",
   }}
 >
   {/* ================================
@@ -1555,7 +1558,14 @@ function PlayerModal({
       ⏮
     </Button>
 
-    <Button onClick={onPlayPause} style={{ minWidth: 110 }}>
+    <Button
+  onClick={onPlayPause}
+  style={{
+    minWidth: 130,
+    fontSize: 16,
+    fontWeight: 600,
+  }}
+>
       {isPlaying ? "Pause" : "Play"}
     </Button>
 
@@ -1594,7 +1604,9 @@ function PlayerModal({
     style={{
       display: "flex",
       alignItems: "center",
-      justifyContent: "center",
+      justifyContent: "space-between",
+      width: "100%",
+      maxWidth: 220,
       gap: 12,
       flexWrap: "wrap",
     }}
