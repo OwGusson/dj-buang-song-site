@@ -1668,67 +1668,72 @@ function PlayerModal({
           ) : null}
         </div>
 
-        {/* ================================
+                {/* ================================
             PLAYER MODAL: RIGHT SIDE / LYRICS
         ================================ */}
 
         {!isMobile ? (
           <div
-  style={{
-    padding: 30,
-    display: "grid",
-    gridTemplateRows: "auto minmax(0, 1fr)",
-    gap: 14,
-    minWidth: 0,
-    minHeight: 0,
-    height: "100%",
-    overflow: "hidden",
-  }}
->
-  <div
-    style={{
-      fontSize: 13,
-      letterSpacing: "0.26em",
-      textTransform: "uppercase",
-      color: "rgba(255,255,255,0.52)",
-    }}
-  >
-    Lyrics
-  </div>
+            style={{
+              padding: 30,
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+              minWidth: 0,
+              minHeight: 0,
+              height: "100%",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 13,
+                letterSpacing: "0.26em",
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,0.52)",
+                flexShrink: 0,
+              }}
+            >
+              Lyrics
+            </div>
 
-  {song.lyrics ? (
-    <div
-      style={{
-        whiteSpace: "pre-wrap",
-        lineHeight: 2.05,
-        fontSize: 17,
-        fontWeight: 700,
-        color: "rgba(255,255,255,0.95)",
-        padding: 28,
-        borderRadius: 24,
-        background: "rgba(255,255,255,0.045)",
-        border: "1px solid rgba(255,255,255,0.09)",
-        overflowY: "auto",
-        minHeight: 0,
-        height: "100%",
-      }}
-    >
-      {song.lyrics}
-    </div>
-  ) : (
-    <div
-      style={{
-        padding: 22,
-        borderRadius: 24,
-        background: "rgba(255,255,255,0.045)",
-        border: "1px solid rgba(255,255,255,0.09)",
-        color: "rgba(255,255,255,0.68)",
-      }}
-    >
-      No lyrics added yet.
-    </div>
-  )}
-</div>
+            {song.lyrics ? (
+              <div
+                style={{
+                  flex: 1,
+                  minHeight: 0,
+                  whiteSpace: "pre-wrap",
+                  lineHeight: 2.05,
+                  fontSize: 17,
+                  fontWeight: 700,
+                  color: "rgba(255,255,255,0.95)",
+                  padding: 28,
+                  borderRadius: 24,
+                  background: "rgba(255,255,255,0.045)",
+                  border: "1px solid rgba(255,255,255,0.09)",
+                  overflowY: "auto",
+                  overflowX: "hidden",
+                }}
+              >
+                {song.lyrics}
+              </div>
+            ) : (
+              <div
+                style={{
+                  flex: 1,
+                  minHeight: 0,
+                  padding: 22,
+                  borderRadius: 24,
+                  background: "rgba(255,255,255,0.045)",
+                  border: "1px solid rgba(255,255,255,0.09)",
+                  color: "rgba(255,255,255,0.68)",
+                  overflowY: "auto",
+                }}
+              >
+                No lyrics added yet.
+              </div>
+            )}
+          </div>
         ) : (
           <div
             style={{
