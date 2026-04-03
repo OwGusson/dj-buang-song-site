@@ -1337,6 +1337,7 @@ function PlayerModal({
     boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
     display: "grid",
     gridTemplateColumns: isMobile ? "1fr" : "460px minmax(0, 1fr)",
+    alignItems: "stretch",
   }}
 >
         {/* ================================
