@@ -1250,23 +1250,28 @@ function MiniPlayer({
         />
       ) : null}
 
-      {/* ================================
+            {/* ================================
           MINI PLAYER: TIME ROW
       ================================ */}
 
       <div
         style={{
-          display: "flex",
-          justifyContent: "space-between",
+          width: isMobile ? "100%" : "min(920px, 82vw)",
+          margin: "0 auto",
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
+          alignItems: "center",
           gap: 12,
           fontSize: isMobile ? 11 : 12,
           color: "rgba(255,255,255,0.60)",
           lineHeight: 1,
         }}
       >
-        <span>{formatTime(currentTime)}</span>
-        <span>{Math.round(progressPercent)}%</span>
-        <span>{formatTime(duration)}</span>
+        <span style={{ justifySelf: "start" }}>{formatTime(currentTime)}</span>
+        <span style={{ justifySelf: "center" }}>
+          {Math.round(progressPercent)}%
+        </span>
+        <span style={{ justifySelf: "end" }}>{formatTime(duration)}</span>
       </div>
     </div>
   );
