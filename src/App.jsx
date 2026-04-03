@@ -15,7 +15,7 @@
    9. Memo / computed values
    10. Data handlers
    11. Public pages render
-   12. Admin render + modals + player render + export
+   12. Admin render + modals + player render
 
    Analytics System (Event-based tracking)
    - song_events table (raw events)
