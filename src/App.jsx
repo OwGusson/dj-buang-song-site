@@ -1338,6 +1338,7 @@ function PlayerModal({
     display: "grid",
     gridTemplateColumns: isMobile ? "1fr" : "460px minmax(0, 1fr)",
     alignItems: "stretch",
+    minHeight: 0,
   }}
 >
         {/* ================================
