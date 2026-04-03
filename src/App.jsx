@@ -1082,19 +1082,21 @@ function MiniPlayer({
           MINI PLAYER: PROGRESS
       ================================ */}
 
-      <input
-        type="range"
-        min={0}
-        max={duration || 0}
-        step={0.1}
-        value={currentTime}
-        onChange={(e) => onSeek(Number(e.target.value))}
-        style={{
-          width: "100%",
-          cursor: "pointer",
-          margin: 0,
-        }}
-      />
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <input
+          type="range"
+          min={0}
+          max={duration || 0}
+          step={0.1}
+          value={currentTime}
+          onChange={(e) => onSeek(Number(e.target.value))}
+          style={{
+            width: isMobile ? "100%" : "min(920px, 82vw)",
+            cursor: "pointer",
+            margin: 0,
+          }}
+        />
+      </div>
 
       {/* ================================
           MINI PLAYER: SONG INFO
@@ -1106,6 +1108,7 @@ function MiniPlayer({
           cursor: "pointer",
           overflow: "hidden",
           minWidth: 0,
+          textAlign: isMobile ? "left" : "center",
         }}
       >
         <strong
@@ -1142,7 +1145,8 @@ function MiniPlayer({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: isMobile ? 8 : 10,
+          justifyContent: "center",
+          gap: isMobile ? 8 : 12,
           flexWrap: "nowrap",
         }}
       >
@@ -1164,8 +1168,8 @@ function MiniPlayer({
           onClick={onPrev}
           style={{
             padding: isMobile ? "10px 0" : "10px 12px",
-            width: isMobile ? 52 : 52,
-            minWidth: isMobile ? 52 : 52,
+            width: 52,
+            minWidth: 52,
             flexShrink: 0,
           }}
         >
@@ -1176,9 +1180,9 @@ function MiniPlayer({
           variant="secondary"
           onClick={onPlayPause}
           style={{
-            padding: isMobile ? "10px 0" : "10px 16px",
-            minWidth: isMobile ? 92 : 96,
-            flex: 1,
+            padding: isMobile ? "10px 0" : "10px 14px",
+            minWidth: isMobile ? 92 : 84,
+            flex: isMobile ? 1 : "0 0 auto",
           }}
         >
           {isPlaying ? "Pause" : "Play"}
@@ -1189,8 +1193,8 @@ function MiniPlayer({
           onClick={onNext}
           style={{
             padding: isMobile ? "10px 0" : "10px 12px",
-            width: isMobile ? 52 : 52,
-            minWidth: isMobile ? 52 : 52,
+            width: 52,
+            minWidth: 52,
             flexShrink: 0,
           }}
         >
@@ -1210,22 +1214,20 @@ function MiniPlayer({
           🔊
         </Button>
 
-        {!isMobile ? (
-          showVolumeSlider ? (
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={volume}
-              onChange={(e) => onVolumeChange(Number(e.target.value))}
-              style={{
-                width: 140,
-                cursor: "pointer",
-                flexShrink: 0,
-              }}
-            />
-          ) : null
+        {!isMobile && showVolumeSlider ? (
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={volume}
+            onChange={(e) => onVolumeChange(Number(e.target.value))}
+            style={{
+              width: 120,
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          />
         ) : null}
       </div>
 
@@ -1697,18 +1699,19 @@ function PlayerModal({
             {song.lyrics ? (
               <div
                 style={{
-                  whiteSpace: "pre-wrap",
-                  lineHeight: 1.85,
-                  fontSize: 15,
-                  color: "rgba(255,255,255,0.88)",
-                  padding: 22,
-                  borderRadius: 22,
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  overflowY: "auto",
-                  minHeight: 0,
-                  height: "100%",
-                }}
+  whiteSpace: "pre-wrap",
+  lineHeight: 1.9,
+  fontSize: 17,
+  fontWeight: 600,
+  letterSpacing: "0.01em",
+  color: "rgba(255,255,255,0.94)",
+  padding: 24,
+  borderRadius: 22,
+  background: "rgba(255,255,255,0.045)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  overflowY: "auto",
+  minHeight: 0,
+}}
               >
                 {song.lyrics}
               </div>
