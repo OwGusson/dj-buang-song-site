@@ -1326,53 +1326,58 @@ function PlayerModal({
       }}
     >
       <div
-  style={{
-    width: isMobile ? "100%" : "min(1520px, 96vw)",
-    maxHeight: isMobile ? "94vh" : "94vh",
-    overflow: "hidden",
-    borderRadius: isMobile ? 22 : 32,
-    background:
-      "linear-gradient(180deg, rgba(10,14,28,0.985), rgba(6,10,22,0.985))",
-    border: "1px solid rgba(255,255,255,0.08)",
-    boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
-    display: "grid",
-    gridTemplateColumns: isMobile ? "1fr" : "460px minmax(0, 1fr)",
-    alignItems: "stretch",
-    minHeight: 0,
-  }}
->
+        style={{
+          width: isMobile ? "100%" : "min(1520px, 96vw)",
+          height: isMobile ? "auto" : "94vh",
+          maxHeight: "94vh",
+          overflow: "hidden",
+          borderRadius: isMobile ? 22 : 32,
+          background:
+            "linear-gradient(180deg, rgba(10,14,28,0.985), rgba(6,10,22,0.985))",
+          border: "1px solid rgba(255,255,255,0.08)",
+          boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "460px minmax(0, 1fr)",
+          alignItems: "stretch",
+          minHeight: 0,
+        }}
+      >
         {/* ================================
             PLAYER MODAL: LEFT SIDE
         ================================ */}
 
         <div
-  style={{
-    padding: isMobile ? 16 : 34,
-    borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.06)",
-    borderBottom: isMobile
-      ? "1px solid rgba(255,255,255,0.06)"
-      : "none",
-    display: "grid",
-    gap: isMobile ? 14 : 22,
-    alignContent: "start",
-  }}
->
+          style={{
+            padding: isMobile ? 16 : 34,
+            borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.06)",
+            borderBottom: isMobile
+              ? "1px solid rgba(255,255,255,0.06)"
+              : "none",
+            display: "grid",
+            gap: isMobile ? 14 : 22,
+            alignContent: "start",
+            minHeight: 0,
+          }}
+        >
           {/* ================================
               PLAYER MODAL: COVER
           ================================ */}
 
           <div
-  style={{
-    padding: isMobile ? 16 : 34,
-    borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.06)",
-    borderBottom: isMobile
-      ? "1px solid rgba(255,255,255,0.06)"
-      : "none",
-    display: "grid",
-    gap: isMobile ? 14 : 22,
-    alignContent: "start",
-  }}
->
+            style={{
+              width: "100%",
+              aspectRatio: "1 / 1",
+              maxWidth: isMobile ? "100%" : 320,
+              justifySelf: "center",
+              borderRadius: 24,
+              overflow: "hidden",
+              background:
+                "linear-gradient(135deg, rgba(89,55,150,0.8), rgba(41,73,120,0.8))",
+              display: "grid",
+              placeItems: "center",
+              boxShadow: "0 18px 40px rgba(0,0,0,0.28)",
+            }}
+          >
             {song.coverUrl ? (
               <img
                 src={song.coverUrl}
@@ -1394,34 +1399,34 @@ function PlayerModal({
 
           <div>
             <h2
-  style={{
-    margin: 0,
-    fontSize: isMobile ? 24 : 32,
-    lineHeight: 1.06,
-    wordBreak: "break-word",
-  }}
->
+              style={{
+                margin: 0,
+                fontSize: isMobile ? 24 : 32,
+                lineHeight: 1.06,
+                wordBreak: "break-word",
+              }}
+            >
               {song.title}
             </h2>
 
             <p
-  style={{
-    margin: "10px 0 0",
-    opacity: 0.76,
-    fontSize: isMobile ? 14 : 17,
-  }}
->
+              style={{
+                margin: "10px 0 0",
+                opacity: 0.76,
+                fontSize: isMobile ? 14 : 17,
+              }}
+            >
               {song.artist}
             </p>
 
             {song.requestedBy ? (
               <p
-  style={{
-    margin: "12px 0 0",
-    fontSize: 13,
-    color: "rgba(255,255,255,0.66)",
-  }}
->
+                style={{
+                  margin: "12px 0 0",
+                  fontSize: 13,
+                  color: "rgba(255,255,255,0.66)",
+                }}
+              >
                 Requested by: {song.requestedBy}
               </p>
             ) : null}
@@ -1529,122 +1534,122 @@ function PlayerModal({
           ) : (
             <>
               {/* ================================
-    PLAYER MODAL: DESKTOP CONTROL PANEL
-================================ */}
+                  PLAYER MODAL: DESKTOP CONTROL PANEL
+              ================================ */}
 
-<div
-  style={{
-    display: "grid",
-    gap: 14,
-    padding: 18,
-    borderRadius: 22,
-    background: "rgba(255,255,255,0.035)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    justifyItems: "center",
-    maxWidth: 320,
-    margin: "0 auto",
-  }}
->
-  {/* ================================
-      PLAYER MODAL: DESKTOP PRIMARY CONTROLS
-  ================================ */}
+              <div
+                style={{
+                  display: "grid",
+                  gap: 14,
+                  padding: 18,
+                  borderRadius: 22,
+                  background: "rgba(255,255,255,0.035)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  justifyItems: "center",
+                  maxWidth: 320,
+                  margin: "0 auto",
+                }}
+              >
+                {/* ================================
+                    PLAYER MODAL: DESKTOP PRIMARY CONTROLS
+                ================================ */}
 
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 10,
-      flexWrap: "wrap",
-    }}
-  >
-    <Button onClick={onPrev} style={{ minWidth: 52 }}>
-      ⏮
-    </Button>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 10,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Button onClick={onPrev} style={{ minWidth: 52 }}>
+                    ⏮
+                  </Button>
 
-    <Button
-  onClick={onPlayPause}
-  style={{
-    minWidth: 130,
-    fontSize: 16,
-    fontWeight: 600,
-  }}
->
-      {isPlaying ? "Pause" : "Play"}
-    </Button>
+                  <Button
+                    onClick={onPlayPause}
+                    style={{
+                      minWidth: 130,
+                      fontSize: 16,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {isPlaying ? "Pause" : "Play"}
+                  </Button>
 
-    <Button onClick={onNext} style={{ minWidth: 52 }}>
-      ⏭
-    </Button>
-  </div>
+                  <Button onClick={onNext} style={{ minWidth: 52 }}>
+                    ⏭
+                  </Button>
+                </div>
 
-  {/* ================================
-      PLAYER MODAL: DESKTOP SECONDARY CONTROLS
-  ================================ */}
+                {/* ================================
+                    PLAYER MODAL: DESKTOP SECONDARY CONTROLS
+                ================================ */}
 
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 12,
-      flexWrap: "wrap",
-    }}
-  >
-    <Button variant="ghost" onClick={onMinimize}>
-      Minimize
-    </Button>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Button variant="ghost" onClick={onMinimize}>
+                    Minimize
+                  </Button>
 
-    <Button variant="ghost" onClick={onClose}>
-      Close
-    </Button>
-  </div>
+                  <Button variant="ghost" onClick={onClose}>
+                    Close
+                  </Button>
+                </div>
 
-  {/* ================================
-      PLAYER MODAL: DESKTOP VOLUME ROW
-  ================================ */}
+                {/* ================================
+                    PLAYER MODAL: DESKTOP VOLUME ROW
+                ================================ */}
 
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      width: "100%",
-      maxWidth: 220,
-      gap: 12,
-      flexWrap: "wrap",
-    }}
-  >
-    <Button variant="ghost" onClick={onToggleVolumeSlider}>
-      🔊
-    </Button>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    width: "100%",
+                    maxWidth: 220,
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Button variant="ghost" onClick={onToggleVolumeSlider}>
+                    🔊
+                  </Button>
 
-    {showVolumeSlider ? (
-      <input
-        type="range"
-        min={0}
-        max={1}
-        step={0.01}
-        value={volume}
-        onChange={(e) => onVolumeChange(Number(e.target.value))}
-        style={{
-          width: 200,
-          cursor: "pointer",
-        }}
-      />
-    ) : null}
+                  {showVolumeSlider ? (
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={volume}
+                      onChange={(e) => onVolumeChange(Number(e.target.value))}
+                      style={{
+                        width: 200,
+                        cursor: "pointer",
+                      }}
+                    />
+                  ) : null}
 
-    <div
-      style={{
-        fontSize: 13,
-        color: "rgba(255,255,255,0.68)",
-        minWidth: 44,
-      }}
-    >
-      {Math.round(volume * 100)}%
-    </div>
-  </div>
-</div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "rgba(255,255,255,0.68)",
+                      minWidth: 44,
+                    }}
+                  >
+                    {Math.round(volume * 100)}%
+                  </div>
+                </div>
+              </div>
             </>
           )}
 
@@ -1670,7 +1675,7 @@ function PlayerModal({
           ) : null}
         </div>
 
-                {/* ================================
+        {/* ================================
             PLAYER MODAL: RIGHT SIDE / LYRICS
         ================================ */}
 
