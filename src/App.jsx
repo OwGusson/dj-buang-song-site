@@ -741,6 +741,13 @@ function SongRow({
   onMoveDown,
   canMoveUp = false,
   canMoveDown = false,
+
+  orderNumber,
+  isDragging = false,
+  dragDisabled = false,
+  onDragStart,
+  onDragEnd,
+  onDrop,
 }) {
   /* ================================
      SONG ROW: DERIVED VALUES
@@ -778,7 +785,28 @@ function SongRow({
   return (
     <div
       onClick={() => onOpenPlayer(song)}
+      draggable={isAdmin && !dragDisabled}
+      onDragStart={(e) => {
+        e.stopPropagation();
+        if (onDragStart) onDragStart(song.id);
+      }}
+      onDragEnd={(e) => {
+        e.stopPropagation();
+        if (onDragEnd) onDragEnd();
+      }}
+      onDragOver={(e) => {
+        if (!isAdmin || dragDisabled) return;
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onDrop={(e) => {
+        if (!isAdmin || dragDisabled) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (onDrop) onDrop(song.id);
+      }}
       style={{
+        position: "relative",
         display: "grid",
         gridTemplateColumns: isMobile ? "64px 1fr" : "96px 1fr",
         gap: isMobile ? 8 : 16,
@@ -787,13 +815,72 @@ function SongRow({
         background: isFeatured
           ? "linear-gradient(180deg, rgba(33,24,8,0.88), rgba(8,12,24,0.92))"
           : "rgba(8,12,24,0.64)",
-        border: isFeatured
+        border: isDragging
+          ? "1px solid rgba(96,165,250,0.6)"
+          : isFeatured
           ? "1px solid rgba(250,204,21,0.22)"
           : "1px solid rgba(255,255,255,0.08)",
         alignItems: "center",
-        cursor: "pointer",
+        cursor: isAdmin && !dragDisabled ? "grab" : "pointer",
+        opacity: isDragging ? 0.72 : 1,
+        boxShadow: isDragging
+          ? "0 0 0 1px rgba(96,165,250,0.28), 0 12px 28px rgba(37,99,235,0.18)"
+          : isMobile
+          ? "none"
+          : "0 8px 18px rgba(0,0,0,0.08)",
       }}
     >
+      {/* ================================
+          SONG ROW: ADMIN ORDER + DRAG BADGES
+      ================================ */}
+
+      {isAdmin && (
+        <div
+          style={{
+            position: "absolute",
+            top: isMobile ? 10 : 12,
+            right: isMobile ? 10 : 12,
+            display: "flex",
+            gap: 8,
+            zIndex: 2,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span
+            style={{
+              padding: "6px 10px",
+              borderRadius: 999,
+              fontSize: 12,
+              fontWeight: 800,
+              color: "rgba(255,255,255,0.88)",
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.10)",
+            }}
+          >
+            #{orderNumber ?? "—"}
+          </span>
+
+          <span
+            title={dragDisabled ? 'Switch to "All songs"' : "Drag to reorder"}
+            style={{
+              padding: "6px 10px",
+              borderRadius: 12,
+              fontSize: 14,
+              fontWeight: 800,
+              color: dragDisabled
+                ? "rgba(255,255,255,0.40)"
+                : "rgba(255,255,255,0.82)",
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              cursor: dragDisabled ? "not-allowed" : "grab",
+              userSelect: "none",
+            }}
+          >
+            ⋮⋮
+          </span>
+        </div>
+      )}
+
       {/* ================================
           SONG ROW: COVER
       ================================ */}
@@ -831,7 +918,14 @@ function SongRow({
           SONG ROW: INFO COLUMN
       ================================ */}
 
-      <div style={{ display: "grid", gap: isMobile ? 5 : 8, minWidth: 0 }}>
+      <div
+        style={{
+          display: "grid",
+          gap: isMobile ? 5 : 8,
+          minWidth: 0,
+          paddingRight: isAdmin ? (isMobile ? 70 : 88) : 0,
+        }}
+      >
         {/* ================================
             SONG ROW: TITLE + BADGES
         ================================ */}
@@ -2184,6 +2278,7 @@ function App() {
 
   const [isUploading, setIsUploading] = useState(false);
   const [isReorderingSongs, setIsReorderingSongs] = useState(false);
+  const [draggedSongId, setDraggedSongId] = useState(null);
 
   const [volume, setVolume] = useState(1);
   const [previousVolume, setPreviousVolume] = useState(1);
@@ -3349,6 +3444,78 @@ function App() {
       setIsReorderingSongs(false);
     }
   };
+
+  /* ================================
+   ADMIN: DRAG-DROP SONG REORDER
+================================ */
+
+const handleAdminDragStart = (songId) => {
+  if (adminSongFilter !== "all") return;
+  setDraggedSongId(songId);
+};
+
+const handleAdminDragEnd = () => {
+  setDraggedSongId(null);
+};
+
+const handleAdminDrop = async (targetSongId) => {
+  if (!draggedSongId || draggedSongId === targetSongId) {
+    setDraggedSongId(null);
+    return;
+  }
+
+  if (adminSongFilter !== "all") {
+    alert('Drag-reorder only works in "All songs".');
+    setDraggedSongId(null);
+    return;
+  }
+
+  const orderedSongs = [...ensureSongSortOrders(songs)].sort(compareSongsForDisplay);
+
+  const fromIndex = orderedSongs.findIndex(s => s.id === draggedSongId);
+  const toIndex = orderedSongs.findIndex(s => s.id === targetSongId);
+
+  if (fromIndex === -1 || toIndex === -1) {
+    setDraggedSongId(null);
+    return;
+  }
+
+  const reordered = [...orderedSongs];
+
+  const [movedSong] = reordered.splice(fromIndex, 1);
+  reordered.splice(toIndex, 0, movedSong);
+
+  const updated = reordered.map((song, index) => ({
+    ...song,
+    sortOrder: index + 1,
+  }));
+
+  const previousSongs = songs;
+
+  setSongs(updated);
+
+  try {
+    setIsReorderingSongs(true);
+
+    await Promise.all(
+      updated.map(song =>
+        Promise.all([
+          saveSongToCloudflare(song),
+          backupSongToSupabase(song).catch(err =>
+            console.warn("Backup failed:", err)
+          ),
+        ])
+      )
+    );
+  } catch (error) {
+    console.error(error);
+    setSongs(previousSongs);
+    alert("Could not save new order.");
+  } finally {
+    setIsReorderingSongs(false);
+    setDraggedSongId(null);
+  }
+};
 
   /* ================================
      DATA HANDLERS: REQUESTS
@@ -5181,23 +5348,35 @@ function App() {
                   {adminSongs.length > 0 ? (
                     adminSongs.map((song, index) => (
                       <SongRow
-                        key={song.id}
-                        song={song}
-                        analytics={songAnalytics[song.id]}
-                        onLike={handleLikeSong}
-                        onOpenPlayer={handleOpenSong}
-                        onDownloadSong={downloadSong}
-                        onDownloadLyrics={downloadLyrics}
-                        onCopyLink={copySongLink}
-                        isMobile={isMobile}
-                        isAdmin
-                        onEdit={() => startEditSong(song)}
-                        onDelete={() => handleDeleteSong(song)}
-                        onMoveUp={() => handleMoveSong(song, "up")}
-                        onMoveDown={() => handleMoveSong(song, "down")}
-                        canMoveUp={index > 0 && !isReorderingSongs}
-                        canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
-                      />
+  key={song.id}
+  song={song}
+  analytics={songAnalytics[song.id]}
+  onLike={handleLikeSong}
+  onOpenPlayer={handleOpenSong}
+  onDownloadSong={downloadSong}
+  onDownloadLyrics={downloadLyrics}
+  onCopyLink={copySongLink}
+
+  isMobile={isMobile}
+  isAdmin
+
+  orderNumber={index + 1}
+  isDragging={draggedSongId === song.id}
+  dragDisabled={adminSongFilter !== "all" || isReorderingSongs}
+
+  onDragStart={handleAdminDragStart}
+  onDragEnd={handleAdminDragEnd}
+  onDrop={handleAdminDrop}
+
+  onEdit={() => startEditSong(song)}
+  onDelete={() => handleDeleteSong(song)}
+
+  onMoveUp={() => handleMoveSong(song, "up")}
+  onMoveDown={() => handleMoveSong(song, "down")}
+
+  canMoveUp={index > 0 && !isReorderingSongs}
+  canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
+/>
                     ))
                   ) : (
                     <div style={{ color: "rgba(255,255,255,0.72)" }}>
