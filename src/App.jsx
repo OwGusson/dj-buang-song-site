@@ -2865,12 +2865,12 @@ function App() {
   ================================ */
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
+  const audio = audioRef.current;
+  if (!audio) return;
 
-    audio.volume = isMuted ? 0 : volume;
-    audio.muted = isMuted;
-  }, [volume, isMuted]);
+  audio.volume = volume;
+  audio.muted = volume === 0;
+}, [volume]);
 
   /* ================================
      EFFECTS: PLAYER SONG SOURCE CHANGES
@@ -3847,12 +3847,10 @@ const handleAdminDrop = async (targetSongId) => {
     lastTrackedPlay25SongIdRef.current = null;
   };
 
-      const handleVolumeChange = (value) => {
-    const safeValue = Math.max(0, Math.min(1, value));
-    setVolume(safeValue);
-    setPreviousVolume(safeValue);
-    setIsMuted(safeValue === 0);
-  };
+    const handleVolumeChange = (value) => {
+  const safeValue = Math.max(0, Math.min(1, value));
+  setVolume(safeValue);
+};
 
   const handleToggleVolumeSlider = () => {
     setShowVolumeSlider((prev) => !prev);
