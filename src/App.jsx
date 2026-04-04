@@ -5318,7 +5318,7 @@ const handleAdminDrop = async (targetSongId) => {
             {(adminSection === "dashboard" || adminSection === "songs") && (
               <Panel
                 title="Song Library"
-                subtitle="Manage uploaded songs, edit, delete, and reorder."
+                subtitle="Manage uploaded songs, edit, delete, and reorder. Drag-and-drop works in All songs."
                 right={
                   <div style={{ minWidth: 220 }}>
                     <Select
@@ -5356,26 +5356,20 @@ const handleAdminDrop = async (targetSongId) => {
   onDownloadSong={downloadSong}
   onDownloadLyrics={downloadLyrics}
   onCopyLink={copySongLink}
-
   isMobile={isMobile}
   isAdmin
-
+  onEdit={() => startEditSong(song)}
+  onDelete={() => handleDeleteSong(song)}
+  onMoveUp={() => handleMoveSong(song, "up")}
+  onMoveDown={() => handleMoveSong(song, "down")}
+  canMoveUp={index > 0 && !isReorderingSongs}
+  canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
   orderNumber={index + 1}
   isDragging={draggedSongId === song.id}
   dragDisabled={adminSongFilter !== "all" || isReorderingSongs}
-
-  onDragStart={handleAdminDragStart}
-  onDragEnd={handleAdminDragEnd}
-  onDrop={handleAdminDrop}
-
-  onEdit={() => startEditSong(song)}
-  onDelete={() => handleDeleteSong(song)}
-
-  onMoveUp={() => handleMoveSong(song, "up")}
-  onMoveDown={() => handleMoveSong(song, "down")}
-
-  canMoveUp={index > 0 && !isReorderingSongs}
-  canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
+  onDragStart={(songId) => setDraggedSongId(songId)}
+  onDragEnd={() => setDraggedSongId(null)}
+  onDrop={handleDropSong}
 />
                     ))
                   ) : (
