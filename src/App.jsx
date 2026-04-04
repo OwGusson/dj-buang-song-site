@@ -2281,8 +2281,6 @@ function App() {
   const [draggedSongId, setDraggedSongId] = useState(null);
 
   const [volume, setVolume] = useState(1);
-  const [previousVolume, setPreviousVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
   const [windowWidth, setWindowWidth] = useState(() =>
@@ -5367,9 +5365,9 @@ const handleAdminDrop = async (targetSongId) => {
   orderNumber={index + 1}
   isDragging={draggedSongId === song.id}
   dragDisabled={adminSongFilter !== "all" || isReorderingSongs}
-  onDragStart={(songId) => setDraggedSongId(songId)}
-  onDragEnd={() => setDraggedSongId(null)}
-  onDrop={handleDropSong}
+  onDragStart={handleAdminDragStart}
+  onDragEnd={handleAdminDragEnd}
+  onDrop={handleAdminDrop}
 />
                     ))
                   ) : (
