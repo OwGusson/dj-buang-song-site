@@ -3448,7 +3448,7 @@ function App() {
 ================================ */
 
 const handleAdminDragStart = (songId) => {
-  if (adminSongFilter !== "all") return;
+  if (adminSongFilter !== "all" || isReorderingSongs) return;
   setDraggedSongId(songId);
 };
 
@@ -3470,8 +3470,8 @@ const handleAdminDrop = async (targetSongId) => {
 
   const orderedSongs = [...ensureSongSortOrders(songs)].sort(compareSongsForDisplay);
 
-  const fromIndex = orderedSongs.findIndex(s => s.id === draggedSongId);
-  const toIndex = orderedSongs.findIndex(s => s.id === targetSongId);
+  const fromIndex = orderedSongs.findIndex((song) => song.id === draggedSongId);
+  const toIndex = orderedSongs.findIndex((song) => song.id === targetSongId);
 
   if (fromIndex === -1 || toIndex === -1) {
     setDraggedSongId(null);
@@ -3479,34 +3479,32 @@ const handleAdminDrop = async (targetSongId) => {
   }
 
   const reordered = [...orderedSongs];
-
   const [movedSong] = reordered.splice(fromIndex, 1);
   reordered.splice(toIndex, 0, movedSong);
 
-  const updated = reordered.map((song, index) => ({
+  const updatedSongs = reordered.map((song, index) => ({
     ...song,
     sortOrder: index + 1,
   }));
 
   const previousSongs = songs;
 
-  setSongs(updated);
+  setSongs(updatedSongs);
 
   try {
     setIsReorderingSongs(true);
 
-    await Promise.all(
-      updated.map(song =>
-        Promise.all([
-          saveSongToCloudflare(song),
-          backupSongToSupabase(song).catch(err =>
-            console.warn("Backup failed:", err)
-          ),
-        ])
-      )
-    );
+    for (const song of updatedSongs) {
+      await saveSongToCloudflare(song);
+
+      try {
+        await backupSongToSupabase(song);
+      } catch (backupError) {
+        console.warn("Backup failed:", backupError);
+      }
+    }
   } catch (error) {
-    console.error(error);
+    console.error("Could not save new order:", error);
     setSongs(previousSongs);
     alert("Could not save new order.");
   } finally {
