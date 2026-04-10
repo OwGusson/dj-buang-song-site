@@ -994,7 +994,9 @@ function SongRow({
             wordBreak: "break-word",
           }}
         >
-          {song.artist} • {songTypeLabel}
+          {song.requestedBy
+            ? `Requested by ${song.requestedBy}`
+            : `${song.artist || "DJ-Buang"} Original`}
         </div>
 
         {/* ================================
