@@ -4457,11 +4457,19 @@ DJ-BUANG`;
                       }}
                     >
                       <Button
-                        variant="primary"
-                        onClick={() => handleOpenSong(sharedSong)}
-                      >
-                        ▶ Open Player
-                      </Button>
+  variant="primary"
+  onClick={() => {
+    handleOpenSong(sharedSong);
+
+    if (typeof window !== "undefined") {
+      const cleanUrl =
+        window.location.origin + window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
+    }
+  }}
+>
+  ▶ Open Player
+</Button>
 
                       <Button
                         variant="secondary"
