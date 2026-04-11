@@ -3661,6 +3661,39 @@ const handleAdminDrop = async (targetSongId) => {
     );
   };
 
+    const copyRequestReadyMessage = async (request, songId) => {
+    if (!request || !songId) {
+      alert("Please link a song first.");
+      return;
+    }
+
+    const linkedSong = songs.find((song) => song.id === songId);
+    if (!linkedSong) {
+      alert("Linked song not found.");
+      return;
+    }
+
+    const songUrl = `${window.location.origin}${window.location.pathname}?song=${songId}`;
+
+    const message = `Hi ${request.name || "there"},
+
+Your requested song "${request.title || linkedSong.title}" is now ready.
+
+You can open it here:
+${songUrl}
+
+Enjoy,
+DJ-BUANG`;
+
+    try {
+      await navigator.clipboard.writeText(message);
+      alert("Ready message copied to clipboard.");
+    } catch (error) {
+      console.error("Could not copy ready message:", error);
+      alert(message);
+    }
+  };
+
   /* ================================
      DATA HANDLERS: PRIVATE MESSAGES
   ================================ */
@@ -4050,7 +4083,20 @@ const handleAdminDrop = async (targetSongId) => {
      LOCAL COMPONENT: REQUEST REVIEW MODAL
   ================================ */
 
-  function RequestReviewModal({ request, onClose, songs, onOpenSong }) {
+    function RequestReviewModal({
+    request,
+    onClose,
+    songs,
+    onOpenSong,
+    onLinkSong,
+    onCopyReadyMessage,
+  }) {
+    const [selectedSongId, setSelectedSongId] = useState("");
+
+    useEffect(() => {
+      setSelectedSongId(request?.linkedSongId || "");
+    }, [request]);
+
     if (!request) return null;
 
     const linkedSong = songs.find((song) => song.id === request.linkedSongId);
@@ -4168,6 +4214,54 @@ const handleAdminDrop = async (targetSongId) => {
                 <div>Email: {request.email || "No email provided"}</div>
                 <div>Status: {request.status || "pending"}</div>
                 <div>Created: {formatDate(request.createdAt)}</div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 18,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 10 }}>
+                Link song to request
+              </div>
+
+              <div style={{ display: "grid", gap: 12 }}>
+                <Select
+                  value={selectedSongId}
+                  onChange={(e) => setSelectedSongId(e.target.value)}
+                >
+                  <option value="" style={{ color: "black" }}>
+                    No linked song
+                  </option>
+
+                  {songs.map((song) => (
+                    <option key={song.id} value={song.id} style={{ color: "black" }}>
+                      {song.title} — {song.artist}
+                    </option>
+                  ))}
+                </Select>
+
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <Button
+                    variant="secondary"
+                    onClick={async () => {
+                      await onLinkSong(request.id, selectedSongId);
+                    }}
+                  >
+                    Save Linked Song
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    onClick={() => onCopyReadyMessage(request, selectedSongId)}
+                  >
+                    Copy Ready Message
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -5536,6 +5630,8 @@ const handleAdminDrop = async (targetSongId) => {
           onClose={() => setSelectedRequest(null)}
           songs={songs}
           onOpenSong={handleOpenSong}
+          onLinkSong={linkSongToRequest}
+          onCopyReadyMessage={copyRequestReadyMessage}
         />
 
         {playerSong && !playerMinimized ? (
