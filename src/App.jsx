@@ -2905,6 +2905,26 @@ function App() {
      SECTION 9: MEMO / COMPUTED VALUES
   ================================ */
 
+    /* ================================
+     MEMO: DIRECT-LINK SONG
+  ================================ */
+
+  const sharedSongId = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    const params = new URLSearchParams(window.location.search);
+    return params.get("song") || "";
+  }, [songs]);
+
+  const sharedSong = useMemo(() => {
+    if (!sharedSongId) return null;
+    return songs.find((song) => song.id === sharedSongId) || null;
+  }, [songs, sharedSongId]);
+
+  const showPrivateSharedSongPanel =
+    view === "home" &&
+    !!sharedSong &&
+    sharedSong.visibility === "private";
+
   /* ================================
      MEMO: PUBLIC SONG COLLECTIONS
   ================================ */
@@ -3661,7 +3681,7 @@ const handleAdminDrop = async (targetSongId) => {
     );
   };
 
-    const copyRequestReadyMessage = async (request, songId) => {
+      const copyRequestReadyMessage = async (request, songId) => {
     if (!request || !songId) {
       alert("Please link a song first.");
       return;
@@ -3675,7 +3695,20 @@ const handleAdminDrop = async (targetSongId) => {
 
     const songUrl = `${window.location.origin}${window.location.pathname}?song=${songId}`;
 
-    const message = `Hi ${request.name || "there"},
+    const message =
+      linkedSong.visibility === "private"
+        ? `Hi ${request.name || "there"},
+
+Your private requested song "${request.title || linkedSong.title}" is now ready.
+
+You can open it here:
+${songUrl}
+
+From that page you can listen, download the song, and download the lyrics.
+
+Enjoy,
+DJ-BUANG`
+        : `Hi ${request.name || "there"},
 
 Your requested song "${request.title || linkedSong.title}" is now ready.
 
@@ -4344,6 +4377,118 @@ DJ-BUANG`;
 
         {view === "home" && (
           <div style={{ display: "grid", gap: 22 }}>
+                        {showPrivateSharedSongPanel ? (
+              <Panel
+                title="Private Song Access"
+                subtitle="This song was shared with you directly."
+              >
+                <div style={{ display: "grid", gap: 16 }}>
+                  <div
+                    style={{
+                      padding: isMobile ? 16 : 20,
+                      borderRadius: 22,
+                      background:
+                        "linear-gradient(180deg, rgba(12,17,32,0.94), rgba(7,11,22,0.98))",
+                      border: "1px solid rgba(255,255,255,0.10)",
+                      boxShadow: "0 14px 34px rgba(0,0,0,0.22)",
+                      display: "grid",
+                      gap: 14,
+                    }}
+                  >
+                    <div style={{ display: "grid", gap: 8 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 10,
+                          flexWrap: "wrap",
+                          alignItems: "center",
+                        }}
+                      >
+                        <strong
+                          style={{
+                            fontSize: isMobile ? 22 : 28,
+                            lineHeight: 1.15,
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {sharedSong.title}
+                        </strong>
+
+                        <Badge
+                          style={{
+                            padding: isMobile ? "5px 9px" : "7px 12px",
+                            fontSize: isMobile ? 11 : 13,
+                          }}
+                        >
+                          PRIVATE
+                        </Badge>
+
+                        {isNewSong(sharedSong) ? (
+                          <Badge
+                            style={{
+                              padding: isMobile ? "5px 9px" : "7px 12px",
+                              fontSize: isMobile ? 11 : 13,
+                            }}
+                          >
+                            NEW
+                          </Badge>
+                        ) : null}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: isMobile ? 14 : 15,
+                          color: "rgba(255,255,255,0.72)",
+                          lineHeight: 1.5,
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {sharedSong.requestedBy?.trim()
+                          ? `Requested by ${sharedSong.requestedBy.trim()}`
+                          : `${sharedSong.artist || "DJ-Buang"} Original`}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 10,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Button
+                        variant="primary"
+                        onClick={() => handleOpenSong(sharedSong)}
+                      >
+                        ▶ Open Player
+                      </Button>
+
+                      <Button
+                        variant="secondary"
+                        onClick={() => downloadSong(sharedSong)}
+                      >
+                        ⬇ Download Song
+                      </Button>
+
+                      <Button
+                        variant="secondary"
+                        onClick={() => downloadLyrics(sharedSong)}
+                      >
+                        📄 Download Lyrics
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        onClick={() => copySongLink(sharedSong.id)}
+                      >
+                        🔗 Copy link
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </Panel>
+            ) : null}
+
             {/* ================================
                 PUBLIC HOME: HERO
             ================================ */}
