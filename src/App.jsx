@@ -3009,6 +3009,10 @@ function App() {
     return list.sort(compareSongsForDisplay);
   }, [songs, adminSongFilter]);
 
+    const adminSongsDisplay = useMemo(() => {
+    return [...adminSongs].reverse();
+  }, [adminSongs]);
+
   /* ================================
      MEMO: SPOTLIGHT SONG GROUPS
   ================================ */
@@ -5596,32 +5600,34 @@ DJ-BUANG`;
                 }
               >
                 <div style={{ display: "grid", gap: 14 }}>
-                  {adminSongs.length > 0 ? (
-                    adminSongs.map((song, index) => (
+                                    {adminSongsDisplay.length > 0 ? (
+                    adminSongsDisplay.map((song, index) => (
                       <SongRow
-  key={song.id}
-  song={song}
-  analytics={songAnalytics[song.id]}
-  onLike={handleLikeSong}
-  onOpenPlayer={handleOpenSong}
-  onDownloadSong={downloadSong}
-  onDownloadLyrics={downloadLyrics}
-  onCopyLink={copySongLink}
-  isMobile={isMobile}
-  isAdmin
-  onEdit={() => startEditSong(song)}
-  onDelete={() => handleDeleteSong(song)}
-  onMoveUp={() => handleMoveSong(song, "up")}
-  onMoveDown={() => handleMoveSong(song, "down")}
-  canMoveUp={index > 0 && !isReorderingSongs}
-  canMoveDown={index < adminSongs.length - 1 && !isReorderingSongs}
-  orderNumber={index + 1}
-  isDragging={draggedSongId === song.id}
-  dragDisabled={adminSongFilter !== "all" || isReorderingSongs}
-  onDragStart={handleAdminDragStart}
-  onDragEnd={handleAdminDragEnd}
-  onDrop={handleAdminDrop}
-/>
+                        key={song.id}
+                        song={song}
+                        analytics={songAnalytics[song.id]}
+                        onLike={handleLikeSong}
+                        onOpenPlayer={handleOpenSong}
+                        onDownloadSong={downloadSong}
+                        onDownloadLyrics={downloadLyrics}
+                        onCopyLink={copySongLink}
+                        isMobile={isMobile}
+                        isAdmin
+                        onEdit={() => startEditSong(song)}
+                        onDelete={() => handleDeleteSong(song)}
+                        onMoveUp={() => handleMoveSong(song, "down")}
+                        onMoveDown={() => handleMoveSong(song, "up")}
+                        canMoveUp={index > 0 && !isReorderingSongs}
+                        canMoveDown={
+                          index < adminSongsDisplay.length - 1 && !isReorderingSongs
+                        }
+                        orderNumber={song.sortOrder ?? "—"}
+                        isDragging={draggedSongId === song.id}
+                        dragDisabled={adminSongFilter !== "all" || isReorderingSongs}
+                        onDragStart={handleAdminDragStart}
+                        onDragEnd={handleAdminDragEnd}
+                        onDrop={handleAdminDrop}
+                      />
                     ))
                   ) : (
                     <div style={{ color: "rgba(255,255,255,0.72)" }}>
