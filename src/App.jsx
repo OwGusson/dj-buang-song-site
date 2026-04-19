@@ -3036,12 +3036,20 @@ function App() {
     ]);
   }, [featuredSpotlightSongs, newestSpotlightSongs]);
 
-  const remainingSongs = useMemo(() => {
+    const remainingSongs = useMemo(() => {
     if (filterMode !== "all") {
       return filteredSongs;
     }
 
-    return filteredSongs.filter((song) => !spotlightSongIds.has(song.id));
+    return filteredSongs
+      .filter((song) => !spotlightSongIds.has(song.id))
+      .sort((a, b) => {
+        if (!!b.featured !== !!a.featured) {
+          return b.featured ? 1 : -1;
+        }
+
+        return (b.sortOrder ?? 0) - (a.sortOrder ?? 0);
+      });
   }, [filteredSongs, spotlightSongIds, filterMode]);
 
   const showSpotlights = filterMode === "all";
