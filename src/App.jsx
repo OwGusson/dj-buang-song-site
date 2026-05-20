@@ -4615,7 +4615,7 @@ DJ-BUANG`;
                     DJ-BUANG
                   </h1>
 
-                  <p
+                                    <p
                     style={{
                       maxWidth: 820,
                       margin: "18px 0 0",
@@ -4624,16 +4624,20 @@ DJ-BUANG`;
                       color: "rgba(255,255,255,0.76)",
                     }}
                   >
-                    I’m DJ-BUANG, also known as OwGusson — making songs for the
-                    Date In Asia community, friends, and the occasional private
-                    request along the way.
+                    I’m DJ-BUANG, also known as OwGusson — creating original
+                    songs, custom requests, and fun music projects for anyone
+                    looking for something unique.
+                    <br />
+                    <br />
+                    From party anthems and emotional tracks to community jokes,
+                    birthday songs, travel vibes, and completely random ideas —
+                    DJ-BUANG is all about turning moments into music.
                     <br />
                     <br />
                     Feel free to explore the library, give your favorite tracks a
                     thumbs-up, and download songs or lyrics if something speaks
-                    to you. If you enjoy the music and want to support what I do,
-                    it’s always appreciated — but most of all, I’m just glad
-                    you’re here listening.
+                    to you. Most importantly — thanks for listening and being
+                    part of the journey.
                   </p>
 
                   <div
