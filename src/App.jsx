@@ -4625,7 +4625,7 @@ DJ-BUANG`;
                     }}
                   >
                     I’m DJ-BUANG, also known as OwGusson — creating original
-                    songs, custom requests, and fun music projects for anyone
+                    AI songs, custom requests, and fun music projects for anyone
                     looking for something unique.
                     <br />
                     <br />
@@ -4637,7 +4637,7 @@ DJ-BUANG`;
                     Feel free to explore the library, give your favorite tracks a
                     thumbs-up, and download songs or lyrics if something speaks
                     to you. Most importantly — thanks for listening and being
-                    part of the journey.
+                    part of the journey. And If you like what you hear, consider supporting with a donation or song request!
                   </p>
 
                   <div
