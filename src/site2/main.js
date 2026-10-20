@@ -39,7 +39,7 @@ audio.onplay=()=>{$('#play').textContent='Ⅱ';$('#play').setAttribute('aria-lab
 const time=n=>Number.isFinite(n)?`${Math.floor(n/60)}:${String(Math.floor(n%60)).padStart(2,'0')}`:'0:00';
 audio.ontimeupdate=()=>{$('#elapsed').textContent=time(audio.currentTime);$('#duration').textContent=time(audio.duration);$('#seek').value=audio.duration?audio.currentTime/audio.duration*100:0;};
 $('#seek').oninput=e=>{if(Number.isFinite(audio.duration))audio.currentTime=audio.duration*e.target.value/100;};$('#volume').oninput=e=>audio.volume=Number(e.target.value);
-$('#album-open').onclick=()=>modal('<div class="eyebrow">A NEW CHAPTER</div><h2>Global Barangay</h2><p>The forthcoming DJ-Buang album will have a home here: its story, artwork, track list, and listening links in one place.</p><p>The release date and Spotify availability have not been announced. Album artwork shown here is a design concept.</p><button class="primary" id="back-music">Explore current music ↘</button>');
+$('#album-open').onclick=()=>modal('<div class="eyebrow">A NEW CHAPTER</div><h2>Global Barangay</h2><p>The forthcoming DJ-Buang album will have a home here: its story, artwork, track list, and listening links in one place.</p><p>The release date and Spotify availability have not been announced. </p><button class="primary" id="back-music">Explore current music ↘</button>');
 $('#modal-content').addEventListener('click',e=>{if(e.target.id==='back-music'){$('#modal').close();location.hash='music';}});
 function contact(kind){openContact(kind,modal);}
 $('#request-open').onclick=()=>contact('request');

@@ -4,7 +4,7 @@ This change replaces the public landing page with the reviewed DJ-Buang / PHIL-I
 
 ## Included
 
-- Fluid desktop layout and mobile breakpoints, supplied logo/banner, Global Barangay concept feature and future merchandise sketches.
+- Fluid desktop layout and mobile breakpoints, supplied logo/banner, Global Barangay feature using the supplied album cover and future merchandise sketches.
 - Live catalog, persistent player, search, featured/download filters, shared song links, lyrics PDFs, likes and existing interaction tracking.
 - Requests and private messages submit through the existing Supabase insert-only permissions. Requests default to private delivery; personal contact fields remain administrator-only. No automatic email notification is promised or sent.
 - Studio verifies the existing server session and MFA before reading songs, request/message inboxes or analytics. It supports uploading/editing songs, visibility/publishing, featured and download controls, completion/read status and linking a finished song to a request.
