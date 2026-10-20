@@ -61,8 +61,7 @@ const STORAGE_KEYS = {
    GLOBAL CONSTANTS
 ================================ */
 
-const PAYPAL_URL =
-  "https://www.paypal.com/donate/?hosted_button_id=DWL7PTXG7BQ9A";
+
 
 const DEFAULT_SONGS = [];
 
@@ -3729,7 +3728,7 @@ DJ-BUANG`;
   ================================ */
 
   const openPayPalDonation = () => {
-    window.open(PAYPAL_URL, "_blank", "noopener,noreferrer");
+    alert("Financial support is paused while we set up a DJ-Buang payment identity.");
   };
 
   const handleOpenSong = async (song) => {
@@ -3836,14 +3835,21 @@ DJ-BUANG`;
     setPlayerMinimized(false);
   };
 
-  const downloadSong = (song) => {
+  const downloadSong = async (song) => {
+    if (song.downloadable === false) { alert("This song is available for listening only."); return; }
     if (!song.audioUrl) {
       alert("No song file uploaded yet.");
       return;
     }
 
     const a = document.createElement("a");
-    a.href = song.audioUrl;
+    let downloadResponse;
+    try { downloadResponse = await apiFetch(`/api/download?id=${encodeURIComponent(song.id)}`); }
+    catch { alert("The download could not be started."); return; }
+    if (!downloadResponse.ok) { alert("This song is unavailable for download."); return; }
+    const downloadObjectUrl = URL.createObjectURL(await downloadResponse.blob());
+    a.href = downloadObjectUrl;
+    setTimeout(() => URL.revokeObjectURL(downloadObjectUrl), 60000);
     a.download =
       getFileNameFromUrl(song.audioUrl) || `${song.title || "song"}.mp3`;
     a.click();
@@ -4865,7 +4871,7 @@ DJ-BUANG`;
                     </Button>
 
                     <Button variant="secondary" onClick={openPayPalDonation}>
-                      ♡ Support on PayPal
+                      ♡ Support DJ-Buang
                     </Button>
                   </div>
                 </Panel>

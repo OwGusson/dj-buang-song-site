@@ -30,9 +30,9 @@ export async function onRequestPost(context) {
   if (song.visibility !== undefined && !["public", "private"].includes(song.visibility)) return json({ error: "Invalid visibility" }, 400);
   if (song.status !== undefined && !["published", "hidden", "draft"].includes(song.status)) return json({ error: "Invalid status" }, 400);
   for (const field of ["visibility", "status"]) if (song[field] !== undefined) clean[field] = song[field];
-  if (song.featured !== undefined) {
-    if (typeof song.featured !== "boolean") return json({ error: "Invalid featured" }, 400);
-    clean.featured = song.featured;
+  for (const field of ['featured', 'downloadable']) if (song[field] !== undefined) {
+    if (typeof song[field] !== "boolean") return json({ error: `Invalid ${field}` }, 400);
+    clean[field] = song[field];
   }
   for (const field of ["likes", "sortOrder"]) if (song[field] !== undefined) {
     if (!Number.isFinite(song[field]) || song[field] < 0) return json({ error: `Invalid ${field}` }, 400);
