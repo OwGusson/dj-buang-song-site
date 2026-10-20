@@ -36,7 +36,9 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
-import { supabase } from "./supabase";
+import { supabase, authSetupRequested } from "./supabase";
+import { apiFetch, verifyAdmin } from "./adminAuth";
+import AccountSetup from "./AccountSetup";
 import {
   makeSongId,
   autoCleanReplacedFiles,
@@ -79,14 +81,6 @@ const ANALYTICS_EVENT_TYPES = {
    LOCAL STORAGE HELPERS
 ================================ */
 
-function getStored(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 function clearOldDemoDataOnce() {
   try {
@@ -1907,7 +1901,7 @@ async function uploadFileToCloudflare(file) {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch("/api/upload", {
+  const response = await apiFetch("/api/upload", {
     method: "POST",
     body: formData,
   });
@@ -1933,7 +1927,7 @@ async function uploadFileToCloudflare(file) {
 ================================ */
 
 async function fetchSongsFromCloudflare() {
-  const response = await fetch("/api/songs");
+  const response = await apiFetch("/api/songs");
   const text = await response.text();
   let data = [];
 
@@ -1951,7 +1945,7 @@ async function fetchSongsFromCloudflare() {
 }
 
 async function saveSongToCloudflare(song) {
-  const response = await fetch("/api/songs", {
+  const response = await apiFetch("/api/songs", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -1976,7 +1970,7 @@ async function saveSongToCloudflare(song) {
 }
 
 async function deleteSongFromCloudflare(songId) {
-  const response = await fetch(`/api/songs?id=${encodeURIComponent(songId)}`, {
+  const response = await apiFetch(`/api/songs?id=${encodeURIComponent(songId)}`, {
     method: "DELETE",
   });
 
@@ -2000,134 +1994,47 @@ async function deleteSongFromCloudflare(songId) {
    ADMIN AUTH API
 ================================ */
 
-async function loginAdmin(password) {
-  const response = await fetch("/api/login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ password }),
-  });
-
-  const text = await response.text();
-  let data = {};
-
+async function loginAdmin(email, password) {
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw new Error("Sign-in failed. Check your email and password.");
   try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    throw new Error("Login endpoint returned invalid response");
+    const response = await apiFetch("/api/session");
+    if (!response.ok) throw new Error("This account does not have administrator access.");
+    const access = await response.json();
+    if (!access.mfaRequired) return null;
+    const { data: factors, error: factorError } = await supabase.auth.mfa.listFactors();
+    if (factorError) throw factorError;
+    const verified = factors.totp.find((factor) => factor.status === "verified");
+    if (verified) return { factorId: verified.id, qrCode: "" };
+    for (const factor of factors.all.filter((factor) => factor.factor_type === "totp" && factor.status === "unverified")) {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId: factor.id });
+      if (error) throw error;
+    }
+    const { data, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: "DJ-Buang admin" });
+    if (enrollError) throw enrollError;
+    return { factorId: data.id, qrCode: data.totp.qr_code };
   }
-
-  if (!response.ok) {
-    throw new Error(data.error || "Wrong password.");
-  }
-
-  return data;
+  catch (error) { await supabase.auth.signOut(); throw error; }
 }
 
 /* ================================
    SONG ANALYTICS: EVENT SUMMARY
 ================================ */
 
-async function summarizeSongEvents(songId) {
-  if (!songId) return null;
-
-  const { data: events, error } = await supabase
-    .from("song_events")
-    .select("listener_id, event_type")
-    .eq("song_id", songId);
-
-  if (error) {
-    throw error;
-  }
-
-  const safeEvents = events || [];
-
-  const opens = safeEvents.filter(
-    (event) => event.event_type === ANALYTICS_EVENT_TYPES.open
-  );
-  const plays = safeEvents.filter(
-    (event) => event.event_type === ANALYTICS_EVENT_TYPES.playStart
-  );
-  const play25 = safeEvents.filter(
-    (event) => event.event_type === ANALYTICS_EVENT_TYPES.play25
-  );
-  const songDownloads = safeEvents.filter(
-    (event) => event.event_type === ANALYTICS_EVENT_TYPES.downloadSong
-  );
-  const lyricsDownloads = safeEvents.filter(
-    (event) => event.event_type === ANALYTICS_EVENT_TYPES.downloadLyrics
-  );
-
-  const uniqueOpenIds = new Set(
-    opens.map((event) => event.listener_id).filter(Boolean)
-  );
-
-  const uniqueListenerIds = new Set(
-    safeEvents
-      .filter(
-        (event) =>
-          event.event_type === ANALYTICS_EVENT_TYPES.playStart ||
-          event.event_type === ANALYTICS_EVENT_TYPES.play25
-      )
-      .map((event) => event.listener_id)
-      .filter(Boolean)
-  );
-
-  const payload = {
-    song_id: songId,
-    opens: opens.length,
-    plays: plays.length,
-    unique_opens: uniqueOpenIds.size,
-    unique_listeners: uniqueListenerIds.size,
-    play_25_count: play25.length,
-    song_downloads: songDownloads.length,
-    lyrics_downloads: lyricsDownloads.length,
-    updated_at: new Date().toISOString(),
-  };
-
-  const { data: savedRow, error: upsertError } = await supabase
-    .from("song_analytics")
-    .upsert(payload, { onConflict: "song_id" })
-    .select()
-    .single();
-
-  if (upsertError) {
-    throw upsertError;
-  }
-
-  return normalizeAnalyticsRow(savedRow);
-}
-
 /* ================================
    SONG ANALYTICS: EVENT TRACKING
 ================================ */
 
-async function trackSongEvent(songId, eventType, options = {}) {
+async function trackSongEvent(songId, eventType) {
   if (!songId || !eventType) return null;
-
-  const payload = {
-    song_id: songId,
-    event_type: eventType,
-    listener_id: options.listenerId || null,
-    progress_percent:
-      typeof options.progressPercent === "number"
-        ? options.progressPercent
-        : null,
-    created_at: new Date().toISOString(),
-  };
-
-  const { error: insertError } = await supabase
-    .from("song_events")
-    .insert([payload]);
-
-  if (insertError) {
-    throw insertError;
-  }
-
-  return summarizeSongEvents(songId);
+  const response = await apiFetch("/api/interactions", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ songId, eventType }),
+  });
+  if (!response.ok) throw new Error("Could not record interaction");
+  return response.json();
 }
- 
+
 async function incrementSongAnalytics(songId, field, options = {}) {
   const fieldToEventTypeMap = {
     opens: ANALYTICS_EVENT_TYPES.open,
@@ -2242,17 +2149,14 @@ function App() {
      APP STATE: AUTH + VIEW
   ================================ */
 
-  const [adminLoggedIn, setAdminLoggedIn] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEYS.admin) || "false");
-    } catch {
-      return false;
-    }
-  });
+  const [adminLoggedIn, setAdminLoggedIn] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
 
-  const [view, setView] = useState("home");
+  const [view, setView] = useState(authSetupRequested ? "account" : "home");
   const [adminSection, setAdminSection] = useState("dashboard");
   const [adminPassword, setAdminPassword] = useState("");
+  const [mfaFactor, setMfaFactor] = useState(null);
+  const [mfaCode, setMfaCode] = useState("");
   const [loginError, setLoginError] = useState("");
 
   /* ================================
@@ -2464,13 +2368,9 @@ function App() {
             console.error("Could not load live likes:", likesError);
           }
 
-          setSongs(songsWithLiveLikes);
+          if (!cancelled) setSongs(songsWithLiveLikes);
 
-          for (const song of songsWithLiveLikes) {
-            backupSongToSupabase(song).catch((error) => {
-              console.warn("Could not back up song to Supabase:", error);
-            });
-          }
+
         }
       } catch (error) {
         console.warn(
@@ -2490,10 +2390,7 @@ function App() {
         }
 
         if (!cancelled) {
-          const localSongs = ensureSongSortOrders(
-            getStored(STORAGE_KEYS.songs, DEFAULT_SONGS)
-          );
-          setSongs(localSongs);
+          setSongs([]);
         }
       }
     }
@@ -2518,25 +2415,27 @@ function App() {
     }
 
     loadSongs();
-    loadAnalytics();
+    if (adminLoggedIn) loadAnalytics();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [adminLoggedIn]);
 
   /* ================================
      EFFECTS: INITIAL REQUESTS + MESSAGES LOAD
   ================================ */
 
   useEffect(() => {
+    if (!adminLoggedIn) { setRequests([]); setMessages([]); return; }
+    let cancelled = false;
     async function loadRequestsAndMessages() {
       const { data: requestsData, error: requestsError } = await supabase
         .from("song_requests")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (!requestsError && requestsData) {
+      if (!cancelled && !requestsError && requestsData) {
         setRequests(
           requestsData.map((r) => ({
             id: r.id,
@@ -2560,7 +2459,7 @@ function App() {
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (!messagesError && messagesData) {
+      if (!cancelled && !messagesError && messagesData) {
         setMessages(
           messagesData.map((m) => ({
             id: m.id,
@@ -2577,13 +2476,16 @@ function App() {
     }
 
     loadRequestsAndMessages();
-  }, []);
+    return () => { cancelled = true; };
+  }, [adminLoggedIn]);
 
   /* ================================
      EFFECTS: LIVE SUPABASE SUBSCRIPTIONS
   ================================ */
 
   useEffect(() => {
+    let active = true;
+    if (!adminLoggedIn) return;
     const requestsChannel = supabase
       .channel("live-song-requests")
       .on(
@@ -2595,7 +2497,7 @@ function App() {
             .select("*")
             .order("created_at", { ascending: false });
 
-          if (!error && data) {
+          if (active && !error && data) {
             setRequests(
               data.map((r) => ({
                 id: r.id,
@@ -2626,7 +2528,7 @@ function App() {
             .select("*")
             .order("created_at", { ascending: false });
 
-          if (!error && data) {
+          if (active && !error && data) {
             setMessages(
               data.map((m) => ({
                 id: m.id,
@@ -2700,44 +2602,44 @@ function App() {
       .subscribe();
 
     return () => {
+      active = false;
       supabase.removeChannel(requestsChannel);
       supabase.removeChannel(messagesChannel);
       supabase.removeChannel(likesChannel);
       supabase.removeChannel(analyticsChannel);
     };
-  }, []);
+  }, [adminLoggedIn]);
 
   /* ================================
      EFFECTS: LOCAL STORAGE SYNC
   ================================ */
 
   useEffect(() => {
-    try {
-      const safeSongs = songs.map((song) => ({
-        id: song.id,
-        title: song.title,
-        artist: song.artist,
-        requestedBy: song.requestedBy,
-        coverUrl: song.coverUrl,
-        audioUrl: song.audioUrl,
-        lyrics: song.lyrics,
-        likes: song.likes,
-        featured: song.featured,
-        visibility: song.visibility,
-        status: song.status,
-        createdAt: song.createdAt,
-        sortOrder: song.sortOrder,
-      }));
-
-      localStorage.setItem(STORAGE_KEYS.songs, JSON.stringify(safeSongs));
-    } catch (error) {
-      console.warn("Skipping local song cache:", error);
+    localStorage.removeItem(STORAGE_KEYS.admin);
+    localStorage.removeItem(STORAGE_KEYS.songs);
+    let active = true;
+    let revision = 0;
+    async function refreshAdmin(session) {
+      const current = ++revision;
+      if (!session) {
+        if (active) { setAdminLoggedIn(false); setSongs([]); setRequests([]); setMessages([]); setSongAnalytics({}); }
+        return;
+      }
+      try {
+        await verifyAdmin();
+        if (active && current === revision) setAdminLoggedIn(true);
+      } catch {
+        if (active && current === revision) { setAdminLoggedIn(false); setSongs([]); setRequests([]); setMessages([]); }
+      }
     }
-  }, [songs]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.admin, JSON.stringify(adminLoggedIn));
-  }, [adminLoggedIn]);
+    supabase.auth.getSession().then(({ data }) => refreshAdmin(data.session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (_event === "PASSWORD_RECOVERY") setView("account");
+      // Defer asynchronous auth work until Supabase releases its auth lock.
+      setTimeout(() => { if (active) refreshAdmin(session); }, 0);
+    });
+    return () => { active = false; subscription.unsubscribe(); };
+  }, []);
 
   /* ================================
      EFFECTS: WINDOW + URL STATE
@@ -3225,32 +3127,15 @@ function App() {
     const likedKey = `liked_${songId}`;
     if (localStorage.getItem(likedKey)) return;
 
-    const currentSong = songs.find((song) => song.id === songId);
-    const currentLikes = Number(currentSong?.likes || 0);
-    const nextLikes = currentLikes + 1;
-
-    const { error } = await supabase.from("song_likes").upsert(
-      {
-        song_id: songId,
-        likes: nextLikes,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "song_id" }
-    );
-
-    if (error) {
-      alert("Could not save like.");
-      console.error(error);
-      return;
-    }
-
-    const { data: refreshedLikeRow } = await supabase
-      .from("song_likes")
-      .select("*")
-      .eq("song_id", songId)
-      .single();
-
-    const finalLikes = Number(refreshedLikeRow?.likes || nextLikes);
+    let finalLikes;
+    try {
+      const response = await apiFetch("/api/interactions", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ songId, eventType: "like" }),
+      });
+      if (!response.ok) throw new Error("Could not save like. Please try again later.");
+      finalLikes = Number((await response.json()).likes || 0);
+    } catch (error) { alert(error.message); return; }
 
     setSongs((prev) =>
       prev.map((song) =>
@@ -3269,7 +3154,19 @@ function App() {
     e.preventDefault();
 
     try {
-      await loginAdmin(adminPassword);
+      if (mfaFactor) {
+        if (!/^\d{6}$/.test(mfaCode)) throw new Error("Enter the six-digit code from your authenticator app.");
+        const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: mfaFactor.factorId });
+        if (challengeError) throw challengeError;
+        const { error } = await supabase.auth.mfa.verify({ factorId: mfaFactor.factorId, challengeId: challenge.id, code: mfaCode });
+        if (error) throw new Error("Authenticator code could not be verified. Please try the current code.");
+        await verifyAdmin();
+      } else {
+        const factor = await loginAdmin(adminEmail.trim(), adminPassword);
+        if (factor) { setMfaFactor(factor); setAdminPassword(""); setLoginError(""); return; }
+      }
+      setMfaFactor(null);
+      setMfaCode("");
       setAdminLoggedIn(true);
       setView("admin");
       setAdminSection("dashboard");
@@ -3280,8 +3177,17 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await apiFetch("/api/session", { method: "DELETE" }).catch(() => {});
+    await supabase.auth.signOut();
+    setSongs([]);
+    setRequests([]);
+    setMessages([]);
+    setSongAnalytics({});
     setAdminLoggedIn(false);
+    setMfaFactor(null);
+    setMfaCode("");
+    setPlayerSong(null);
     setView("home");
     setAdminSection("dashboard");
   };
@@ -3579,32 +3485,13 @@ const handleAdminDrop = async (targetSongId) => {
       status: "pending",
     };
 
-    const { data, error } = await supabase
-      .from("song_requests")
-      .insert([payload])
-      .select()
-      .single();
+    const { error } = await supabase.from("song_requests").insert([payload]);
 
     if (error) {
       alert("Could not send request. Please try again.");
       console.error(error);
       return;
     }
-
-    const newRequest = {
-      id: data.id,
-      name: data.requester_name,
-      title: data.song_name,
-      details: data.details,
-      email: data.email,
-      notify: data.notify,
-      delivery: data.delivery,
-      linkedSongId: data.linked_song_id,
-      status: data.status,
-      createdAt: data.created_at,
-    };
-
-    setRequests((prev) => [newRequest, ...prev]);
 
     setRequestForm({
       name: "",
@@ -3771,11 +3658,7 @@ DJ-BUANG`;
       status: "new",
     };
 
-    const { data, error } = await supabase
-      .from("private_messages")
-      .insert([payload])
-      .select()
-      .single();
+    const { error } = await supabase.from("private_messages").insert([payload]);
 
     if (error) {
       alert("Could not send private message. Please try again.");
@@ -3783,16 +3666,6 @@ DJ-BUANG`;
       return;
     }
 
-    const newMessage = {
-      id: data.id,
-      from: data.sender_name,
-      replyContact: data.sender_email || "",
-      message: data.message,
-      status: data.status,
-      createdAt: data.created_at,
-    };
-
-    setMessages((prev) => [newMessage, ...prev]);
     setMessageForm({
       from: "",
       replyPlatform: "",
@@ -5221,6 +5094,8 @@ DJ-BUANG`;
             PUBLIC: LOGIN PAGE
         ================================ */}
 
+        {view === "account" && <AccountSetup onComplete={() => { setView("login"); setLoginError("Password saved. Sign in to complete authenticator setup."); }} />}
+
         {view === "login" && !adminLoggedIn && (
           <Panel
             title="Admin Login"
@@ -5230,12 +5105,26 @@ DJ-BUANG`;
               onSubmit={handleAdminLogin}
               style={{ display: "grid", gap: 16, maxWidth: 460 }}
             >
+              {!mfaFactor && <><Input
+                type="email"
+                label="Admin email"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+              />
               <Input
                 type="password"
                 label="Password"
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
               />
+              </>}
+              {mfaFactor && <>
+                {mfaFactor.qrCode && <>
+                  <p>Scan this QR code with your authenticator app, then enter its six-digit code.</p>
+                  <img alt="Authenticator setup QR code" width={220} height={220} src={mfaFactor.qrCode.startsWith("data:") ? mfaFactor.qrCode : `data:image/svg+xml,${encodeURIComponent(mfaFactor.qrCode)}`} />
+                </>}
+                <Input label="Authenticator code" value={mfaCode} inputMode="numeric" autoComplete="one-time-code" maxLength={6} onChange={(e) => setMfaCode(e.target.value)} />
+              </>}
 
               {loginError ? (
                 <div
@@ -5253,7 +5142,7 @@ DJ-BUANG`;
 
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <Button type="submit" variant="primary">
-                  Login
+                  {mfaFactor ? "Verify code" : "Login"}
                 </Button>
 
                 <Button

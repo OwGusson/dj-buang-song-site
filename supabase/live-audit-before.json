@@ -1,0 +1,775 @@
+{
+  "project": "oktnfawoyexhplbsjpzb",
+  "date": "2026-10-20",
+  "auth": {
+    "users": 0,
+    "admins": 0
+  },
+  "views": null,
+  "buckets": null,
+  "policies": [
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "anon"
+      ],
+      "tablename": "private_messages",
+      "policyname": "Allow admin read private messages",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": [
+        "anon"
+      ],
+      "tablename": "private_messages",
+      "policyname": "Allow public delete private messages",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "anon"
+      ],
+      "tablename": "private_messages",
+      "policyname": "Allow public insert private messages",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "anon"
+      ],
+      "tablename": "private_messages",
+      "policyname": "Allow public inserts messages",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "anon"
+      ],
+      "tablename": "private_messages",
+      "policyname": "Allow public read private messages",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": [
+        "anon"
+      ],
+      "tablename": "private_messages",
+      "policyname": "Allow public update private messages",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "anon"
+      ],
+      "tablename": "song_analytics",
+      "policyname": "Allow public insert song analytics",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "anon"
+      ],
+      "tablename": "song_analytics",
+      "policyname": "Allow public read song analytics",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": [
+        "anon"
+      ],
+      "tablename": "song_analytics",
+      "policyname": "Allow public update song analytics",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "tablename": "song_analytics",
+      "policyname": "public can insert song analytics",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "tablename": "song_analytics",
+      "policyname": "public can read song analytics",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "tablename": "song_analytics",
+      "policyname": "public can update song analytics",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "tablename": "song_events",
+      "policyname": "public can insert song events",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "tablename": "song_events",
+      "policyname": "public can read song events",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "anon"
+      ],
+      "tablename": "song_likes",
+      "policyname": "Allow public insert song likes",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "anon"
+      ],
+      "tablename": "song_likes",
+      "policyname": "Allow public read song likes",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": [
+        "anon"
+      ],
+      "tablename": "song_likes",
+      "policyname": "Allow public update song likes",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "anon"
+      ],
+      "tablename": "song_requests",
+      "policyname": "Allow admin read song requests",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": [
+        "anon"
+      ],
+      "tablename": "song_requests",
+      "policyname": "Allow public delete song requests",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "anon"
+      ],
+      "tablename": "song_requests",
+      "policyname": "Allow public insert song requests",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "anon"
+      ],
+      "tablename": "song_requests",
+      "policyname": "Allow public inserts",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "anon"
+      ],
+      "tablename": "song_requests",
+      "policyname": "Allow public read song requests",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": [
+        "anon"
+      ],
+      "tablename": "song_requests",
+      "policyname": "Allow public update song requests",
+      "schemaname": "public",
+      "with_check": "true"
+    }
+  ],
+  "triggers": [
+    {
+      "tgname": "song_events_refresh_analytics",
+      "definition": "CREATE TRIGGER song_events_refresh_analytics AFTER INSERT ON public.song_events FOR EACH ROW EXECUTE FUNCTION song_events_refresh_trigger()"
+    }
+  ],
+  "hosts": [
+    {
+      "media_host": "https://dj-buang.com"
+    }
+  ],
+  "counts": {
+    "public": 33,
+    "private": 5
+  },
+  "grants": [
+    {
+      "grantee": "anon",
+      "table_name": "private_messages",
+      "privilege_type": "DELETE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "private_messages",
+      "privilege_type": "INSERT"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "private_messages",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "private_messages",
+      "privilege_type": "SELECT"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "private_messages",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "private_messages",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "private_messages",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "private_messages",
+      "privilege_type": "DELETE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "private_messages",
+      "privilege_type": "INSERT"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "private_messages",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "private_messages",
+      "privilege_type": "SELECT"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "private_messages",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "private_messages",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "private_messages",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_analytics",
+      "privilege_type": "DELETE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_analytics",
+      "privilege_type": "INSERT"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_analytics",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_analytics",
+      "privilege_type": "SELECT"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_analytics",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_analytics",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_analytics",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_analytics",
+      "privilege_type": "DELETE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_analytics",
+      "privilege_type": "INSERT"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_analytics",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_analytics",
+      "privilege_type": "SELECT"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_analytics",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_analytics",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_analytics",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_events",
+      "privilege_type": "DELETE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_events",
+      "privilege_type": "INSERT"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_events",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_events",
+      "privilege_type": "SELECT"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_events",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_events",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_events",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_events",
+      "privilege_type": "DELETE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_events",
+      "privilege_type": "INSERT"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_events",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_events",
+      "privilege_type": "SELECT"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_events",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_events",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_events",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_likes",
+      "privilege_type": "DELETE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_likes",
+      "privilege_type": "INSERT"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_likes",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_likes",
+      "privilege_type": "SELECT"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_likes",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_likes",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_likes",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_likes",
+      "privilege_type": "DELETE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_likes",
+      "privilege_type": "INSERT"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_likes",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_likes",
+      "privilege_type": "SELECT"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_likes",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_likes",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_likes",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_requests",
+      "privilege_type": "DELETE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_requests",
+      "privilege_type": "INSERT"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_requests",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_requests",
+      "privilege_type": "SELECT"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_requests",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_requests",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "song_requests",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_requests",
+      "privilege_type": "DELETE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_requests",
+      "privilege_type": "INSERT"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_requests",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_requests",
+      "privilege_type": "SELECT"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_requests",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_requests",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "song_requests",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "songs_backup",
+      "privilege_type": "DELETE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "songs_backup",
+      "privilege_type": "INSERT"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "songs_backup",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "songs_backup",
+      "privilege_type": "SELECT"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "songs_backup",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "songs_backup",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "grantee": "anon",
+      "table_name": "songs_backup",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "songs_backup",
+      "privilege_type": "DELETE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "songs_backup",
+      "privilege_type": "INSERT"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "songs_backup",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "songs_backup",
+      "privilege_type": "SELECT"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "songs_backup",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "songs_backup",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_name": "songs_backup",
+      "privilege_type": "UPDATE"
+    }
+  ],
+  "indexes": [
+    {
+      "indexdef": "CREATE UNIQUE INDEX private_messages_pkey ON public.private_messages USING btree (id)",
+      "indexname": "private_messages_pkey",
+      "tablename": "private_messages"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX song_requests_pkey ON public.song_requests USING btree (id)",
+      "indexname": "song_requests_pkey",
+      "tablename": "song_requests"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX song_likes_pkey ON public.song_likes USING btree (song_id)",
+      "indexname": "song_likes_pkey",
+      "tablename": "song_likes"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX songs_backup_pkey ON public.songs_backup USING btree (song_id)",
+      "indexname": "songs_backup_pkey",
+      "tablename": "songs_backup"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX song_analytics_pkey ON public.song_analytics USING btree (song_id)",
+      "indexname": "song_analytics_pkey",
+      "tablename": "song_analytics"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX song_events_pkey ON public.song_events USING btree (id)",
+      "indexname": "song_events_pkey",
+      "tablename": "song_events"
+    },
+    {
+      "indexdef": "CREATE INDEX song_events_song_id_idx ON public.song_events USING btree (song_id)",
+      "indexname": "song_events_song_id_idx",
+      "tablename": "song_events"
+    },
+    {
+      "indexdef": "CREATE INDEX song_events_event_type_idx ON public.song_events USING btree (event_type)",
+      "indexname": "song_events_event_type_idx",
+      "tablename": "song_events"
+    },
+    {
+      "indexdef": "CREATE INDEX song_events_created_at_idx ON public.song_events USING btree (created_at)",
+      "indexname": "song_events_created_at_idx",
+      "tablename": "song_events"
+    }
+  ],
+  "sequences": [
+    {
+      "relname": "song_requests_id_seq",
+      "anon_usage": true,
+      "authenticated_usage": true
+    },
+    {
+      "relname": "private_messages_id_seq",
+      "anon_usage": true,
+      "authenticated_usage": true
+    },
+    {
+      "relname": "song_events_id_seq",
+      "anon_usage": true,
+      "authenticated_usage": true
+    }
+  ],
+  "schema_create": {
+    "anon": false,
+    "authenticated": false
+  }
+}
