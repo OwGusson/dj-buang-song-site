@@ -19,7 +19,7 @@ This change replaces the public landing page with the reviewed DJ-Buang / PHIL-I
 - Targeted ESLint passes for the new frontend, entry point, download handler and tests. The legacy App retains pre-existing lint issues.
 - Browser: real 33-song public catalog, filtering, protected Studio sign-in and request form render. Responsive layout inspected in a 390px iframe viewport. A physical phone has not been tested.
 - Local preview blocks production mutations and interaction tracking. Classic admin is disabled locally for the same reason. Supabase authentication is real; administrators can review their existing inbox after signing in.
-- Remaining acceptance check: the owner signs in with password + authenticator and reviews the authenticated studio. Successful production form submission and media uploads still need post-deployment checks; local preview does not write to production.
+- The owner confirmed successful Studio entry after sign-in. The Studio has a dedicated /studio route so refreshes resume its sign-in/dashboard flow. Successful production form submission and media uploads still need post-deployment checks; local preview does not write to production.
 
 ## Release and rollback
 
