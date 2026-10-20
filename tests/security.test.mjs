@@ -179,3 +179,9 @@ test('private song interactions and untrusted forwarded IP are rejected', async 
   Object.assign(publicCtx.env, { SUPABASE_SERVICE_ROLE_KEY: 'server-only', INTERACTION_HASH_SECRET: 'test-only-secret' });
   assert.equal((await interact(publicCtx)).status, 503);
 });
+test('chunked interaction payloads are bounded even without Content-Length', async () => {
+  const ctx = context('/api/interactions', { method: 'POST', body: JSON.stringify({ songId: 'song-1', eventType: 'like', padding: 'x'.repeat(3000) }) });
+  Object.assign(ctx.env, { SUPABASE_SERVICE_ROLE_KEY: 'server-only', INTERACTION_HASH_SECRET: 'test-only-secret' });
+  assert.equal(ctx.request.headers.has('Content-Length'), false);
+  assert.equal((await interact(ctx)).status, 413);
+});

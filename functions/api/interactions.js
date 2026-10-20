@@ -1,4 +1,4 @@
-import { isPublicSong, json, readSongs } from "../_lib/security.js";
+import { isPublicSong, json, readLimitedText, readSongs } from "../_lib/security.js";
 
 export async function onRequestPost(context) {
   const origin = context.request.headers.get("Origin");
@@ -9,10 +9,9 @@ export async function onRequestPost(context) {
   if (Number(context.request.headers.get("Content-Length")) > 2048) return json({ error: "Request too large" }, 413);
   let body;
   try {
-    const text = await context.request.text();
-    if (text.length > 2048) return json({ error: "Request too large" }, 413);
+    const text = await readLimitedText(context.request, 2048);
     body = JSON.parse(text);
-  } catch { return json({ error: "Invalid JSON" }, 400); }
+  } catch (error) { return json({ error: "Invalid or oversized request" }, error instanceof RangeError ? 413 : 400); }
   if (!body || typeof body.songId !== "string" || !["like", "open", "play_start", "play_25", "download_song", "download_lyrics"].includes(body.eventType)) return json({ error: "Invalid interaction" }, 400);
   const songs = await readSongs(context.env);
   if (!songs.some((song) => song.id === body.songId && isPublicSong(song))) return json({ error: "Song not found" }, 404);

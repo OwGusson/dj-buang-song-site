@@ -4,6 +4,25 @@ export function json(body, status = 200) {
   } });
 }
 
+export async function readLimitedText(request, limit) {
+  if (Number(request.headers.get("Content-Length")) > limit) throw new RangeError("Request too large");
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const decoder = new TextDecoder();
+  let size = 0;
+  let text = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > limit) { await reader.cancel(); throw new RangeError("Request too large"); }
+      text += decoder.decode(value, { stream: true });
+    }
+    return text + decoder.decode();
+  } finally { reader.releaseLock(); }
+}
+
 export async function getAdmin(context, allowMediaCookie = false, requireMfa = true) {
   let authorization = context.request.headers.get("Authorization");
   if (!authorization && allowMediaCookie) {

@@ -1,4 +1,4 @@
-import { getAdmin, isPublicSong, json, readSongs } from "../_lib/security.js";
+import { getAdmin, isPublicSong, json, readLimitedText, readSongs } from "../_lib/security.js";
 async function saveSongs(env, songs) {
   const previous = await env.FILES.get("data/songs.json");
   if (previous) await env.FILES.put(`data/backups/${Date.now()}-${crypto.randomUUID()}.json`, previous.body);
@@ -11,8 +11,9 @@ export async function onRequestGet(context) {
 }
 export async function onRequestPost(context) {
   if (!context.data.admin) return json({ error: "Administrator sign-in required" }, 401);
-  const text = await context.request.text();
-  if (text.length > 100000) return json({ error: "Song too large" }, 413);
+  let text;
+  try { text = await readLimitedText(context.request, 100000); }
+  catch { return json({ error: "Invalid or oversized song" }, 413); }
   let song;
   try { song = JSON.parse(text); } catch { return json({ error: "Invalid JSON" }, 400); }
   if (!song || typeof song !== "object" || Array.isArray(song) || typeof song.id !== "string" || !/^[\w-]{1,100}$/.test(song.id)) return json({ error: "Invalid song id" }, 400);

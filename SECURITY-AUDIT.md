@@ -35,7 +35,7 @@
 - A user-authorized private JSON recovery copy of all six application tables is stored outside this repository, under the task workspace's .security-backups directory. It contains personal data and must not be committed or shared.
 - Restored all six tables in isolated local Postgres and verified exact row counts: requests 4, private messages 0, song backups 38, likes 28, analytics 48, events 1,140.
 - Tested candidate policies and interaction RPC against synthetic and restored data. These are application-table restore checks, not a full managed-database or R2 audio restore.
-- 21 endpoint/security tests pass, including MFA enforcement and QR SVG encoding; PostgreSQL policy/RPC/rate-limit checks pass.
+- 22 endpoint/security tests pass, including MFA enforcement, QR SVG encoding and bounded request bodies; PostgreSQL policy/RPC/rate-limit checks pass.
 - Production frontend and Cloudflare Functions compile. npm audit reports zero known vulnerabilities.
 - Seven existing lint errors and one warning in App.jsx remain; newly added modules pass lint.
 
@@ -43,6 +43,6 @@
 
 - The application and database access changes are deployed. Public catalog returns 33 songs with zero private tracks; unsigned admin APIs return 401, internal catalog/private audio return 404, and public audio returns 206 for range requests.
 - Live transaction tests confirmed public form inserts and server-owned interaction writes work, with test records rolled back.
-- The owner has set a password. End-to-end administrator sign-in verification is waiting on the owner's authenticator enrollment.
+- The owner has set a password and confirmed successful administrator sign-in and authenticator enrollment. Supabase verification confirms a verified TOTP factor on the intended administrator account.
 - Fixed the enrollment QR's SVG data-URL encoding, added a white scan area and a manual setup-key fallback, and added missing-email form validation.
 - Existing private sharing links require administrator sign-in; recipient-scoped sharing remains separate future work.
