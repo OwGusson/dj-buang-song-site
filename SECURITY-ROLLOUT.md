@@ -1,4 +1,6 @@
-# Security hardening — local implementation, deployment pending
+# Security hardening — rollout and recovery notes
+
+The application and access-policy migration were deployed on 20 October 2026. See SECURITY-AUDIT.md for verified live results and the remaining owner authenticator setup step. The checklist below is retained for future deployments and recovery.
 
 ## Before deployment
 

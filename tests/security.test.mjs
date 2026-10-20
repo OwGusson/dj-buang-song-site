@@ -7,9 +7,20 @@ import { onRequestGet as media } from '../functions/files/[[key]].js';
 import { onRequestPost as upload, onRequestDelete as remove } from '../functions/api/upload.js';
 import { onRequestGet as session } from '../functions/api/session.js';
 import { onRequestPost as interact } from '../functions/api/interactions.js';
+import { authenticatorQrDataUrl } from '../src/authenticatorQr.js';
 
 const adminToken = 'e30.' + Buffer.from(JSON.stringify({ aal: 'aal2' })).toString('base64url') + '.signature';
 const origin = 'https://dj-buang.com';
+test('authenticator SVG data URIs safely encode colors and preserve the complete image', () => {
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg"><path fill="#fff" d="M0 0h10v10z"/></svg>';
+  const raw = 'data:image/svg+xml;utf-8,' + svg;
+  const encoded = authenticatorQrDataUrl(raw);
+  assert.equal(encoded.includes('#'), false);
+  assert.equal(decodeURIComponent(encoded.split(',')[1]), svg);
+  assert.equal(authenticatorQrDataUrl(encoded), encoded);
+  assert.equal(authenticatorQrDataUrl(svg), encoded);
+  assert.equal(authenticatorQrDataUrl('https://example.com/qr'), '');
+});
 const publicSong = { id: 'song-1', title: 'Published', visibility: 'public', status: 'published', audioUrl: `${origin}/files/123-track.mp3` };
 const privateSong = { id: 'song-2', title: 'Unreleased', visibility: 'private', status: 'published', audioUrl: `${origin}/files/123-private.mp3` };
 function context(path, options = {}) {

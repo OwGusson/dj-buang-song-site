@@ -1,4 +1,5 @@
--- CANDIDATE migration, not applied. Verify against security-audit.sql and a database backup.
+-- Reviewed against the live schema and applied on 2026-10-20.
+-- Recorded live migration: restrict_private_data_and_require_admin_mfa.
 -- Replaces policies ONLY on the six application tables named below.
 -- Assign app_metadata.role=admin to the intended Auth account through a trusted admin API.
 begin;

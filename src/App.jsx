@@ -39,6 +39,7 @@ import { jsPDF } from "jspdf";
 import { supabase, authSetupRequested } from "./supabase";
 import { apiFetch, verifyAdmin } from "./adminAuth";
 import AccountSetup from "./AccountSetup";
+import { authenticatorQrDataUrl } from "./authenticatorQr";
 import {
   makeSongId,
   autoCleanReplacedFiles,
@@ -1995,6 +1996,7 @@ async function deleteSongFromCloudflare(songId) {
 ================================ */
 
 async function loginAdmin(email, password) {
+  if (!email || !password) throw new Error("Enter your administrator email address and password.");
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw new Error("Sign-in failed. Check your email and password.");
   try {
@@ -2012,7 +2014,7 @@ async function loginAdmin(email, password) {
     }
     const { data, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: "DJ-Buang admin" });
     if (enrollError) throw enrollError;
-    return { factorId: data.id, qrCode: data.totp.qr_code };
+    return { factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret };
   }
   catch (error) { await supabase.auth.signOut(); throw error; }
 }
@@ -5108,12 +5110,19 @@ DJ-BUANG`;
               {!mfaFactor && <><Input
                 type="email"
                 label="Admin email"
+                name="email"
+                autoComplete="username"
+                placeholder="djbuang@dj-buang.com"
+                required
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value)}
               />
               <Input
                 type="password"
                 label="Password"
+                name="password"
+                autoComplete="current-password"
+                required
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
               />
@@ -5121,7 +5130,13 @@ DJ-BUANG`;
               {mfaFactor && <>
                 {mfaFactor.qrCode && <>
                   <p>Scan this QR code with your authenticator app, then enter its six-digit code.</p>
-                  <img alt="Authenticator setup QR code" width={220} height={220} src={mfaFactor.qrCode.startsWith("data:") ? mfaFactor.qrCode : `data:image/svg+xml,${encodeURIComponent(mfaFactor.qrCode)}`} />
+                  <img alt="Authenticator setup QR code" width={280} height={280} style={{ background: "#fff", padding: 20, borderRadius: 12, maxWidth: "100%", boxSizing: "border-box" }} src={authenticatorQrDataUrl(mfaFactor.qrCode)} />
+                  <details>
+                    <summary>Can’t scan? Enter a setup key</summary>
+                    <p>In Google Authenticator, tap +, then Enter a setup key. Use {adminEmail} as the account name and select Time based.</p>
+                    <code style={{ display: "block", padding: 12, overflowWrap: "anywhere", userSelect: "all", background: "rgba(255,255,255,0.08)" }}>{mfaFactor.secret}</code>
+                    <p>This key is private. Enter it only in your authenticator app.</p>
+                  </details>
                 </>}
                 <Input label="Authenticator code" value={mfaCode} inputMode="numeric" autoComplete="one-time-code" maxLength={6} onChange={(e) => setMfaCode(e.target.value)} />
               </>}

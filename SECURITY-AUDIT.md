@@ -25,17 +25,24 @@
 - Set explicit trusted function search paths.
 - Removed unnecessary table privileges from anon/authenticated.
 - Set Pages Functions to fail closed and verified the displayed setting.
-- Supabase advisor no longer reports the function security warnings. The remaining no-policy notice on songs_backup is intentionally deny-by-default pending coordinated rollout.
+- Applied private-data policies requiring trusted administrator claims and MFA. Anonymous requests/messages/history reads and aggregate overwrites are blocked.
+- Stored the two runtime secrets as encrypted Cloudflare values, corrected the Auth site URL, sent the owner invitation, and disabled public/anonymous account signup.
+- Protected historical Pages deployment URLs with Cloudflare Access. Verified unsigned requests to an old deployment redirect to sign-in, closing the old-code/storage bypass.
+- Supabase advisor reports no security errors or warnings. Two informational no-policy notices are intentional deny-by-default tables in the unexposed dj_private schema.
 
 ## Recovery and verification
 
 - A user-authorized private JSON recovery copy of all six application tables is stored outside this repository, under the task workspace's .security-backups directory. It contains personal data and must not be committed or shared.
 - Restored all six tables in isolated local Postgres and verified exact row counts: requests 4, private messages 0, song backups 38, likes 28, analytics 48, events 1,140.
 - Tested candidate policies and interaction RPC against synthetic and restored data. These are application-table restore checks, not a full managed-database or R2 audio restore.
-- 20 endpoint/security tests pass, including MFA enforcement; PostgreSQL policy/RPC/rate-limit checks pass.
+- 21 endpoint/security tests pass, including MFA enforcement and QR SVG encoding; PostgreSQL policy/RPC/rate-limit checks pass.
 - Production frontend and Cloudflare Functions compile. npm audit reports zero known vulnerabilities.
 - Seven existing lint errors and one warning in App.jsx remain; newly added modules pass lint.
 
-## Coordinated rollout still required
+## Production verification
 
-Configure server credentials, production auth redirects, administrator invitation, and apply the reviewed access migration alongside the application deployment. Verify public forms, private media, authenticated admin/MFA and rollback behavior in the deployed application. Existing private sharing links will require administrator sign-in after this patch; recipient-scoped sharing remains separate future work.
+- The application and database access changes are deployed. Public catalog returns 33 songs with zero private tracks; unsigned admin APIs return 401, internal catalog/private audio return 404, and public audio returns 206 for range requests.
+- Live transaction tests confirmed public form inserts and server-owned interaction writes work, with test records rolled back.
+- The owner has set a password. End-to-end administrator sign-in verification is waiting on the owner's authenticator enrollment.
+- Fixed the enrollment QR's SVG data-URL encoding, added a white scan area and a manual setup-key fallback, and added missing-email form validation.
+- Existing private sharing links require administrator sign-in; recipient-scoped sharing remains separate future work.
