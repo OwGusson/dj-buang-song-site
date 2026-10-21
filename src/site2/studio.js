@@ -4,7 +4,7 @@ import { mountTurnstile } from './turnstile';
 import { supabase } from '../supabase';
 import { apiFetch, verifyAdmin } from '../adminAuth';
 import { authenticatorQrDataUrl } from '../authenticatorQr';
-import { catalog, inbox, saveSong, updateInbox, uploadFile } from './data';
+import { catalog, inbox, saveSong, deleteSong, updateInbox, uploadFile } from './data';
 
 export function createStudio({modal,esc,toast,onCatalog}) {
  const content=document.querySelector('#modal-content');
@@ -60,10 +60,19 @@ export function createStudio({modal,esc,toast,onCatalog}) {
  function renderSongs(){
    const panel=content.querySelector('#studio-panel');
    panel.innerHTML=`<div class="studio-tools"><label class="search"><input type="search" id="studio-search" aria-label="Search studio songs" placeholder="Find a song…"></label><button class="primary" id="new-song">Add a song +</button></div><p class="studio-help">Downloads are allowed unless switched off. Private songs and drafts stay protected by administrator sign-in.</p><div id="studio-songs"></div>`;
-   const draw=()=>{const term=panel.querySelector('input').value.toLowerCase();panel.querySelector('#studio-songs').innerHTML=state.songs.filter(s=>`${s.title} ${s.artist}`.toLowerCase().includes(term)).map(s=>`<div class="studio-song"><img src="${esc(s.coverUrl||'/logo-v2.png')}" alt=""><div><strong>${esc(s.title)}</strong><span>${esc(s.visibility||'private')} · ${esc(s.status||'published')}${s.featured?' · featured':''}</span></div><label class="download-toggle"><input type="checkbox" data-download="${esc(s.id)}" ${s.downloadable!==false?'checked':''}>Downloads</label><button class="outline" data-edit="${esc(s.id)}">Edit</button></div>`).join('')||'<p>No songs found.</p>';};draw();
+   const draw=()=>{const term=panel.querySelector('input').value.toLowerCase();panel.querySelector('#studio-songs').innerHTML=state.songs.filter(s=>`${s.title} ${s.artist}`.toLowerCase().includes(term)).map(s=>`<div class="studio-song"><img src="${esc(s.coverUrl||'/logo-v2.png')}" alt=""><div><strong>${esc(s.title)}</strong><span>${esc(s.visibility||'private')} · ${esc(s.status||'published')}${s.featured?' · featured':''}</span></div><label class="download-toggle"><input type="checkbox" data-download="${esc(s.id)}" ${s.downloadable!==false?'checked':''}>Downloads</label><div class="studio-song-actions"><button class="outline" data-edit="${esc(s.id)}">Edit</button><button class="text-button danger-button" data-delete="${esc(s.id)}" aria-label="Delete ${esc(s.title)}">Delete</button></div></div>`).join('')||'<p>No songs found.</p>';};draw();
    panel.querySelector('input').oninput=draw;panel.querySelector('#new-song').onclick=()=>editSong();
-   panel.onclick=e=>{const button=e.target.closest('[data-edit]');if(button)editSong(state.songs.find(s=>s.id===button.dataset.edit));};
+   panel.onclick=e=>{const button=e.target.closest('[data-edit]');if(button)editSong(state.songs.find(s=>s.id===button.dataset.edit));const remove=e.target.closest('[data-delete]');if(remove)confirmDeleteSong(state.songs.find(s=>s.id===remove.dataset.delete));};
    panel.onchange=e=>{if(!e.target.dataset.download)return;const checkbox=e.target,song=state.songs.find(s=>s.id===checkbox.dataset.download);run(checkbox,async()=>{try{await saveSong({id:song.id,downloadable:checkbox.checked});song.downloadable=checkbox.checked;onCatalog();toast('Download setting saved.');}catch(error){checkbox.checked=song.downloadable!==false;throw error;}});};
+ }
+ function confirmDeleteSong(song){
+   if(!song)return;
+   const panel=content.querySelector('#studio-panel');
+   panel.innerHTML=`<button class="text-button" id="cancel-delete">← Keep song</button><h3>Delete “${esc(song.title)}”?</h3><p>This removes the song from your library and stops its player and sharing links from working. Its audio, artwork and catalog backup are retained for recovery.</p><p>Its past analytics stay stored, but will no longer appear in your Studio totals.</p><label class="field">Type DELETE to confirm<input id="delete-confirm" autocomplete="off" spellcheck="false"></label><p role="alert" id="delete-error"></p><button class="outline danger-button" id="confirm-delete" disabled>Delete song</button>`;
+   panel.querySelector('#cancel-delete').onclick=renderSongs;
+   const button=panel.querySelector('#confirm-delete');
+   panel.querySelector('#delete-confirm').oninput=event=>{button.disabled=event.target.value!=='DELETE';};
+   button.onclick=()=>run(button,async()=>{try{await deleteSong(song.id);toast('Song removed from the library.');await load();}catch(error){panel.querySelector('#delete-error').textContent=error.message;}});
  }
  function editSong(original){
    const song=original||{title:'',artist:'DJ-Buang',lyrics:'',visibility:'private',status:'draft',downloadable:true};
@@ -81,8 +90,9 @@ export function createStudio({modal,esc,toast,onCatalog}) {
    panel.onchange=e=>{if(!e.target.dataset.link)return;const select=e.target,row=rows.find(r=>String(r.id)===select.dataset.link);run(select,async()=>{try{const linked_song_id=select.value,status=linked_song_id?'done':'pending';await updateInbox('song_requests',row.id,{linked_song_id,status});Object.assign(row,{linked_song_id,status});render();toast('Request updated. Linking does not change a song’s visibility.');}catch(error){select.value=row.linked_song_id||'';throw error;}});};
  }
  function renderAnalytics(){
-   const panel=content.querySelector('#studio-panel'),total=field=>state.analytics.reduce((sum,row)=>sum+Number(row[field]||0),0);
-   panel.innerHTML=`<div class="metric-grid">${[['plays','Plays'],['unique_listeners','Listeners across songs'],['song_downloads','Song downloads'],['lyrics_downloads','Lyrics downloads']].map(([key,label])=>`<div><strong>${total(key).toLocaleString()}</strong><span>${label}</span></div>`).join('')}</div><p class="studio-help">Listener totals are summed per song, so someone listening to several songs can count more than once.</p><div class="analytics-list">${[...state.analytics].sort((a,b)=>(b.plays||0)-(a.plays||0)).map(r=>{const song=state.songs.find(s=>s.id===r.song_id);return `<div class="studio-row"><div>${esc(song?.title||r.song_id)}<span>${Number(r.song_downloads||0)} downloads · ${Number(r.unique_listeners||0)} listeners</span></div><strong>${Number(r.plays||0)} plays</strong></div>`;}).join('')||'<p>No listening data yet.</p>'}</div>`;
+   const rows=state.analytics.filter(row=>state.songs.some(song=>song.id===row.song_id));
+   const panel=content.querySelector('#studio-panel'),total=field=>rows.reduce((sum,row)=>sum+Number(row[field]||0),0);
+   panel.innerHTML=`<div class="metric-grid">${[['plays','Plays'],['unique_listeners','Listeners across songs'],['song_downloads','Song downloads'],['lyrics_downloads','Lyrics downloads']].map(([key,label])=>`<div><strong>${total(key).toLocaleString()}</strong><span>${label}</span></div>`).join('')}</div><p class="studio-help">Only songs currently in your library are included. Listener totals are summed per song, so one person can count more than once.</p><div class="analytics-list">${[...rows].sort((a,b)=>(b.plays||0)-(a.plays||0)).map(r=>{const song=state.songs.find(s=>s.id===r.song_id);return `<div class="studio-row"><div>${esc(song?.title||r.song_id)}<span>${Number(r.song_downloads||0)} downloads · ${Number(r.unique_listeners||0)} listeners</span></div><strong>${Number(r.plays||0)} plays</strong></div>`;}).join('')||'<p>No listening data yet.</p>'}</div>`;
  }
  dialog.addEventListener('close',()=>{if(dialog.open)return;dialog.classList.remove('studio-dialog');delete dialog.dataset.studio;factor=null;content.replaceChildren();content.onchange=null;});
  return {async open(){dialog.classList.remove('studio-dialog');try{if(await authenticate())await load();else mfa();}catch{login();}},clear};

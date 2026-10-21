@@ -51,8 +51,9 @@ export async function onRequestPost(context) {
 export async function onRequestDelete(context) {
   if (!context.data.admin) return json({ error: "Administrator sign-in required" }, 401);
   const id = new URL(context.request.url).searchParams.get("id");
-  if (!id) return json({ error: "Song id required" }, 400);
+  if (!id || !/^[\w-]{1,100}$/.test(id)) return json({ error: "Valid song id required" }, 400);
   const songs = await readSongs(context.env);
+  if (!songs.some(song => song.id === id)) return json({ error: "Song not found" }, 404);
   await saveSongs(context.env, songs.filter((s) => s.id !== id));
   return json({ success: true });
 }

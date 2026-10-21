@@ -13,6 +13,11 @@ export async function saveSong(song) {
   const response = await apiFetch('/api/songs', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(song) });
   if(!response.ok) throw new Error((await response.json()).error || 'The song could not be saved.');
 }
+export async function deleteSong(id) {
+  requireWrites(); await verifyAdmin();
+  const response = await apiFetch('/api/songs?id=' + encodeURIComponent(id), { method: 'DELETE' });
+  if (!response.ok) throw new Error((await response.json()).error || 'The song could not be deleted.');
+}
 export async function uploadFile(file) {
   requireWrites(); await verifyAdmin();
   const body=new FormData(); body.set('file',file);

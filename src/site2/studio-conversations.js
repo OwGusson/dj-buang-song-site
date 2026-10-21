@@ -1,15 +1,19 @@
 import {apiFetch} from '../adminAuth';
 import {requireWrites} from './data';
+import {contactConfiguration} from './listener';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function request(action,data){
  if(action)requireWrites();
  const response=await apiFetch('/api/conversations',{method:action?'POST':'GET',...(action?{headers:{'Content-Type':'application/json'},body:JSON.stringify({action,data})}:{})});
- const result=await response.json().catch(()=>({}));if(!response.ok)throw Error(result.error||'The conversation inbox could not load.');return result;
+ const result=await response.json().catch(()=>({}));if(!response.ok)throw Error(result.error||'The conversation inbox could not load.');
+ if(!action&&(!Array.isArray(result.threads)||!result.settings))throw Error('The conversation inbox is not available yet.');return result;
 }
 export async function renderStudioConversations(panel,{toast,songs}){
  const current=()=>panel.isConnected;
  panel.innerHTML='<h3>Private conversations</h3><p>Loading the verified inbox…</p>';
  try{
+   const config=await contactConfiguration();if(!current())return;
+   if(!config.enabled){panel.innerHTML='<h3>Private conversations</h3><p>The verified private inbox will open with the DJ-Buang 2.0 release.</p><p class="studio-help">Existing requests and messages are available in their own tabs.</p>';return;}
    const data=await request();if(!current())return;
    panel.innerHTML=`<div class="studio-tools"><h3>Verified inbox</h3><label class="field compact">Show<select id="thread-filter"><option value="all">All conversations</option><option value="request">Song requests</option><option value="message">Messages</option><option value="open">Active</option></select></label></div><div class="pause-controls"><label class="field"><input id="pause-requests" type="checkbox" ${data.settings.pause_requests?'checked':''}>Pause new requests</label><label class="field"><input id="pause-messages" type="checkbox" ${data.settings.pause_messages?'checked':''}>Pause new messages</label></div><div id="verified-threads"></div>`;
    const list=panel.querySelector('#verified-threads');

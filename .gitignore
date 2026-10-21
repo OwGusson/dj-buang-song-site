@@ -31,3 +31,4 @@ dist-ssr
 .dev.vars.*
 .wrangler/
 supabase/.temp/
+.preview/

@@ -1,7 +1,7 @@
 import { catalog, interaction } from './data';
 import { createStudio } from './studio';
 import { supabase } from '../supabase';
-export function connect({detail,$,getSongs,setSongs,getCurrent,setCurrent,settings,audio,render,updateDownload,modal,esc,toast}){
+export function connect({detail,$,getSongs,setSongs,getCurrent,setCurrent,settings,audio,render,updateDownload,modal,esc,toast,onCatalogReady}){
  let catalogEpoch=0;
  let sharedOpened=false;
  async function refreshCatalog(){
@@ -14,6 +14,7 @@ export function connect({detail,$,getSongs,setSongs,getCurrent,setCurrent,settin
      const current=currentId?songs.findIndex(s=>s.id===currentId):-1;setCurrent(current);
      if(current<0&&currentId){audio.pause();audio.removeAttribute('src');audio.load();$('#player-title').textContent='Choose your next song';$('#player-artist').textContent='DJ-Buang';$('#player-cover').hidden=true;}
      render();updateDownload();
+     onCatalogReady?.();
      const sharedId=new URLSearchParams(location.search).get('song');
      if(sharedId&&!sharedOpened){sharedOpened=true;const song=songs.find(s=>s.id===sharedId);if(song)detail(song);else modal('<h2>Song unavailable</h2><p>This song may be private or no longer available.</p><a class="outline" href="/studio/classic?'+new URLSearchParams({song:sharedId}).toString()+'">Administrator access ↗</a>');}
    }catch(error){$('#empty').hidden=false;$('#empty').textContent=error.message;$('#song-count').textContent='Library unavailable';toast(error.message);}
