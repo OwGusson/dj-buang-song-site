@@ -38,6 +38,10 @@ export async function onRequestPost(context) {
     if (!Number.isFinite(song[field]) || song[field] < 0) return json({ error: `Invalid ${field}` }, 400);
     clean[field] = song[field];
   }
+  if (song.durationSeconds !== undefined) {
+    if (song.durationSeconds !== null && (!Number.isFinite(song.durationSeconds) || song.durationSeconds <= 0 || song.durationSeconds > 86400)) return json({ error: "Invalid duration" }, 400);
+    clean.durationSeconds = song.durationSeconds;
+  }
   const songs = await readSongs(context.env);
   if (song.albumId !== undefined) {
     if (typeof song.albumId !== 'string' || !['', 'global-barangay'].includes(song.albumId)) return json({ error: 'Invalid album' }, 400);

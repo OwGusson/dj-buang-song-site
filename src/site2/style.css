@@ -25,3 +25,5 @@ header .brand img{width:76px;height:76px;object-fit:contain}header .brand small{
 .shared-song-cover{display:block;width:min(100%,300px);aspect-ratio:1;object-fit:cover;border-radius:8px;margin:0 0 1.2rem}.library-toolbar{flex-wrap:wrap;gap:12px}
 
 .album-track-art{display:block;width:48px;height:48px;object-fit:cover;border-radius:4px;margin-bottom:6px}.album-track .track-number{min-width:52px}
+
+.track-duration{display:inline-block;font-family:inherit;font-size:12px;font-weight:400;color:#a9bfce;margin-left:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
