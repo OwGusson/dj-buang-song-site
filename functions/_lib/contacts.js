@@ -1,6 +1,6 @@
 import { json,readLimitedText } from './security.js';
 export function contactConfig(env){
- return {enabled:env.CONTACTS_ENABLED==='true'&&Boolean(env.TURNSTILE_SITE_KEY&&env.TURNSTILE_SECRET_KEY&&env.INTERACTION_HASH_SECRET&&env.SUPABASE_SERVICE_ROLE_KEY),siteKey:env.TURNSTILE_SITE_KEY||'',authCaptchaEnabled:env.AUTH_CAPTCHA_ENABLED==='true'};
+ return {enabled:env.CONTACTS_ENABLED==='true'&&Boolean(env.TURNSTILE_SITE_KEY&&env.TURNSTILE_SECRET_KEY&&env.INTERACTION_HASH_SECRET&&env.SUPABASE_SERVICE_ROLE_KEY),siteKey:env.TURNSTILE_SITE_KEY||'',authCaptchaEnabled:env.AUTH_CAPTCHA_ENABLED==='true',supportEnabled:env.SUPPORT_ENABLED==='true'};
 }
 export async function verifiedContactUser(context){
  const authorization=context.request.headers.get('Authorization');

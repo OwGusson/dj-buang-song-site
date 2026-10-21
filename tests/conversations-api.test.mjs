@@ -51,3 +51,30 @@ test('notification emails exclude private message contents and use only queued r
  const result=await deliverContactNotifications({...ctx().env,CONTACT_EMAIL_FROM:'no-reply@dj-buang.com',EMAIL:{send:async message=>email=message}});
  assert.equal(result.sent,1);assert.equal(email.to,'listener@example.test');assert.match(email.text,/https:\/\/dj-buang.com\/\?inbox=1/);assert.equal(email.text.includes('Private message'),false);assert.equal(calls[1].p_action,'sent');
 });
+
+test('Resend delivery uses queued recipients and a stable idempotency key before acknowledging the job',async t=>{
+ const calls=[];
+ t.mock.method(globalThis,'fetch',async(url,options)=>{
+   const body=JSON.parse(options.body);calls.push({url,body,headers:options.headers});
+   return Response.json(url==='https://api.resend.com/emails'?{id:'receipt'}:body.p_action==='claim'?[{id,recipient:'listener@example.test'}]:{ok:true});
+ });
+ const result=await deliverContactNotifications({...ctx().env,CONTACT_EMAIL_FROM:'DJ-Buang <no-reply@mail.dj-buang.com>',RESEND_API_KEY:'synthetic-test-key'});
+ assert.deepEqual(result,{enabled:true,sent:1});
+ const delivery=calls.find(call=>call.url==='https://api.resend.com/emails');
+ assert.equal(delivery.headers['Idempotency-Key'],'contact-notification-'+id);
+ assert.equal(delivery.headers.Authorization,'Bearer synthetic-test-key');
+ assert.equal(delivery.body.to,'listener@example.test');
+ assert.match(delivery.body.text,/message contents are not included/);
+ assert.equal(calls.at(-1).body.p_action,'sent');
+});
+
+test('Resend failures keep the notification retryable instead of acknowledging delivery',async t=>{
+ const actions=[];
+ t.mock.method(globalThis,'fetch',async(url,options)=>{
+   if(url==='https://api.resend.com/emails')return new Response('Provider unavailable',{status:503});
+   const body=JSON.parse(options.body);actions.push(body.p_action);
+   return Response.json(body.p_action==='claim'?[{id,recipient:'listener@example.test'}]:{ok:true});
+ });
+ const result=await deliverContactNotifications({...ctx().env,CONTACT_EMAIL_FROM:'no-reply@mail.dj-buang.com',RESEND_API_KEY:'synthetic-test-key'});
+ assert.deepEqual(result,{enabled:true,sent:0});assert.deepEqual(actions,['claim','failed']);
+});

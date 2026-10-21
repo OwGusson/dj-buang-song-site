@@ -29,3 +29,11 @@ Existing legacy administrator tools remain available only after verifying the ne
 Resend verified mail.dj-buang.com (Ireland). The three supplied records were added under that subdomain; root Gmail forwarding was preserved. A domain-scoped sending key is stored encrypted in Supabase custom SMTP and Cloudflare production secrets. Supabase SMTP is enabled at smtp.resend.com:465 with sender DJ-Buang <no-reply@mail.dj-buang.com>. Its saved state was checked after reloading.
 
 Managed Turnstile was created for dj-buang.com with preclearance off. Its server secret is encrypted in Cloudflare and its site key is configured. CONTACTS_ENABLED and AUTH_CAPTCHA_ENABLED remain false. These Cloudflare changes take effect on the next deployment. Supabase CAPTCHA enforcement and public signup remain unchanged until cutover. OTP templates and end-to-end delivery checks remain release tasks. An unused initial Resend setup key remains to be revoked after the working configuration is verified.
+
+## Launch preparation — 21 October 2026
+
+Magic Link / OTP and Confirm Signup email templates were saved and their rendered previews verified with the branded {{ .Token }} code template. The email OTP lifetime was set to 600 seconds; OTP length remains eight digits. Administrator invitation and recovery templates were preserved. Saved SMTP configuration remains enabled with the encrypted stored password.
+
+Production PayPal loading now requires SUPPORT_ENABLED=true. Its default is false until a supporter receipt has been checked for unwanted legal-name disclosure. Local development retains the clearly labeled real-payment preview. A hosted product title alone does not establish receipt privacy.
+
+The Resend notification path now has explicit tests for its recipient, idempotency key, successful acknowledgment and retryable failure. Forty-six tests pass. The remaining release test requires a separate listener email address entered privately by the owner; do not commit that address or any received code.
