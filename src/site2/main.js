@@ -18,6 +18,11 @@ let releaseState={globalBarangayReleased:false};
 try{const response=await fetch('/api/release-config',{cache:'no-store',signal:AbortSignal.timeout(8000)});if(response.ok){const data=await response.json();releaseState.globalBarangayReleased=data.globalBarangayReleased===true;}}catch{/* Unreleased unless explicitly confirmed by the server. */}
 const settings = new Map(songs.map(s=>[s.id,s.downloadable!==false]));
 const audio=$('#audio'); audio.volume=.8;
+let restoredListening=false,lastSavedAt=0;
+const listeningKey='dj-buang:last-listened:v1';
+function saveListening(){if(current<0||!songs[current])return;try{localStorage.setItem(listeningKey,JSON.stringify({id:songs[current].id,position:audio.ended?0:audio.currentTime,volume:audio.volume}));}catch{/* Listening works when browser storage is unavailable. */}}
+function restoreListening(){if(restoredListening)return;restoredListening=true;if(new URLSearchParams(location.search).has('song'))return;try{const saved=JSON.parse(localStorage.getItem(listeningKey)||'null');const index=songs.findIndex(song=>song.id===saved?.id);if(index<0)return;current=index;const song=songs[index];queue.start(songs.map(song=>song.id),song.id);audio.src=media(song.audioUrl);audio.volume=Number.isFinite(saved.volume)?Math.max(0,Math.min(1,saved.volume)):.8;$('#volume').value=audio.volume;const seek=()=>{if(Number.isFinite(saved.position)&&saved.position>0&&Number.isFinite(audio.duration))audio.currentTime=Math.min(saved.position,Math.max(0,audio.duration-1));};audio.addEventListener('loadedmetadata',seek,{once:true});audio.load();$('#player-title').textContent=song.title;$('#player-artist').textContent='Continue listening · '+(song.artist||'DJ-Buang');$('#player-cover').src=song.coverUrl;$('#player-cover').hidden=false;updateDownload();render();}catch{/* Ignore invalid or unavailable local history. */}}
+window.addEventListener('pagehide',saveListening);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveListening();});audio.addEventListener('pause',saveListening);audio.addEventListener('seeked',saveListening);audio.addEventListener('timeupdate',()=>{if(Date.now()-lastSavedAt>5000){lastSavedAt=Date.now();saveListening();}});
 const media=(url)=>url;
 const downloadUrl=song=>'/api/download?id='+encodeURIComponent(song.id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -34,7 +39,7 @@ function render(){
 async function play(index,{fromQueue=false,force=false}={}){
  if(index<0||index>=songs.length)return;
  if(current===index&&!force){if(audio.paused) await audio.play().catch(()=>toast('Playback could not start. Please try again.'));else audio.pause();return;}
- const selected=songs[index];if(!fromQueue)queue.start(songs.map(song=>song.id),selected.id);
+ saveListening();const selected=songs[index];if(!fromQueue)queue.start(songs.map(song=>song.id),selected.id);
  current=index;const song=songs[index];audio.src=media(song.audioUrl);$('#player-title').textContent=song.title;$('#player-artist').textContent=song.artist||'DJ-Buang';$('#player-cover').src=song.coverUrl;$('#player-cover').hidden=false;updateDownload();progressTracked=false;track(song.id,'open');track(song.id,'play_start');await audio.play().catch(()=>toast('Playback could not start. Please try again.'));render();
 }
 function updateDownload(){
@@ -65,7 +70,7 @@ $('#support-open').onclick=()=>openSupport(modal);
 $('#requests').insertAdjacentHTML('afterend','<section class="merch" id="merch"><div><div class="eyebrow">ON THE HORIZON · MERCH CONCEPTS</div><h2>Wear the sound<span>.</span></h2><p>Turn the Buang On! A first look at the DJ-Buang and PHIL-ICE ideas: caps, hoodies, tees, and jerseys.</p><p>These are design sketches. No products are on sale yet.</p><button class="outline" id="merch-open">Explore the concepts ↗</button></div><img src="/merch-concept.png" loading="lazy" alt="DJ-Buang and PHIL-ICE logo and merchandise concept board: caps, hoodies, T-shirts and jerseys in black, white, red and blue"></section>');
 $('#merch-open').onclick=()=>modal('<div class="eyebrow">FUTURE COLLECTION</div><h2>DJ-Buang × PHIL-ICE</h2><img src="/merch-concept.png" style="width:100%;border-radius:4px" alt="Merchandise concept board"><p>Two worlds. One sound. These early concepts will shape a future collection. Sizes, prices, and launch details are still to come.</p>');
 albumPage=createAlbumPage({getSongs:()=>songs,getRelease:()=>releaseState.globalBarangayReleased,playAlbum,detail,esc});
-connect({detail,$,getSongs:()=>songs,setSongs:value=>songs=value,getCurrent:()=>current,setCurrent:value=>current=value,settings,audio,render,updateDownload,modal,esc,toast,onCatalogReady:()=>{queue.reconcile(songs.map(song=>song.id));albumPage.render();renderQueueIfOpen();loadMusicStats();},isVisibleSong:song=>song.albumId!==ALBUM_ID||releaseState.globalBarangayReleased});
+connect({detail,$,getSongs:()=>songs,setSongs:value=>songs=value,getCurrent:()=>current,setCurrent:value=>current=value,settings,audio,render,updateDownload,modal,esc,toast,onCatalogReady:()=>{restoreListening();queue.reconcile(songs.map(song=>song.id));albumPage.render();renderQueueIfOpen();loadMusicStats();},isVisibleSong:song=>song.albumId!==ALBUM_ID||releaseState.globalBarangayReleased});
 let progressTracked=false;
 function track(id,type){interaction(id,type).catch(()=>{});}
 audio.addEventListener('timeupdate',()=>{if(!progressTracked&&current>=0&&audio.duration>0&&audio.currentTime/audio.duration>=.25){progressTracked=true;track(songs[current].id,'play_25');}});
@@ -129,3 +134,5 @@ function renderDiscovery(){
  }).join('');section.innerHTML=panels;section.hidden=!panels;
  section.querySelectorAll('[data-discovery-play]').forEach(button=>button.onclick=()=>play(songs.findIndex(song=>song.id===button.dataset.discoveryPlay)));
 }
+
+$('#surprise-me').onclick=()=>{if(!songs.length){toast('The collection is still loading. Please try again.');return;}const choices=songs.map((song,index)=>index).filter(index=>songs.length===1||index!==current);play(choices[Math.floor(Math.random()*choices.length)]);};
