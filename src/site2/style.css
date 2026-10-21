@@ -23,3 +23,5 @@ header .brand img{width:76px;height:76px;object-fit:contain}header .brand small{
 .song-requester{color:var(--muted,#a9b9c5);font-size:.8rem;line-height:1.45;margin:.35rem 0 .7rem;overflow-wrap:anywhere}
 
 .shared-song-cover{display:block;width:min(100%,300px);aspect-ratio:1;object-fit:cover;border-radius:8px;margin:0 0 1.2rem}.library-toolbar{flex-wrap:wrap;gap:12px}
+
+.album-track-art{display:block;width:48px;height:48px;object-fit:cover;border-radius:4px;margin-bottom:6px}.album-track .track-number{min-width:52px}
