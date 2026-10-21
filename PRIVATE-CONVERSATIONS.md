@@ -37,3 +37,11 @@ Magic Link / OTP and Confirm Signup email templates were saved and their rendere
 Production PayPal loading now requires SUPPORT_ENABLED=true. Its default is false until a supporter receipt has been checked for unwanted legal-name disclosure. Local development retains the clearly labeled real-payment preview. A hosted product title alone does not establish receipt privacy.
 
 The Resend notification path now has explicit tests for its recipient, idempotency key, successful acknowledgment and retryable failure. Forty-six tests pass. The remaining release test requires a separate listener email address entered privately by the owner; do not commit that address or any received code.
+
+## Launch hold — Saturday, 24 October 2026
+
+The owner clarified that the DIA exclusive first album playthrough comes before the website and album release. Do not merge the release PR, update the production branch, activate listener signup/CAPTCHA, apply the legacy-policy cutover, or publish album tracks before the owner confirms that the playthrough has finished and authorizes the launch. The earlier rollout approval question is superseded by this timing instruction.
+
+Continue private preparation and tests where possible. Exact premiere time remains to be confirmed because the promotional poster lists 22:00 for both the Philippines and Iceland. These represent different instants: 22:00 PHT is 14:00 Iceland; 22:00 Iceland is 06:00 PHT the following day. Do not set a timer, automatic release or countdown from the inconsistent poster.
+
+Final album audio, track order, publication/download preferences and launch timing still need confirmation. Treat the supplied DIA promotional poster separately from the approved album cover. Keep Spotify availability unannounced until links exist. Payments remain disabled pending a supporter receipt privacy check.
