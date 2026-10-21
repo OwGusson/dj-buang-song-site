@@ -1,4 +1,5 @@
 import { openContact } from './contact';
+import { openSupport } from './support';
 import './studio.css';
 import { showDetails } from './details';
 import { connect } from './boot';
@@ -45,7 +46,7 @@ function contact(kind){openContact(kind,modal);}
 $('#request-open').onclick=()=>contact('request');
 $('#requests').insertAdjacentHTML('beforeend','<div class="secondary-actions"><button class="text-button" id="message-open">Send a message ↗</button><button class="text-button" id="support-open">Support the music ♡</button></div>');
 $('#message-open').onclick=()=>contact('message');
-$('#support-open').onclick=()=>modal('<div class="eyebrow">KEEP THE MUSIC GOING</div><h2>Support DJ-Buang</h2><p>Listening, sharing, and requesting songs are already ways to support the music.</p><p>Optional financial support will be available here once a payment setup displaying the DJ-Buang identity has been verified.</p><p>Financial support is not available yet.</p>');
+$('#support-open').onclick=()=>openSupport(modal);
 $('#requests').insertAdjacentHTML('afterend','<section class="merch" id="merch"><div><div class="eyebrow">ON THE HORIZON · MERCH CONCEPTS</div><h2>Wear the sound<span>.</span></h2><p>Turn the Buang On! A first look at the DJ-Buang and PHIL-ICE ideas: caps, hoodies, tees, and jerseys.</p><p>These are design sketches. No products are on sale yet.</p><button class="outline" id="merch-open">Explore the concepts ↗</button></div><img src="/merch-concept.png" loading="lazy" alt="DJ-Buang and PHIL-ICE logo and merchandise concept board: caps, hoodies, T-shirts and jerseys in black, white, red and blue"></section>');
 $('#merch-open').onclick=()=>modal('<div class="eyebrow">FUTURE COLLECTION</div><h2>DJ-Buang × PHIL-ICE</h2><img src="/merch-concept.png" style="width:100%;border-radius:4px" alt="Merchandise concept board"><p>Two worlds. One sound. These early concepts will shape a future collection. Sizes, prices, and launch details are still to come.</p>');
 connect({detail,$,getSongs:()=>songs,setSongs:value=>songs=value,getCurrent:()=>current,setCurrent:value=>current=value,settings,audio,render,updateDownload,modal,esc,toast});
