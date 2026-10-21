@@ -7,6 +7,10 @@ export default defineConfig({
   plugins: [react(), tailwindcss(),{
     name:'safe-contact-development-preview',
     configureServer(server){
+      server.middlewares.use('/api/release-config',(_request,response)=>{
+        response.setHeader('Content-Type','application/json');response.setHeader('Cache-Control','no-store');
+        response.end(JSON.stringify({globalBarangayReleased:false}));
+      });
       // Optional public-only snapshot lets the preview show the new counts
       // before its production endpoint is deployed. No credentials or writes.
       server.middlewares.use('/api/music-stats',async(_request,response)=>{

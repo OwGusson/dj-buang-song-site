@@ -14,7 +14,7 @@ export async function onRequestPost(context) {
   } catch (error) { return json({ error: "Invalid or oversized request" }, error instanceof RangeError ? 413 : 400); }
   if (!body || typeof body.songId !== "string" || !["like", "open", "play_start", "play_25", "download_song", "download_lyrics"].includes(body.eventType)) return json({ error: "Invalid interaction" }, 400);
   const songs = await readSongs(context.env);
-  if (!songs.some((song) => song.id === body.songId && isPublicSong(song))) return json({ error: "Song not found" }, 404);
+  if (!songs.some((song) => song.id === body.songId && isPublicSong(song, context.env))) return json({ error: "Song not found" }, 404);
   // CF supplies this header at the edge; never trust a forwarded client IP header.
   const ip = context.request.headers.get("CF-Connecting-IP");
   if (!ip) return json({ error: "Client identity unavailable" }, 503);

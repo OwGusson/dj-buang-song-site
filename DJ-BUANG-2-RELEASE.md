@@ -37,3 +37,7 @@ Rollback by redeploying the previous production commit. The new download field i
 - Authorized production cleanup completed separately from deployment: four existing legacy requests (IDs 5, 6, 9, 10), thirteen obsolete analytics rows and eighty-three related events were removed after matching IDs to the full R2 catalog. Current public and private song analytics were preserved. Recovery copies stay outside this repository in the task's private backup folder.
 
 These UI/API changes remain on the local 2.0 branch; the current public website has not been redeployed. Public signup and private-conversation activation still await the coordinated release checks in PRIVATE-CONVERSATIONS.md.
+
+## Album and listening release additions
+
+See SATURDAY-LAUNCH.md for the Saturday feature set, explicit album release gate, private staging workflow and the owner's agreed post-launch roadmap. The new album page and announcement remain in coming-soon mode. No current work-in-progress audio was uploaded. The queue and discovery panels use the existing released public collection in the local preview.

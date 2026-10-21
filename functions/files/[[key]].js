@@ -5,7 +5,7 @@ export async function onRequestGet(context) {
     const key = fileKey(url.href, url.origin);
     if (!key) return new Response("File not found", { status: 404, headers: { "Cache-Control": "no-store" } });
     const songs = await readSongs(context.env);
-    const publicMedia = songs.some((song) => isPublicSong(song) &&
+    const publicMedia = songs.some((song) => isPublicSong(song, context.env) &&
       [song.coverUrl, song.audioUrl].some((value) => value && fileKey(value, url.origin) === key));
     if (!publicMedia && !(await getAdmin(context, true))) return new Response("File not found", { status: 404, headers: { "Cache-Control": "no-store" } });
     const object = await context.env.FILES.get(key, { range: context.request.headers });

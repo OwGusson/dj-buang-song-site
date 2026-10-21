@@ -54,8 +54,9 @@ export async function getAdmin(context, allowMediaCookie = false, requireMfa = t
   return { ...user, mfaVerified };
 }
 
-export function isPublicSong(song) {
-  return song.visibility === "public" && (song.status === "published" || !song.status);
+export function isPublicSong(song, env = {}) {
+  return song.visibility === "public" && (song.status === "published" || !song.status) &&
+    (song.albumId !== 'global-barangay' || env.GLOBAL_BARANGAY_RELEASED === 'true');
 }
 
 export async function readSongs(env) {

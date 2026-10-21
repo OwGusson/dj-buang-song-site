@@ -1,7 +1,7 @@
 import { catalog, interaction } from './data';
 import { createStudio } from './studio';
 import { supabase } from '../supabase';
-export function connect({detail,$,getSongs,setSongs,getCurrent,setCurrent,settings,audio,render,updateDownload,modal,esc,toast,onCatalogReady}){
+export function connect({detail,$,getSongs,setSongs,getCurrent,setCurrent,settings,audio,render,updateDownload,modal,esc,toast,onCatalogReady,isVisibleSong=()=>true}){
  let catalogEpoch=0;
  let sharedOpened=false;
  async function refreshCatalog(){
@@ -9,7 +9,7 @@ export function connect({detail,$,getSongs,setSongs,getCurrent,setCurrent,settin
    try{
      const next=await catalog();if(epoch!==catalogEpoch)return;
      const currentId=getSongs()[getCurrent()]?.id;
-     const songs=next.filter(s=>s.visibility==='public'&&(!s.status||s.status==='published'));
+     const songs=next.filter(s=>s.visibility==='public'&&(!s.status||s.status==='published')&&isVisibleSong(s));
      setSongs(songs);settings.clear();songs.forEach(s=>settings.set(s.id,s.downloadable!==false));
      const current=currentId?songs.findIndex(s=>s.id===currentId):-1;setCurrent(current);
      if(current<0&&currentId){audio.pause();audio.removeAttribute('src');audio.load();$('#player-title').textContent='Choose your next song';$('#player-artist').textContent='DJ-Buang';$('#player-cover').hidden=true;}

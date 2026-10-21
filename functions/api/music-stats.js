@@ -7,7 +7,7 @@ export async function onRequestGet({ env }) {
   const key = env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return json({ error: 'Music counts unavailable' }, 503);
   try {
-    const songs = (await readSongs(env)).filter(isPublicSong);
+    const songs = (await readSongs(env)).filter(song => isPublicSong(song, env));
     if (!songs.length) return json({ songs: 0, plays: 0, likes: 0, tracks: [] });
     const headers = { apikey: key, Authorization: `Bearer ${key}` };
     // Fetch only public IDs and count fields; no raw event or visitor data.

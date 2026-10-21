@@ -7,7 +7,7 @@ async function saveSongs(env, songs) {
 export async function onRequestGet(context) {
   const admin = await getAdmin(context);
   const songs = await readSongs(context.env);
-  return json(admin ? songs : songs.filter(isPublicSong));
+  return json(admin ? songs : songs.filter(song => isPublicSong(song, context.env)));
 }
 export async function onRequestPost(context) {
   if (!context.data.admin) return json({ error: "Administrator sign-in required" }, 401);
@@ -17,7 +17,7 @@ export async function onRequestPost(context) {
   let song;
   try { song = JSON.parse(text); } catch { return json({ error: "Invalid JSON" }, 400); }
   if (!song || typeof song !== "object" || Array.isArray(song) || typeof song.id !== "string" || !/^[\w-]{1,100}$/.test(song.id)) return json({ error: "Invalid song id" }, 400);
-  const strings = { title: 300, artist: 300, requestedBy: 300, coverUrl: 2048, audioUrl: 2048, lyrics: 80000, createdAt: 100 };
+  const strings = { title: 300, artist: 300, requestedBy: 300, coverUrl: 2048, audioUrl: 2048, lyrics: 80000, createdAt: 100, credits: 600 };
   const clean = { id: song.id };
   for (const [field, max] of Object.entries(strings)) if (song[field] !== undefined) {
     if (typeof song[field] !== "string" || song[field].length > max) return json({ error: `Invalid ${field}` }, 400);
@@ -39,6 +39,14 @@ export async function onRequestPost(context) {
     clean[field] = song[field];
   }
   const songs = await readSongs(context.env);
+  if (song.albumId !== undefined) {
+    if (typeof song.albumId !== 'string' || !['', 'global-barangay'].includes(song.albumId)) return json({ error: 'Invalid album' }, 400);
+    clean.albumId = song.albumId;
+  }
+  if (song.albumTrackNumber !== undefined) {
+    if (song.albumTrackNumber !== null && (!Number.isInteger(song.albumTrackNumber) || song.albumTrackNumber < 1 || song.albumTrackNumber > 99)) return json({ error: 'Invalid album track number' }, 400);
+    clean.albumTrackNumber = song.albumTrackNumber;
+  }
   const index = songs.findIndex((s) => s.id === clean.id);
   if (index >= 0) songs[index] = { ...songs[index], ...clean };
   else {
