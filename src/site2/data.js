@@ -1,6 +1,5 @@
 import { supabase } from '../supabase';
 import { apiFetch, verifyAdmin } from '../adminAuth';
-import { requestPayload, messagePayload } from './payloads';
 export function requireWrites() {
   if (import.meta.env.DEV && import.meta.env.VITE_ALLOW_LIVE_WRITES !== 'true') throw new Error('This development preview does not save changes. Changes will be enabled on the deployed site.');
 }
@@ -19,12 +18,6 @@ export async function uploadFile(file) {
   const body=new FormData(); body.set('file',file);
   const response=await apiFetch('/api/upload',{method:'POST',body});
   const result=await response.json();if(!response.ok)throw new Error(result.error||'Upload failed.');return result.fileUrl;
-}
-export async function submitContact(kind, form) {
-  requireWrites(); const request=kind==='request';
-  const payload=request?requestPayload(form):messagePayload(form);
-  const {error}=await supabase.from(request?'song_requests':'private_messages').insert([payload]);
-  if(error)throw new Error('Your message could not be sent. Please try again.');
 }
 export async function inbox() {
   await verifyAdmin();

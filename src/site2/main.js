@@ -1,4 +1,4 @@
-import { openContact } from './contact';
+import { openContact, openMyConversations } from './contact';
 import { openSupport } from './support';
 import './studio.css';
 import { showDetails } from './details';
@@ -42,9 +42,9 @@ audio.ontimeupdate=()=>{$('#elapsed').textContent=time(audio.currentTime);$('#du
 $('#seek').oninput=e=>{if(Number.isFinite(audio.duration))audio.currentTime=audio.duration*e.target.value/100;};$('#volume').oninput=e=>audio.volume=Number(e.target.value);
 $('#album-open').onclick=()=>modal('<div class="eyebrow">A NEW CHAPTER</div><h2>Global Barangay</h2><p>The forthcoming DJ-Buang album will have a home here: its story, artwork, track list, and listening links in one place.</p><p>The release date and Spotify availability have not been announced. </p><button class="primary" id="back-music">Explore current music ↘</button>');
 $('#modal-content').addEventListener('click',e=>{if(e.target.id==='back-music'){$('#modal').close();location.hash='music';}});
-function contact(kind){openContact(kind,modal);}
+function contact(kind){openContact(kind,modal).catch(error=>toast(error.message));}
 $('#request-open').onclick=()=>contact('request');
-$('#requests').insertAdjacentHTML('beforeend','<div class="secondary-actions"><button class="text-button" id="message-open">Send a message ↗</button><button class="text-button" id="support-open">Support the music ♡</button></div>');
+$('#requests').insertAdjacentHTML('beforeend','<div class="secondary-actions"><button class="text-button" id="message-open">Send a message ↗</button><button class="text-button" id="inbox-open">My conversations ↗</button><button class="text-button" id="support-open">Support the music ♡</button></div>');
 $('#message-open').onclick=()=>contact('message');
 $('#support-open').onclick=()=>openSupport(modal);
 $('#requests').insertAdjacentHTML('afterend','<section class="merch" id="merch"><div><div class="eyebrow">ON THE HORIZON · MERCH CONCEPTS</div><h2>Wear the sound<span>.</span></h2><p>Turn the Buang On! A first look at the DJ-Buang and PHIL-ICE ideas: caps, hoodies, tees, and jerseys.</p><p>These are design sketches. No products are on sale yet.</p><button class="outline" id="merch-open">Explore the concepts ↗</button></div><img src="/merch-concept.png" loading="lazy" alt="DJ-Buang and PHIL-ICE logo and merchandise concept board: caps, hoodies, T-shirts and jerseys in black, white, red and blue"></section>');
@@ -53,3 +53,6 @@ connect({detail,$,getSongs:()=>songs,setSongs:value=>songs=value,getCurrent:()=>
 let progressTracked=false;
 function track(id,type){interaction(id,type).catch(()=>{});}
 audio.addEventListener('timeupdate',()=>{if(!progressTracked&&current>=0&&audio.duration>0&&audio.currentTime/audio.duration>=.25){progressTracked=true;track(songs[current].id,'play_25');}});
+
+document.querySelector('#inbox-open').onclick=()=>openMyConversations(modal).catch(error=>toast(error.message));
+if(new URLSearchParams(location.search).get('inbox')==='1')openMyConversations(modal).catch(error=>toast(error.message));

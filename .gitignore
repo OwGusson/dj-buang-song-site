@@ -30,3 +30,4 @@ dist-ssr
 .dev.vars
 .dev.vars.*
 .wrangler/
+supabase/.temp/

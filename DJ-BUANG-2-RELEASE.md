@@ -4,22 +4,22 @@ This change replaces the public landing page with the reviewed DJ-Buang / PHIL-I
 
 ## Included
 
-- Fluid desktop layout and mobile breakpoints, supplied logo/banner, Global Barangay feature using the supplied album cover and future merchandise sketches.
+- Fluid desktop layout and mobile breakpoints, supplied logo/banner, Global Barangay concept feature and future merchandise sketches.
 - Live catalog, persistent player, search, featured/download filters, shared song links, lyrics PDFs, likes and existing interaction tracking.
-- Requests and private messages submit through the existing Supabase insert-only permissions. Requests default to private delivery; personal contact fields remain administrator-only. No automatic email notification is promised or sent.
+- Verified-email private conversations replace public submissions at coordinated cutover. Thread ownership, opt-in publishing/credit consent, Turnstile, atomic spam limits and an MFA-protected Studio inbox are implemented. Artist replies queue generic private-inbox notification emails. See PRIVATE-CONVERSATIONS.md for configuration and cutover requirements.
 - Studio verifies the existing server session and MFA before reading songs, request/message inboxes or analytics. It supports uploading/editing songs, visibility/publishing, featured and download controls, completion/read status and linking a finished song to a request.
 - Boolean `downloadable` is stored in the R2 song catalog. Missing fields retain the old download behavior. The download endpoint enforces explicit false, public publishing status and administrator authorization for private media. Streaming is still possible and remains recordable; this is not DRM.
-- Classic administration remains at `/studio/classic`, including existing account setup/recovery. The old personal PayPal donation URL is removed from this fallback as well as omitted from the new site. The owner-provided EUR PayPal hosted support button is integrated into the new support panel, loaded on demand with one SDK per page and retry handling. Its branding, custom amount field and checkout render in the browser; no payment was initiated. Reopening reuses the SDK. Payments are live even in the development preview, which explicitly says so. Supporter-visible receipt identity remains unverified and must be checked before public release. No shop checkout or payment account is created by the site code.
-- No Supabase schema/policy changes, new credentials, or R2 content migration.
+- Classic administration remains at `/studio/classic`, including existing account setup/recovery. The old personal PayPal donation URL is removed from this fallback as well as omitted from the new site. Financial support remains inactive until supporter-visible identity has been verified. No shop checkout or payment account is created.
+- An additive private conversation migration is applied. Legacy public insert policies remain until coordinated cutover. Resend SMTP and server credentials are configured; public signup and new contact features remain off. R2 content is preserved.
 
 ## Validation
 
 - Production build passes.
-- 33 tests pass, including existing endpoint/security regression tests, database RLS/RPC integration in isolated PGlite, saved download settings, download access checks and form payload validation.
+- 40 tests pass, including endpoint/security regressions, isolated PGlite ownership/RPC/RLS tests, Turnstile and email verification, spam limits, notification privacy and download access checks.
 - Targeted ESLint passes for the new frontend, entry point, download handler and tests. The legacy App retains pre-existing lint issues.
 - Browser: real 33-song public catalog, filtering, protected Studio sign-in and request form render. Responsive layout inspected in a 390px iframe viewport. A physical phone has not been tested.
 - Local preview blocks production mutations and interaction tracking. Classic admin is disabled locally for the same reason. Supabase authentication is real; administrators can review their existing inbox after signing in.
-- The owner confirmed successful Studio entry after sign-in. The Studio has a dedicated /studio route so refreshes resume its sign-in/dashboard flow. Successful production form submission and media uploads still need post-deployment checks; local preview does not write to production.
+- Remaining acceptance check: the owner signs in with password + authenticator and reviews the authenticated studio. Successful production form submission and media uploads still need post-deployment checks; local preview does not write to production.
 
 ## Release and rollback
 

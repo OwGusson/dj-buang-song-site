@@ -1,3 +1,6 @@
+import { renderStudioConversations } from './studio-conversations';
+import { contactConfiguration } from './listener';
+import { mountTurnstile } from './turnstile';
 import { supabase } from '../supabase';
 import { apiFetch, verifyAdmin } from '../adminAuth';
 import { authenticatorQrDataUrl } from '../authenticatorQr';
@@ -6,7 +9,7 @@ import { catalog, inbox, saveSong, updateInbox, uploadFile } from './data';
 export function createStudio({modal,esc,toast,onCatalog}) {
  const content=document.querySelector('#modal-content');
  const dialog=document.querySelector('#modal');
- let authenticated=false, epoch=0, tab='songs', state=null, factor=null;
+ let authenticated=false, epoch=0, tab='songs', state=null, factor=null, loginCaptcha=null;
  const clear=()=>{epoch++;authenticated=false;state=null;factor=null;content.onchange=null;if(dialog.dataset.studio==='true'){dialog.close();content.replaceChildren();delete dialog.dataset.studio;}onCatalog();};
  supabase.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT')clear();});
  const show=html=>{modal(html);dialog.dataset.studio='true';};
@@ -30,9 +33,12 @@ export function createStudio({modal,esc,toast,onCatalog}) {
    show(`<div class="eyebrow">SECURE STUDIO · SECOND STEP</div><h2>Verify it’s you.</h2>${factor.qr?`<p>Scan this QR code with Google Authenticator or another authenticator app.</p><img class="mfa-qr" src="${esc(factor.qr)}" alt="Authenticator enrollment QR code"><details><summary>Can’t scan the code?</summary><p>Enter this setup key manually in your authenticator app:</p><code>${esc(factor.secret)}</code></details>`:'<p>Enter the six-digit code from your authenticator app.</p>'}<form id="mfa-form"><label class="field">Authenticator code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label><p role="alert" id="auth-error"></p><button class="primary">Verify and open studio →</button></form>`);
    content.querySelector('form').onsubmit=event=>{event.preventDefault();const form=event.currentTarget;run(form.querySelector('button'),async()=>{const {error}=await supabase.auth.mfa.challengeAndVerify({factorId:factor.id,code:form.elements.code.value});if(error){content.querySelector('#auth-error').textContent='That code could not be verified. Try a fresh code.';return;}form.elements.code.value='';await verifyAdmin();authenticated=true;factor=null;await load();});};
  }
- function login(){
+ async function login(){
    show('<div class="eyebrow">DJ-BUANG · SECURE STUDIO</div><h2>Welcome back.</h2><p>Sign in to manage songs, requests, and messages.</p><form id="login-form"><label class="field">Administrator email<input name="email" type="email" autocomplete="username" required></label><label class="field">Password<input name="password" type="password" autocomplete="current-password" required></label><p id="auth-error" role="alert"></p><button class="primary">Continue →</button></form><p><a href="/studio/classic">Account recovery and classic tools ↗</a></p>');
-   content.querySelector('form').onsubmit=event=>{event.preventDefault();const form=event.currentTarget;run(form.querySelector('button'),async()=>{const {error}=await supabase.auth.signInWithPassword({email:form.elements.email.value,password:form.elements.password.value});form.elements.password.value='';if(error){content.querySelector('#auth-error').textContent='Sign-in failed. Check your email and password.';return;}try{if(await authenticate())await load();else mfa();}catch(error){await supabase.auth.signOut();login();content.querySelector('#auth-error').textContent=error.message;}});};
+   let captchaRequired=false;
+   const loginForm=content.querySelector('form'),submit=loginForm.querySelector('button');submit.disabled=true;
+   try{const config=await contactConfiguration();captchaRequired=config.authCaptchaEnabled;if(captchaRequired){const holder=document.createElement('div');loginForm.insertBefore(holder,content.querySelector('#auth-error'));loginCaptcha=await mountTurnstile(holder,config.siteKey);}}catch{content.querySelector('#auth-error').textContent='Bot verification configuration could not load. Sign-in may be unavailable.';}finally{submit.disabled=false;}
+   loginForm.onsubmit=event=>{event.preventDefault();const form=event.currentTarget;run(form.querySelector('button'),async()=>{const options=captchaRequired?{captchaToken:loginCaptcha?.token()}:undefined;const {error}=await supabase.auth.signInWithPassword({email:form.elements.email.value,password:form.elements.password.value,options});loginCaptcha?.reset();form.elements.password.value='';if(error){content.querySelector('#auth-error').textContent='Sign-in failed. Check your email, password, and bot verification.';return;}try{if(await authenticate())await load();else mfa();}catch(error){await supabase.auth.signOut();await login();content.querySelector('#auth-error').textContent=error.message;}});};
  }
  async function load(){
    await verifyAdmin();const requestEpoch=epoch;
@@ -44,12 +50,12 @@ export function createStudio({modal,esc,toast,onCatalog}) {
  function render(){
    if(!state||!authenticated)return;
    const counts={songs:state.songs.length,requests:state.requests.filter(r=>r.status==='pending').length,messages:state.messages.filter(r=>r.status==='new').length};
-   show(`<div class="studio-head"><div><div class="eyebrow">DJ-BUANG · STUDIO</div><h2>Your music. Your space.</h2></div><button class="outline" id="signout">Sign out</button></div>${import.meta.env.DEV?'<p class="studio-note">Development preview · Saving is disabled. Inbox reads use your existing administrator access.</p>':''}<div class="studio-nav" role="group" aria-label="Studio sections">${['songs','requests','messages','analytics'].map(t=>`<button class="${tab===t?'active':''}" data-tab="${t}">${t[0].toUpperCase()+t.slice(1)}${counts[t]!==undefined?` <span>${counts[t]}</span>`:''}</button>`).join('')}</div><div id="studio-panel"></div><div class="studio-bottom"><button class="text-button" id="studio-refresh">Refresh ↻</button><a href="/studio/classic">Classic admin tools ↗</a><p>PayPal support is configured. Receipt identity still needs verification before release.</p></div>`);
+   show(`<div class="studio-head"><div><div class="eyebrow">DJ-BUANG · STUDIO</div><h2>Your music. Your space.</h2></div><button class="outline" id="signout">Sign out</button></div>${import.meta.env.DEV?'<p class="studio-note">Development preview · Saving is disabled. Inbox reads use your existing administrator access.</p>':''}<div class="studio-nav" role="group" aria-label="Studio sections">${['songs','conversations','requests','messages','analytics'].map(t=>`<button class="${tab===t?'active':''}" data-tab="${t}">${t[0].toUpperCase()+t.slice(1)}${counts[t]!==undefined?` <span>${counts[t]}</span>`:''}</button>`).join('')}</div><div id="studio-panel"></div><div class="studio-bottom"><button class="text-button" id="studio-refresh">Refresh ↻</button><a href="/studio/classic">Classic admin tools ↗</a><p>PayPal support is configured. Receipt identity still needs verification before release.</p></div>`);
    dialog.classList.add('studio-dialog');
    content.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{tab=button.dataset.tab;render();});
    content.querySelector('#signout').onclick=event=>run(event.currentTarget,async()=>{await apiFetch('/api/session',{method:'DELETE'});const {error}=await supabase.auth.signOut();if(error)throw error;clear();toast('Signed out.');});
    content.querySelector('#studio-refresh').onclick=event=>run(event.currentTarget,load);
-   if(tab==='songs')renderSongs();else if(tab==='analytics')renderAnalytics();else renderInbox();
+   if(tab==='songs')renderSongs();else if(tab==='conversations')renderStudioConversations(content.querySelector('#studio-panel'),{toast,songs:state.songs});else if(tab==='analytics')renderAnalytics();else renderInbox();
  }
  function renderSongs(){
    const panel=content.querySelector('#studio-panel');
