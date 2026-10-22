@@ -44,7 +44,7 @@ The owner clarified that the DIA exclusive first album playthrough comes before 
 
 Continue private preparation and tests where possible. Exact premiere time remains to be confirmed because the promotional poster lists 22:00 for both the Philippines and Iceland. These represent different instants: 22:00 PHT is 14:00 Iceland; 22:00 Iceland is 06:00 PHT the following day. Do not set a timer, automatic release or countdown from the inconsistent poster.
 
-Final album audio, track order, publication/download preferences and launch timing still need confirmation. Treat the supplied DIA promotional poster separately from the approved album cover. Keep Spotify availability unannounced until links exist. Payments remain disabled pending a supporter receipt privacy check.
+Final album audio, track order, publication/download preferences and launch timing still need confirmation. Treat the supplied DIA promotional poster separately from the approved album cover. Keep Spotify availability unannounced until links exist. The owner marked the live PayPal privacy check passed on 22 October 2026. Payments remain disabled until the authorized Saturday rollout.
 
 ### Confirmed premiere sequence
 
@@ -53,3 +53,8 @@ Final album audio, track order, publication/download preferences and launch timi
 - Second DIA playthrough: Saturday 24 October 2026, 22:00 Iceland; Sunday 25 October 2026, 06:00 Philippines. This is a second airing, not an equivalent timezone label for the first slot.
 - The owner is reworking two or three album songs and expects final files on Friday 23 October. Treat the existing folder as work in progress; no current audio has been uploaded or published.
 - Read-only local preflight found 18 numbered WAV files, approximately 76.2 minutes / 877.6 MB, all stereo 48 kHz / 16-bit. Header inspection is not a complete audio-quality or final-master check. The private draft inventory stays outside Git. Re-check final files, credits, track order, streaming encodes and download permissions before staging the release.
+
+
+## PayPal privacy check — passed, 22 October 2026
+
+Owner confirmed the live low-value payment check as passed. Reviewed payer-facing confirmation and transaction details showed DJ-Buang, the artist contact email, and the DJ-Buang card statement descriptor. No legal name, residential address or personal phone was visible in those screens. Do not store transaction identifiers, card details or payer data in this repository. SUPPORT_ENABLED remains false until the authorized Saturday launch.

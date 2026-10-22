@@ -22,7 +22,7 @@ GLOBAL_BARANGAY_RELEASED defaults to false. The server gate applies to public ca
 
 When the final album has been reviewed and the first playthrough is complete, obtain the owner's launch go-ahead, coordinate the album's public/published metadata and explicit server release flag, then deploy. Verify the album page, complete album playback order, individual lyric/credit views, chosen downloads and anonymous media access. Confirm no private drafts are exposed. Do not announce Spotify availability until a real release link exists.
 
-Private inbox signup, CAPTCHA, delivery checks and legacy policy cutover still follow PRIVATE-CONVERSATIONS.md. PayPal remains gated off pending a receipt-identity check.
+Private inbox signup, CAPTCHA, delivery checks and legacy policy cutover still follow PRIVATE-CONVERSATIONS.md. PayPal privacy check passed on 22 October 2026, confirmed by the owner after a live low-value payment and review of payer-facing screens. Seller details showed DJ-Buang and the artist email, with no legal name, home address or personal phone visible in the reviewed screens. Keep SUPPORT_ENABLED=false until the authorized Saturday rollout; enable it as part of that release. This records the tested flow, not a guarantee of anonymity in all PayPal processes.
 
 ## Agreed next phase after launch
 
