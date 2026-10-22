@@ -1,3 +1,4 @@
+import { renderStudioAnalytics } from './studio-analytics';
 import { renderStudioAlbum } from './studio-albums';
 import { renderStudioConversations, studioConversationCounts } from './studio-conversations';
 import { contactConfiguration } from './listener';
@@ -97,9 +98,7 @@ export function createStudio({modal,esc,toast,onCatalog}) {
    panel.onchange=e=>{if(!e.target.dataset.link)return;const select=e.target,row=rows.find(r=>String(r.id)===select.dataset.link);run(select,async()=>{try{const linked_song_id=select.value,status=linked_song_id?'done':'pending';await updateInbox('song_requests',row.id,{linked_song_id,status});Object.assign(row,{linked_song_id,status});render();toast('Request updated. Linking does not change a song’s visibility.');}catch(error){select.value=row.linked_song_id||'';throw error;}});};
  }
  function renderAnalytics(){
-   const rows=state.analytics.filter(row=>state.songs.some(song=>song.id===row.song_id));
-   const panel=content.querySelector('#studio-panel'),total=field=>rows.reduce((sum,row)=>sum+Number(row[field]||0),0);
-   panel.innerHTML=`<div class="metric-grid">${[['plays','Plays'],['unique_listeners','Listeners across songs'],['song_downloads','Song downloads'],['lyrics_downloads','Lyrics downloads']].map(([key,label])=>`<div><strong>${total(key).toLocaleString()}</strong><span>${label}</span></div>`).join('')}</div><p class="studio-help">Only songs currently in your library are included. Listener totals are summed per song, so one person can count more than once.</p><div class="analytics-list">${[...rows].sort((a,b)=>(b.plays||0)-(a.plays||0)).map(r=>{const song=state.songs.find(s=>s.id===r.song_id);return `<div class="studio-row"><div>${esc(song?.title||r.song_id)}<span>${Number(r.song_downloads||0)} downloads · ${Number(r.unique_listeners||0)} listeners</span></div><strong>${Number(r.plays||0)} plays</strong></div>`;}).join('')||'<p>No listening data yet.</p>'}</div>`;
+   renderStudioAnalytics(content.querySelector('#studio-panel'),{songs:state.songs,totals:state.analytics,esc});
  }
  dialog.addEventListener('close',()=>{if(dialog.open)return;dialog.classList.remove('studio-dialog');delete dialog.dataset.studio;factor=null;content.replaceChildren();content.onchange=null;});
  return {async open(){dialog.classList.remove('studio-dialog');try{if(await authenticate())await load();else mfa();}catch{login();}},clear};
