@@ -1,5 +1,5 @@
 import { renderStudioAlbum } from './studio-albums';
-import { renderStudioConversations } from './studio-conversations';
+import { renderStudioConversations, studioConversationCounts } from './studio-conversations';
 import { contactConfiguration } from './listener';
 import { mountTurnstile } from './turnstile';
 import { supabase } from '../supabase';
@@ -46,22 +46,22 @@ export function createStudio({modal,esc,toast,onCatalog}) {
  }
  async function load(){
    await verifyAdmin();const requestEpoch=epoch;
-   const [songs,data]=await Promise.all([catalog(),inbox()]);
+   const [songs,data,threadCounts]=await Promise.all([catalog(),inbox(),studioConversationCounts().catch(()=>null)]);
    if(requestEpoch!==epoch||!authenticated)return;
-   state={songs,...data};onCatalog();render();
+   state={songs,...data,threadCounts};onCatalog();render();
  }
  const date=value=>new Date(value).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
  function render(){
    if(!state||!authenticated)return;
-   const counts={songs:state.songs.length,requests:state.requests.filter(r=>r.status==='pending').length,messages:state.messages.filter(r=>r.status==='new').length};
-   show(`<div class="studio-head"><div><div class="eyebrow">DJ-BUANG · STUDIO</div><h2>Your Studio.</h2></div><button class="outline" id="signout">Sign out</button></div>${import.meta.env.DEV?'<p class="studio-note">Development preview · Saving is disabled. Inbox reads use your existing administrator access.</p>':''}<div class="studio-nav" role="group" aria-label="Studio sections">${['songs','albums','conversations','requests','messages','analytics'].map(t=>`<button class="${tab===t?'active':''}" data-tab="${t}">${t[0].toUpperCase()+t.slice(1)}${counts[t]!==undefined?` <span>${counts[t]}</span>`:''}</button>`).join('')}</div><label class="studio-section-picker">Studio section<select id="studio-section">${['songs','albums','conversations','requests','messages','analytics'].map(t=>`<option value="${t}" ${tab===t?'selected':''}>${t[0].toUpperCase()+t.slice(1)}${counts[t]!==undefined?` (${counts[t]})`:''}</option>`).join('')}</select></label><div id="studio-panel"></div><div class="studio-bottom"><button class="text-button" id="studio-refresh">Refresh ↻</button><a href="/studio/classic">Classic admin tools ↗</a><p>PayPal privacy check passed. Support payments are held until launch.</p></div>`);
+   const counts={songs:state.songs.length,requests:state.threadCounts?.request,messages:state.threadCounts?.message};
+   show(`<div class="studio-head"><div><div class="eyebrow">DJ-BUANG · STUDIO</div><h2>Your Studio.</h2></div><button class="outline" id="signout">Sign out</button></div>${import.meta.env.DEV?'<p class="studio-note">Development preview · Saving is disabled. Inbox reads use your existing administrator access.</p>':''}<div class="studio-nav" role="group" aria-label="Studio sections">${['songs','albums','requests','messages','analytics'].map(t=>`<button class="${tab===t?'active':''}" data-tab="${t}">${t[0].toUpperCase()+t.slice(1)}${counts[t]!==undefined?` <span>${counts[t]}</span>`:''}</button>`).join('')}</div><label class="studio-section-picker">Studio section<select id="studio-section">${['songs','albums','requests','messages','analytics'].map(t=>`<option value="${t}" ${tab===t?'selected':''}>${t[0].toUpperCase()+t.slice(1)}${counts[t]!==undefined?` (${counts[t]})`:''}</option>`).join('')}</select></label><div id="studio-panel"></div><div class="studio-bottom"><button class="text-button" id="studio-refresh">Refresh ↻</button><a href="/studio/classic">Classic admin tools ↗</a><p>PayPal privacy check passed. Support payments are held until launch.</p></div>`);
    dialog.classList.add('studio-dialog');
    releaseArtwork();
    content.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{tab=button.dataset.tab;render();});
    content.querySelector('#studio-section').onchange=event=>{tab=event.target.value;render();};
    content.querySelector('#signout').onclick=event=>run(event.currentTarget,async()=>{await apiFetch('/api/session',{method:'DELETE'});const {error}=await supabase.auth.signOut();if(error)throw error;clear();toast('Signed out.');});
    content.querySelector('#studio-refresh').onclick=event=>run(event.currentTarget,load);
-   if(tab==='songs')renderSongs();else if(tab==='albums')renderStudioAlbum(content.querySelector('#studio-panel'),{songs:state.songs,esc,toast,onSaved:load,editSong});else if(tab==='conversations')renderStudioConversations(content.querySelector('#studio-panel'),{toast,songs:state.songs});else if(tab==='analytics')renderAnalytics();else renderInbox();
+   if(tab==='songs')renderSongs();else if(tab==='albums')renderStudioAlbum(content.querySelector('#studio-panel'),{songs:state.songs,esc,toast,onSaved:load,editSong});else if(tab==='requests'||tab==='messages')renderStudioConversations(content.querySelector('#studio-panel'),{toast,songs:state.songs,kind:tab==='requests'?'request':'message',historyCount:state[tab].length,openHistory:renderInbox});else if(tab==='analytics')renderAnalytics();else renderInbox();
  }
  function renderSongs(){
    const panel=content.querySelector('#studio-panel');
@@ -89,7 +89,8 @@ export function createStudio({modal,esc,toast,onCatalog}) {
  function renderInbox(){
    const request=tab==='requests',rows=request?state.requests:state.messages;
    const panel=content.querySelector('#studio-panel');
-   panel.innerHTML=`<div class="studio-tools"><h3>${request?'Song requests':'Private messages'}</h3><label class="field compact">Show<select id="inbox-filter"><option value="all">All</option><option value="open">${request?'Pending':'Unread'}</option><option value="done">${request?'Done':'Read'}</option></select></label></div><div id="inbox-list"></div>`;
+   panel.innerHTML=`<button class="text-button" id="current-inbox">← Current ${request?'requests':'messages'}</button><div class="studio-tools"><h3>Older ${request?'song requests':'private messages'}</h3><label class="field compact">Show<select id="inbox-filter"><option value="all">All</option><option value="open">${request?'Pending':'Unread'}</option><option value="done">${request?'Done':'Read'}</option></select></label></div><div id="inbox-list"></div>`;
+   panel.querySelector('#current-inbox').onclick=render;
    const draw=()=>{const filter=panel.querySelector('select').value;const filtered=rows.filter(r=>filter==='all'||(filter==='open'?r.status===(request?'pending':'new'):r.status===(request?'done':'read')));panel.querySelector('#inbox-list').innerHTML=filtered.map(r=>`<article class="inbox-card"><div class="inbox-heading"><h3>${esc(request?r.song_name:r.sender_name)}</h3><span class="status-tag">${esc(r.status)}</span></div><p class="inbox-meta">${esc(request?r.requester_name:r.sender_name)} · ${esc(date(r.created_at))}${request?` · ${esc(r.delivery||'public')} delivery`:''}</p><p class="inbox-body">${esc(request?r.details:r.message)}</p><p class="inbox-meta">Reply contact: ${esc(request?r.email:r.sender_email)||'Not provided'}</p>${request?`<label class="field">Link finished song<select data-link="${r.id}"><option value="">No song linked</option>${state.songs.map(s=>`<option value="${esc(s.id)}" ${r.linked_song_id===s.id?'selected':''}>${esc(s.title)}${s.visibility==='private'?' (private)':''}</option>`).join('')}</select></label>`:''}<button class="outline" data-status="${r.id}">${r.status===(request?'pending':'new')?(request?'Mark done':'Mark read'):(request?'Mark pending':'Mark unread')}</button></article>`).join('')||'<p class="empty-state">Nothing here yet. You’re all caught up.</p>';};draw();
    panel.querySelector('#inbox-filter').onchange=draw;
    panel.onclick=e=>{const b=e.target.closest('[data-status]');if(!b)return;const row=rows.find(r=>String(r.id)===b.dataset.status);run(b,async()=>{const status=row.status===(request?'pending':'new')?(request?'done':'read'):(request?'pending':'new');await updateInbox(request?'song_requests':'private_messages',row.id,{status});row.status=status;render();toast('Status updated.');});};
