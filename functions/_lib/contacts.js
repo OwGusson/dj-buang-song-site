@@ -1,6 +1,6 @@
 import { json,readLimitedText } from './security.js';
 export function contactConfig(env){
- return {enabled:env.CONTACTS_ENABLED==='true'&&Boolean(env.TURNSTILE_SITE_KEY&&env.TURNSTILE_SECRET_KEY&&env.INTERACTION_HASH_SECRET&&env.SUPABASE_SERVICE_ROLE_KEY),siteKey:env.TURNSTILE_SITE_KEY||'',authCaptchaEnabled:env.AUTH_CAPTCHA_ENABLED==='true',supportEnabled:env.SUPPORT_ENABLED==='true'};
+ return {testMode:env.CONTACT_TEST_MODE==='true',enabled:env.CONTACTS_ENABLED==='true'&&Boolean(env.TURNSTILE_SITE_KEY&&env.TURNSTILE_SECRET_KEY&&env.INTERACTION_HASH_SECRET&&env.SUPABASE_SERVICE_ROLE_KEY),siteKey:env.TURNSTILE_SITE_KEY||'',authCaptchaEnabled:env.AUTH_CAPTCHA_ENABLED==='true',supportEnabled:env.SUPPORT_ENABLED==='true'};
 }
 export async function verifiedContactUser(context){
  const authorization=context.request.headers.get('Authorization');
@@ -15,6 +15,7 @@ export async function verifiedContactUser(context){
  if(!user.id||!user.email||!user.email_confirmed_at||user.is_anonymous)return null;
  let claims;try{claims=JSON.parse(atob(authorization.slice(7).split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));}catch{return null;}
  const admin=user.app_metadata?.role==='admin';
+ if(context.env.CONTACT_TEST_MODE==='true'&&!admin){const allowed=(context.env.CONTACT_TEST_EMAILS||'').split(',').map(value=>value.trim().toLowerCase()).filter(Boolean);if(!allowed.includes(user.email.toLowerCase()))return null;}
  if(admin&&claims.aal!=='aal2')return null;
  return {id:user.id,email:user.email,admin};
 }

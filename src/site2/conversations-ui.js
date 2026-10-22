@@ -11,7 +11,7 @@ async function requireListener(modal,next){
  const {data:{session}}=await listener.auth.getSession();
  if(session?.user?.email_confirmed_at){await next();return;}
  let config;try{config=await contactConfiguration();}catch{config={enabled:false,siteKey:''};}
- display(modal,`<div class="eyebrow">YOUR PRIVATE DJ-BUANG INBOX</div><h2>Let’s keep it between us.</h2><p>Use a nickname and verify your email to send messages, request songs, and follow the conversation. Your email and story are not published.</p><form id="listener-email"><label class="field">Your email<input name="email" type="email" autocomplete="email" maxlength="254" required></label><div id="listener-captcha"></div><p id="contact-error" role="alert"></p>${!config.enabled?'<p class="studio-note">Private inbox sign-in is being set up. Email verification is not available in this preview yet.</p>':''}<button class="primary" ${!config.enabled?'disabled':''}>Email me a sign-in code →</button></form><p class="studio-help">No password or public profile needed. Please avoid sending passwords, identity documents, or payment details.</p>`);
+ display(modal,`<div class="eyebrow">YOUR PRIVATE DJ-BUANG INBOX</div><h2>Let’s keep it between us.</h2>${config.testMode?'<p class="studio-note">Restricted messaging test · invited test accounts only.</p>':''}<p>Use a nickname and verify your email to send messages, request songs, and follow the conversation. Your email and story are not published.</p><form id="listener-email"><label class="field">Your email<input name="email" type="email" autocomplete="email" maxlength="254" required></label><div id="listener-captcha"></div><p id="contact-error" role="alert"></p>${!config.enabled?'<p class="studio-note">Private inbox sign-in is being set up. Email verification is not available in this preview yet.</p>':''}<button class="primary" ${!config.enabled?'disabled':''}>Email me a sign-in code →</button></form><p class="studio-help">No password or public profile needed. Please avoid sending passwords, identity documents, or payment details.</p>`);
  if(!config.enabled)return;
  const view=generation;
  try{await captcha('#listener-captcha',config);}catch(error){failure(error.message);return;}
@@ -19,7 +19,7 @@ async function requireListener(modal,next){
  $('#listener-email').onsubmit=async event=>{
    event.preventDefault();const form=event.currentTarget,button=form.querySelector('button'),email=form.elements.email.value.trim();button.disabled=true;failure('');
    try{
-     const {error}=await listener.auth.signInWithOtp({email,options:{shouldCreateUser:true,captchaToken:widget.token()}});widget?.reset();
+     const {error}=await listener.auth.signInWithOtp({email,options:{shouldCreateUser:!config.testMode,captchaToken:widget.token()}});widget?.reset();
      if(error)throw Error('We could not send a code. Please wait a minute and try again.');if(view!==generation)return;
      display(modal,`<div class="eyebrow">CHECK YOUR EMAIL</div><h2>Your private inbox awaits.</h2><p>Enter the code sent to ${esc(email)}. Check spam if it hasn’t arrived.</p><form id="listener-code"><label class="field">Email code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" minlength="6" maxlength="10" required></label><p id="contact-error" role="alert"></p><button class="primary">Verify and continue →</button></form><button class="text-button" id="other-email">Use another email / resend</button>`);
      $('#other-email').onclick=()=>requireListener(modal,next);

@@ -78,3 +78,14 @@ test('Resend failures keep the notification retryable instead of acknowledging d
  const result=await deliverContactNotifications({...ctx().env,CONTACT_EMAIL_FROM:'no-reply@mail.dj-buang.com',RESEND_API_KEY:'synthetic-test-key'});
  assert.deepEqual(result,{enabled:true,sent:0});assert.deepEqual(actions,['claim','failed']);
 });
+
+
+test('restricted test mode denies non-allowlisted and empty-allowlist listeners',async t=>{
+ const calls=mock(t);const c=ctx();c.env.CONTACT_TEST_MODE='true';
+ for(const allowed of ['', 'someone@example.test']){c.env.CONTACT_TEST_EMAILS=allowed;assert.equal((await write(c)).status,401);}
+ assert.equal(calls.length,0);
+ c.env.CONTACT_TEST_EMAILS='LISTENER@example.test';assert.equal((await write(c)).status,200);
+});
+test('restricted test notifications reject a public or missing inbox URL before claiming jobs',async t=>{
+ const calls=mock(t);await assert.rejects(()=>deliverContactNotifications({...ctx().env,CONTACT_TEST_MODE:'true',RESEND_API_KEY:'synthetic',CONTACT_EMAIL_FROM:'test@example.test'}));assert.equal(calls.length,0);
+});
