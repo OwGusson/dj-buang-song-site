@@ -7,7 +7,7 @@ async function saveSongs(env, songs) {
 export async function onRequestGet(context) {
   const admin = await getAdmin(context);
   const songs = await readSongs(context.env);
-  return json(admin ? songs : songs.filter(song => isPublicSong(song, context.env)));
+  return json(admin ? songs : songs.filter(song => isPublicSong(song, context.env)).map(song => song.albumDownloadsAllowed === false ? { ...song, downloadable: false } : song));
 }
 export async function onRequestPost(context) {
   if (!context.data.admin) return json({ error: "Administrator sign-in required" }, 401);

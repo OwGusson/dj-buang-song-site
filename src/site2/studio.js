@@ -1,3 +1,4 @@
+import { renderStudioAlbum } from './studio-albums';
 import { renderStudioConversations } from './studio-conversations';
 import { contactConfiguration } from './listener';
 import { mountTurnstile } from './turnstile';
@@ -53,14 +54,14 @@ export function createStudio({modal,esc,toast,onCatalog}) {
  function render(){
    if(!state||!authenticated)return;
    const counts={songs:state.songs.length,requests:state.requests.filter(r=>r.status==='pending').length,messages:state.messages.filter(r=>r.status==='new').length};
-   show(`<div class="studio-head"><div><div class="eyebrow">DJ-BUANG · STUDIO</div><h2>Your Studio.</h2></div><button class="outline" id="signout">Sign out</button></div>${import.meta.env.DEV?'<p class="studio-note">Development preview · Saving is disabled. Inbox reads use your existing administrator access.</p>':''}<div class="studio-nav" role="group" aria-label="Studio sections">${['songs','conversations','requests','messages','analytics'].map(t=>`<button class="${tab===t?'active':''}" data-tab="${t}">${t[0].toUpperCase()+t.slice(1)}${counts[t]!==undefined?` <span>${counts[t]}</span>`:''}</button>`).join('')}</div><label class="studio-section-picker">Studio section<select id="studio-section">${['songs','conversations','requests','messages','analytics'].map(t=>`<option value="${t}" ${tab===t?'selected':''}>${t[0].toUpperCase()+t.slice(1)}${counts[t]!==undefined?` (${counts[t]})`:''}</option>`).join('')}</select></label><div id="studio-panel"></div><div class="studio-bottom"><button class="text-button" id="studio-refresh">Refresh ↻</button><a href="/studio/classic">Classic admin tools ↗</a><p>PayPal privacy check passed. Support payments are held until launch.</p></div>`);
+   show(`<div class="studio-head"><div><div class="eyebrow">DJ-BUANG · STUDIO</div><h2>Your Studio.</h2></div><button class="outline" id="signout">Sign out</button></div>${import.meta.env.DEV?'<p class="studio-note">Development preview · Saving is disabled. Inbox reads use your existing administrator access.</p>':''}<div class="studio-nav" role="group" aria-label="Studio sections">${['songs','albums','conversations','requests','messages','analytics'].map(t=>`<button class="${tab===t?'active':''}" data-tab="${t}">${t[0].toUpperCase()+t.slice(1)}${counts[t]!==undefined?` <span>${counts[t]}</span>`:''}</button>`).join('')}</div><label class="studio-section-picker">Studio section<select id="studio-section">${['songs','albums','conversations','requests','messages','analytics'].map(t=>`<option value="${t}" ${tab===t?'selected':''}>${t[0].toUpperCase()+t.slice(1)}${counts[t]!==undefined?` (${counts[t]})`:''}</option>`).join('')}</select></label><div id="studio-panel"></div><div class="studio-bottom"><button class="text-button" id="studio-refresh">Refresh ↻</button><a href="/studio/classic">Classic admin tools ↗</a><p>PayPal privacy check passed. Support payments are held until launch.</p></div>`);
    dialog.classList.add('studio-dialog');
    releaseArtwork();
    content.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{tab=button.dataset.tab;render();});
    content.querySelector('#studio-section').onchange=event=>{tab=event.target.value;render();};
    content.querySelector('#signout').onclick=event=>run(event.currentTarget,async()=>{await apiFetch('/api/session',{method:'DELETE'});const {error}=await supabase.auth.signOut();if(error)throw error;clear();toast('Signed out.');});
    content.querySelector('#studio-refresh').onclick=event=>run(event.currentTarget,load);
-   if(tab==='songs')renderSongs();else if(tab==='conversations')renderStudioConversations(content.querySelector('#studio-panel'),{toast,songs:state.songs});else if(tab==='analytics')renderAnalytics();else renderInbox();
+   if(tab==='songs')renderSongs();else if(tab==='albums')renderStudioAlbum(content.querySelector('#studio-panel'),{songs:state.songs,esc,toast,onSaved:load,editSong});else if(tab==='conversations')renderStudioConversations(content.querySelector('#studio-panel'),{toast,songs:state.songs});else if(tab==='analytics')renderAnalytics();else renderInbox();
  }
  function renderSongs(){
    const panel=content.querySelector('#studio-panel');

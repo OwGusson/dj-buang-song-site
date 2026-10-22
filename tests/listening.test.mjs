@@ -74,7 +74,9 @@ test('release switch must be literal true and still respects private visibility 
   for (const value of [undefined, 'false', 'TRUE', true]) { const c = context(); c.env.GLOBAL_BARANGAY_RELEASED = value; assert.equal((await (await catalog(c)).json()).length, 1); }
   const c = context(); c.env.GLOBAL_BARANGAY_RELEASED = 'true';
   assert.equal((await (await catalog(c)).json()).length, 2);
-  c.request = new Request(origin + '/api/download?id=album-song'); assert.equal((await download(c)).status, 200);
+  c.request = new Request(origin + '/api/download?id=album-song'); assert.equal((await download(c)).status, 403); // Album downloads default to listening-only.
+  c.objects.set('data/albums.json', JSON.stringify({id:'global-barangay',status:'available',downloadable:true}));
+  assert.equal((await download(c)).status, 200);
   c.objects.set('data/songs.json', JSON.stringify([{ ...albumSong, visibility: 'private' }, { ...albumSong, id: 'draft', status: 'draft' }]));
   c.request = new Request(origin + '/api/songs'); assert.deepEqual(await (await catalog(c)).json(), []);
 });

@@ -1,3 +1,4 @@
+import { readAlbum } from './albums.js';
 export function json(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: {
     "Content-Type": "application/json", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
@@ -56,13 +57,21 @@ export async function getAdmin(context, allowMediaCookie = false, requireMfa = t
 
 export function isPublicSong(song, env = {}) {
   return song.visibility === "public" && (song.status === "published" || !song.status) &&
-    (song.albumId !== 'global-barangay' || env.GLOBAL_BARANGAY_RELEASED === 'true');
+    (song.albumId !== 'global-barangay' || (env.GLOBAL_BARANGAY_RELEASED === 'true' && (!song.albumAvailability || song.albumAvailability === 'available')));
 }
 
 export async function readSongs(env) {
   const object = await env.FILES.get("data/songs.json");
   const songs = object ? JSON.parse(await object.text()) : [];
   if (!Array.isArray(songs)) throw new Error("Invalid song catalog");
+  if (songs.some(song => song.albumId === 'global-barangay')) {
+    const album = await readAlbum(env);
+    for (const song of songs.filter(song => song.albumId === album.id)) {
+      Object.defineProperty(song, 'albumAvailability', { value: album.status });
+      Object.defineProperty(song, 'albumDownloadsAllowed', { value: album.downloadable });
+
+    }
+  }
   return songs;
 }
 

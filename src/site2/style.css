@@ -27,3 +27,7 @@ header .brand img{width:76px;height:76px;object-fit:contain}header .brand small{
 .album-track-art{display:block;width:48px;height:48px;object-fit:cover;border-radius:4px;margin-bottom:6px}.album-track .track-number{min-width:52px}
 
 .track-duration{display:inline-block;font-family:inherit;font-size:12px;font-weight:400;color:#a9bfce;margin-left:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+.studio-album-summary{display:flex;align-items:center;gap:20px;margin:20px 0}.studio-album-summary img{width:100px;height:100px;object-fit:cover;border-radius:6px}.album-save-actions{display:flex;gap:12px;flex-wrap:wrap;padding:16px 0}.album-save-actions p{width:100%}.platform-links{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}
+
+#album[hidden],.release-announcement[hidden],nav a[hidden]{display:none!important}

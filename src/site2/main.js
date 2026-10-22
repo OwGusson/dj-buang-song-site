@@ -16,6 +16,9 @@ const queue=new ListeningQueue();
 let statistics=[], albumPage;
 let releaseState={globalBarangayReleased:false};
 try{const response=await fetch('/api/release-config',{cache:'no-store',signal:AbortSignal.timeout(8000)});if(response.ok){const data=await response.json();releaseState.globalBarangayReleased=data.globalBarangayReleased===true;releaseState.localAlbumPreview=import.meta.env.DEV&&data.localAlbumPreview===true;}}catch{/* Unreleased unless explicitly confirmed by the server. */}
+let albumSettings={status:'available'};
+async function refreshAlbumSettings(){try{const response=await fetch('/api/albums',{cache:'no-store',signal:AbortSignal.timeout(8000)});if(response.ok)albumSettings=(await response.json()).album||albumSettings;}catch{/* The server still enforces availability if optional album details cannot load. */}}
+await refreshAlbumSettings();
 const settings = new Map(songs.map(s=>[s.id,s.downloadable!==false]));
 const audio=$('#audio'); audio.volume=.8;
 let restoredListening=false,lastSavedAt=0;
@@ -69,8 +72,8 @@ $('#message-open').onclick=()=>contact('message');
 $('#support-open').onclick=()=>openSupport(modal);
 $('#requests').insertAdjacentHTML('afterend','<section class="merch" id="merch"><div><div class="eyebrow">ON THE HORIZON · MERCH CONCEPTS</div><h2>Wear the sound<span>.</span></h2><p>Turn the Buang On! A first look at the DJ-Buang and PHIL-ICE ideas: caps, hoodies, tees, and jerseys.</p><p>These are design sketches. No products are on sale yet.</p><button class="outline" id="merch-open">Explore the concepts ↗</button></div><img src="/merch-concept.png" loading="lazy" alt="DJ-Buang and PHIL-ICE logo and merchandise concept board: caps, hoodies, T-shirts and jerseys in black, white, red and blue"></section>');
 $('#merch-open').onclick=()=>modal('<div class="eyebrow">FUTURE COLLECTION</div><h2>DJ-Buang × PHIL-ICE</h2><img src="/merch-concept.png" style="width:100%;border-radius:4px" alt="Merchandise concept board"><p>Two worlds. One sound. These early concepts will shape a future collection. Sizes, prices, and launch details are still to come.</p>');
-albumPage=createAlbumPage({getSongs:()=>songs,getRelease:()=>releaseState.globalBarangayReleased,getPreview:()=>releaseState.localAlbumPreview,playAlbum,detail,esc});
-connect({detail,$,getSongs:()=>songs,setSongs:value=>songs=value,getCurrent:()=>current,setCurrent:value=>current=value,settings,audio,render,updateDownload,modal,esc,toast,onCatalogReady:()=>{restoreListening();queue.reconcile(songs.map(song=>song.id));albumPage.render();renderQueueIfOpen();loadMusicStats();},isVisibleSong:song=>song.albumId!==ALBUM_ID||releaseState.globalBarangayReleased});
+albumPage=createAlbumPage({getSongs:()=>songs,getRelease:()=>releaseState.globalBarangayReleased,getPreview:()=>releaseState.localAlbumPreview,getAlbum:()=>albumSettings,playAlbum,detail,esc});
+connect({detail,$,getSongs:()=>songs,setSongs:value=>songs=value,getCurrent:()=>current,setCurrent:value=>current=value,settings,audio,render,updateDownload,modal,esc,toast,onCatalogReady:()=>{refreshAlbumSettings().then(()=>albumPage.render());restoreListening();queue.reconcile(songs.map(song=>song.id));albumPage.render();renderQueueIfOpen();loadMusicStats();},isVisibleSong:song=>song.albumId!==ALBUM_ID||releaseState.globalBarangayReleased});
 let progressTracked=false;
 function track(id,type){interaction(id,type).catch(()=>{});}
 audio.addEventListener('timeupdate',()=>{if(!progressTracked&&current>=0&&audio.duration>0&&audio.currentTime/audio.duration>=.25){progressTracked=true;track(songs[current].id,'play_25');}});
