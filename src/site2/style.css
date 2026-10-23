@@ -31,3 +31,5 @@ header .brand img{width:76px;height:76px;object-fit:contain}header .brand small{
 .studio-album-summary{display:flex;align-items:center;gap:20px;margin:20px 0}.studio-album-summary img{width:100px;height:100px;object-fit:cover;border-radius:6px}.album-save-actions{display:flex;gap:12px;flex-wrap:wrap;padding:16px 0}.album-save-actions p{width:100%}.platform-links{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}
 
 #album[hidden],.release-announcement[hidden],nav a[hidden]{display:none!important}
+
+.merch-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}.album-merch-board{display:block;width:100%;height:auto;border-radius:6px;margin:20px 0 32px}@media(max-width:680px){.merch-actions{flex-direction:column}.merch-actions button{width:100%;min-height:46px}}
