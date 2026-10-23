@@ -16,7 +16,7 @@ After an administrator marks a song request done and links a published-status so
 
 The conversation-song endpoint verifies the bearer with Auth and calls the same ownership-checked detail RPC on every metadata or media request. It returns only the currently linked R2 object, never a storage URL or general media credential. Anonymous users, other listeners, unapproved preview emails and administrators without MFA are denied. Audio is fetched with the listener bearer into a temporary browser object URL; closing the conversation stops playback and revokes that URL. The current player buffers the file before playback, so large WAV deliveries can take longer; prefer streaming MP3 copies. The browser can copy audio it receives—listening-only is an interface setting, not DRM.
 
-The optional support hint follows the player, explaining that support helps fund better music tools/software. The payment button still requires SUPPORT_ENABLED=true. Linking/completing does not itself send email; send the artist's final reply after saving the link/status to trigger the notification.
+The optional support hint follows the player, explaining that support helps fund better music tools/software. The support window is always reachable; PayPal checkout still requires SUPPORT_ENABLED=true. Linking/completing does not itself send email; send the artist's final reply after saving the link/status to trigger the notification.
 
 ## Coordinated release
 
