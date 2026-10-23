@@ -10,6 +10,14 @@ Song publishing and nickname credit default off and are separate from private co
 
 Artist replies create notification jobs in the same transaction. Only the verified thread email receives notifications. Emails contain a fixed DJ-Buang inbox link and no message body. Resend uses a job-specific idempotency key. Failed sends remain in the outbox; /api/contact-notifications can retry up to five attempts after MFA administrator verification. It is not a public email relay. There is no scheduled retry worker yet.
 
+## Completed song playback
+
+After an administrator marks a song request done and links a published-status song, its owner can listen inside that conversation. A private song remains private; publication and nickname-credit consents are unchanged. Draft/hidden songs, blocked threads, unfinished requests and unreleased Global Barangay tracks do not deliver audio. Marking a request done is the explicit delivery step, so review its linked song before saving.
+
+The conversation-song endpoint verifies the bearer with Auth and calls the same ownership-checked detail RPC on every metadata or media request. It returns only the currently linked R2 object, never a storage URL or general media credential. Anonymous users, other listeners, unapproved preview emails and administrators without MFA are denied. Audio is fetched with the listener bearer into a temporary browser object URL; closing the conversation stops playback and revokes that URL. The current player buffers the file before playback, so large WAV deliveries can take longer; prefer streaming MP3 copies. The browser can copy audio it receives—listening-only is an interface setting, not DRM.
+
+The optional support hint follows the player, explaining that support helps fund better music tools/software. The payment button still requires SUPPORT_ENABLED=true. Linking/completing does not itself send email; send the artist's final reply after saving the link/status to trigger the notification.
+
 ## Coordinated release
 
 1. Verify mail.dj-buang.com in Resend using its supplied DNS records, leaving root Gmail forwarding intact. Restrict the sending key to this domain. Configure it as Supabase SMTP password (smtp.resend.com, username resend, TLS port 465), sender no-reply@mail.dj-buang.com, display name DJ-Buang, and as Cloudflare's encrypted RESEND_API_KEY. Set CONTACT_EMAIL_FROM to DJ-Buang <no-reply@mail.dj-buang.com>.
