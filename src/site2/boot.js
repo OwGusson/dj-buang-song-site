@@ -1,7 +1,7 @@
 import { catalog, interaction } from './data';
 import { createStudio } from './studio';
 import { supabase } from '../supabase';
-export function connect({detail,$,getSongs,setSongs,getCurrent,setCurrent,settings,audio,render,updateDownload,modal,esc,toast,onCatalogReady,isVisibleSong=()=>true}){
+export function connect({detail,$,getSongs,setSongs,getCurrent,setCurrent,settings,audio,render,updateDownload,modal,esc,toast,onCatalogReady,isVisibleSong=()=>true,getPreviewSongs=()=>[]}){
  let catalogEpoch=0;
  let sharedOpened=false;
  async function refreshCatalog(){
@@ -9,7 +9,8 @@ export function connect({detail,$,getSongs,setSongs,getCurrent,setCurrent,settin
    try{
      const next=await catalog();if(epoch!==catalogEpoch)return;
      const currentId=getSongs()[getCurrent()]?.id;
-     const songs=next.filter(s=>s.visibility==='public'&&(!s.status||s.status==='published')&&isVisibleSong(s));
+     const previewSongs=await getPreviewSongs();if(epoch!==catalogEpoch)return;
+     const songs=[...next,...previewSongs].filter(s=>s.visibility==='public'&&(!s.status||s.status==='published')&&isVisibleSong(s));
      setSongs(songs);settings.clear();songs.forEach(s=>settings.set(s.id,s.downloadable!==false));
      const current=currentId?songs.findIndex(s=>s.id===currentId):-1;setCurrent(current);
      if(current<0&&currentId){audio.pause();audio.removeAttribute('src');audio.load();$('#player-title').textContent='Choose your next song';$('#player-artist').textContent='DJ-Buang';$('#player-cover').hidden=true;}
@@ -27,7 +28,7 @@ export function connect({detail,$,getSongs,setSongs,getCurrent,setCurrent,settin
  $('#modal-content').addEventListener('click',event=>{const link=event.target.closest('a[download]');if(link){const id=new URL(link.href).searchParams.get('id');if(id)interaction(id,'download_song').catch(()=>{});}});
  audio.addEventListener('error',()=>toast('This audio file could not be played. Please try another song.'));
  if(import.meta.env.DEV)document.body.insertAdjacentHTML('afterbegin','<div class="preview-bar">DJ-BUANG 2.0 · DEVELOPMENT PREVIEW <span>Production writes are disabled</span></div>');
- supabase.auth.onAuthStateChange(event=>{if(event==='PASSWORD_RECOVERY')location.assign('/studio/classic'+location.hash);});
+ supabase.auth.onAuthStateChange(event=>{if(event==='PASSWORD_RECOVERY')location.assign('/studio/classic'+location.hash);if(event==='SIGNED_OUT'){audio.pause();refreshCatalog();}});
  const ready=refreshCatalog();
  if(location.pathname==='/studio')openStudio();
  return ready;

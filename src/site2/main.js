@@ -8,6 +8,7 @@ import { interaction } from './data';
 import { bindLikes, setLikeCounts, syncLikes } from './likes';
 import { ListeningQueue, rankTracks, ALBUM_ID } from './listening-model';
 import { createAlbumPage } from './album-page';
+import { apiFetch } from '../adminAuth';
 
 
 const $ = s => document.querySelector(s);
@@ -17,6 +18,19 @@ const queue=new ListeningQueue();
 let statistics=[], albumPage;
 let releaseState={globalBarangayReleased:false};
 try{const response=await fetch('/api/release-config',{cache:'no-store',signal:AbortSignal.timeout(8000)});if(response.ok){const data=await response.json();releaseState.globalBarangayReleased=data.globalBarangayReleased===true;releaseState.localAlbumPreview=import.meta.env.DEV&&data.localAlbumPreview===true;}}catch{/* Unreleased unless explicitly confirmed by the server. */}
+const baseReleaseState={...releaseState};
+async function loadAdminAlbumPreview(){
+  if(location.hostname!=='codex-dj-buang-2.dj-buang-song-site.pages.dev')return [];
+  releaseState={...baseReleaseState};
+  try{
+    // Refresh the existing HttpOnly media cookie before loading private artwork/audio.
+    const session=await apiFetch('/api/session');if(!session.ok||!(await session.json()).authenticated)return [];
+    const response=await apiFetch('/api/album-preview');if(!response.ok)return [];
+    const data=await response.json();if(data.adminAlbumPreview!==true)return [];
+    releaseState.globalBarangayReleased=true;releaseState.localAlbumPreview=true;
+    return data.tracks;
+  }catch{return [];}
+}
 let albumSettings={status:'available'};
 async function refreshAlbumSettings(){try{const response=await fetch('/api/albums',{cache:'no-store',signal:AbortSignal.timeout(8000)});if(response.ok)albumSettings=(await response.json()).album||albumSettings;}catch{/* The server still enforces availability if optional album details cannot load. */}}
 await refreshAlbumSettings();
@@ -77,7 +91,7 @@ $('#merch-open').onclick=()=>{modal('<div class="eyebrow">FUTURE COLLECTION</div
 $('#album-merch-open').onclick=()=>{modal(`<div class="eyebrow">GLOBAL BARANGAY · LIMITED CAPSULE CONCEPT</div><h2>Wear the album.</h2><p>A possible limited Global Barangay line, built around the original DJ-Buang identity and the album’s artwork. Turn the Buang On!</p><p class="studio-note">Design concepts only. No products are on sale, and quantities, prices, sizes, production methods, and release plans have not been decided.</p><button class="primary" id="capsule-interest">Interested in this? →</button><h3>Night Edition</h3><p>Black hoodies, tees, caps, and a jersey. Small front logos meet larger album artwork on selected backs, with gold, red, and ice-blue details.</p><img class="album-merch-board" src="/global-barangay-merch-night.png" alt="Global Barangay Night Edition concept board showing black hoodies, T-shirts, cap and basketball jersey with original DJ-Buang branding and album graphics"><h3>Island / Ice Edition</h3><p>White and blue pieces with a lighter feel: album prints, a cap, a tote, and a jersey. PHIL-ICE — Two Worlds. One Sound.</p><img class="album-merch-board" src="/global-barangay-merch-island-ice.png" alt="Global Barangay Island and Ice Edition concept board showing white and blue garments and accessories with album artwork and DJ-Buang branding"><p>The original DJ-Buang / PHIL-ICE concepts remain a separate collection. These mockups explore the album line; they are not manufacturing artwork.</p>`);document.querySelector('#capsule-interest').onclick=()=>openMerchInterest({modal,esc,collection:'global-barangay'});};
 
 albumPage=createAlbumPage({getSongs:()=>songs,getRelease:()=>releaseState.globalBarangayReleased,getPreview:()=>releaseState.localAlbumPreview,getAlbum:()=>albumSettings,playAlbum,detail,esc});
-connect({detail,$,getSongs:()=>songs,setSongs:value=>songs=value,getCurrent:()=>current,setCurrent:value=>current=value,settings,audio,render,updateDownload,modal,esc,toast,onCatalogReady:()=>{refreshAlbumSettings().then(()=>albumPage.render());restoreListening();queue.reconcile(songs.map(song=>song.id));albumPage.render();renderQueueIfOpen();loadMusicStats();},isVisibleSong:song=>song.albumId!==ALBUM_ID||releaseState.globalBarangayReleased});
+connect({detail,$,getSongs:()=>songs,setSongs:value=>songs=value,getCurrent:()=>current,setCurrent:value=>current=value,settings,audio,render,updateDownload,modal,esc,toast,onCatalogReady:()=>{refreshAlbumSettings().then(()=>albumPage.render());restoreListening();queue.reconcile(songs.map(song=>song.id));albumPage.render();renderQueueIfOpen();loadMusicStats();},getPreviewSongs:loadAdminAlbumPreview,isVisibleSong:song=>song.albumId!==ALBUM_ID||releaseState.globalBarangayReleased});
 let progressTracked=false;
 function track(id,type){interaction(id,type).catch(()=>{});}
 audio.addEventListener('timeupdate',()=>{if(!progressTracked&&current>=0&&audio.duration>0&&audio.currentTime/audio.duration>=.25){progressTracked=true;track(songs[current].id,'play_25');}});
