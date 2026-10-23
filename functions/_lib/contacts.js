@@ -22,12 +22,12 @@ export async function verifiedContactUser(context){
 export async function readContactBody(request){
  return JSON.parse(await readLimitedText(request,30000));
 }
-export async function actorHash(context){
+export async function actorHash(context,namespace='contacts'){
  const ip=context.request.headers.get('CF-Connecting-IP');
  if(!ip||!context.env.INTERACTION_HASH_SECRET)throw Error('Client identity unavailable');
  const encoder=new TextEncoder();
  const key=await crypto.subtle.importKey('raw',encoder.encode(context.env.INTERACTION_HASH_SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign']);
- const bytes=await crypto.subtle.sign('HMAC',key,encoder.encode('contacts:'+ip));
+ const bytes=await crypto.subtle.sign('HMAC',key,encoder.encode(namespace+':'+ip));
  return [...new Uint8Array(bytes)].map(n=>n.toString(16).padStart(2,'0')).join('');
 }
 export async function verifyTurnstile(context,token){

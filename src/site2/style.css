@@ -33,3 +33,7 @@ header .brand img{width:76px;height:76px;object-fit:contain}header .brand small{
 #album[hidden],.release-announcement[hidden],nav a[hidden]{display:none!important}
 
 .merch-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}.album-merch-board{display:block;width:100%;height:auto;border-radius:6px;margin:20px 0 32px}@media(max-width:680px){.merch-actions{flex-direction:column}.merch-actions button{width:100%;min-height:46px}}
+
+.merch-survey-item{padding:14px 0;border-bottom:1px solid var(--line)}.merch-survey-item>label:first-child{display:flex;gap:10px;align-items:center;min-height:44px}.merch-survey-item input[type=checkbox]{width:20px;height:20px;flex-shrink:0}.merch-price{margin:12px 0}.merch-price[hidden]{display:none!important}.merch-price-input{display:flex;align-items:center;gap:10px}.merch-price-input input{width:100%;min-width:0}.merch-honeypot{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}.merch-survey-options{margin-bottom:22px}
+
+.finished-song-support{margin:22px 0;padding:18px;border:1px solid var(--line);border-radius:8px;background:#102433}.finished-song-support h3{margin-top:0}.finished-song-support p{font-size:14px;line-height:1.65}
