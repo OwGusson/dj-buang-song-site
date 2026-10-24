@@ -11,7 +11,7 @@ function mock(t,{user={id,email:'listener@example.test',email_confirmed_at:'2026
  const calls=[];t.mock.method(globalThis,'fetch',async(url,options)=>{
    if(url.endsWith('/auth/v1/user'))return user?Response.json(user):new Response('',{status:401});
    if(url.includes('turnstile'))return Response.json({success:true,action:'contact',hostname:'dj-buang.com',...captcha});
-   calls.push(JSON.parse(options.body));return rpc;
+   calls.push(JSON.parse(options.body));return rpc.clone();
  });return calls;
 }
 test('anonymous, unverified and anonymous-auth users cannot access conversations',async t=>{
@@ -89,3 +89,20 @@ test('restricted test mode denies non-allowlisted and empty-allowlist listeners'
 test('restricted test notifications reject a public or missing inbox URL before claiming jobs',async t=>{
  const calls=mock(t);await assert.rejects(()=>deliverContactNotifications({...ctx().env,CONTACT_TEST_MODE:'true',RESEND_API_KEY:'synthetic',CONTACT_EMAIL_FROM:'test@example.test'}));assert.equal(calls.length,0);
 });
+
+test('archives and reviewed summaries require verified administrator MFA',async t=>{
+ const calls=mock(t);const listener=ctx({action:'archive_summary',data:{id,summary:'General outcome',reviewed:true}});
+ assert.equal((await write(listener)).status,403);
+ listener.request=new Request('https://dj-buang.com/api/conversations?archive=1&kind=request',{headers:{Authorization:'Bearer '+jwt('aal1')}});
+ assert.equal((await read(listener)).status,403);assert.equal(calls.length,0);
+});
+
+test('archive requests use server-verified administrator identity and whitelist review fields',async t=>{
+ const calls=mock(t,{user:{id,email:'admin@example.test',email_confirmed_at:'now',app_metadata:{role:'admin'}}});
+ const c=ctx({action:'archive_summary',data:{id,summary:'General outcome',reviewed:true,owner_email:'forged@example.test',closed_at:'2000-01-01'}});
+ c.request=new Request(c.request,{headers:{Authorization:'Bearer '+jwt('aal2'),'Content-Type':'application/json'}});
+ assert.equal((await write(c)).status,200);assert.deepEqual(calls[0].p_data,{id,summary:'General outcome',reviewed:true});
+ c.request=new Request('https://dj-buang.com/api/conversations?archive=1&kind=request',{headers:{Authorization:'Bearer '+jwt('aal2')}});
+ assert.equal((await read(c)).status,200);assert.equal(calls[1].p_action,'archive_list');assert.deepEqual(calls[1].p_data,{kind:'request'});
+});
+
