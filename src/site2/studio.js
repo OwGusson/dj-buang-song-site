@@ -1,3 +1,4 @@
+import {trackStudioSession,stopStudioSession} from './studio-session-ui';
 import {renderStudioMerch} from './studio-merch';
 import { renderStudioAnalytics } from './studio-analytics';
 import { renderStudioAlbum } from './studio-albums';
@@ -27,7 +28,12 @@ export function createStudio({modal,esc,toast,onCatalog}) {
    const response=await apiFetch('/api/session');
    if(!response.ok)throw new Error('Sign in with your administrator account.');
    const access=await response.json();
-   if(access.authenticated){authenticated=true;return true;}
+   if(access.authenticated){trackStudioSession(access);authenticated=true;return true;}
+   if(access.reauthRequired){
+    const started=await apiFetch('/api/session',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    if(!started.ok)throw Error('Your Studio session expired. Sign in again.');
+    trackStudioSession(await started.json());authenticated=true;return true;
+   }
    const {data,error}=await supabase.auth.mfa.listFactors();if(error)throw error;
    const verified=data.totp.find(f=>f.status==='verified');
    if(verified){factor={id:verified.id};return false;}
@@ -36,15 +42,15 @@ export function createStudio({modal,esc,toast,onCatalog}) {
    if(result.error)throw result.error;factor={id:result.data.id,qr:authenticatorQrDataUrl(result.data.totp.qr_code),secret:result.data.totp.secret};return false;
  }
  function mfa(){
-   show(`<div class="eyebrow">SECURE STUDIO · SECOND STEP</div><h2>Verify it’s you.</h2>${factor.qr?`<p>Scan this QR code with Google Authenticator or another authenticator app.</p><img class="mfa-qr" src="${esc(factor.qr)}" alt="Authenticator enrollment QR code"><details><summary>Can’t scan the code?</summary><p>Enter this setup key manually in your authenticator app:</p><code>${esc(factor.secret)}</code></details>`:'<p>Enter the six-digit code from your authenticator app.</p>'}<form id="mfa-form"><label class="field">Authenticator code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label><p role="alert" id="auth-error"></p><button class="primary">Verify and open studio →</button></form>`);
-   content.querySelector('form').onsubmit=event=>{event.preventDefault();const form=event.currentTarget;run(form.querySelector('button'),async()=>{const {error}=await supabase.auth.mfa.challengeAndVerify({factorId:factor.id,code:form.elements.code.value});if(error){content.querySelector('#auth-error').textContent='That code could not be verified. Try a fresh code.';return;}form.elements.code.value='';await verifyAdmin();authenticated=true;factor=null;await load();});};
+   show(`<div class="eyebrow">SECURE STUDIO · SECOND STEP</div><h2>Verify it’s you.</h2>${factor.qr?`<p>Scan this QR code with Google Authenticator or another authenticator app.</p><img class="mfa-qr" src="${esc(factor.qr)}" alt="Authenticator enrollment QR code"><details><summary>Can’t scan the code?</summary><p>Enter this setup key manually in your authenticator app:</p><code>${esc(factor.secret)}</code></details>`:'<p>Enter the six-digit code from your authenticator app.</p>'}<form id="mfa-form"><label class="field">Authenticator code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label><label class="field studio-remember"><span><input type="checkbox" name="rememberDevice"> Remember this device for 7 days</span><small>Use only on your own device. You’ll still need your email and password after Studio signs out.</small></label><p role="alert" id="auth-error"></p><button class="primary">Verify and open studio →</button></form>`);
+   content.querySelector('form').onsubmit=event=>{event.preventDefault();const form=event.currentTarget;run(form.querySelector('button'),async()=>{const {error}=await supabase.auth.mfa.challengeAndVerify({factorId:factor.id,code:form.elements.code.value});if(error){content.querySelector('#auth-error').textContent='That code could not be verified. Try a fresh code.';return;}form.elements.code.value='';const started=await apiFetch('/api/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rememberDevice:form.elements.rememberDevice.checked})});if(!started.ok)throw Error((await started.json()).error||'Studio sign-in could not finish.');trackStudioSession(await started.json());await verifyAdmin();authenticated=true;factor=null;await load();});};
  }
  async function login(){
    show('<div class="eyebrow">DJ-BUANG · SECURE STUDIO</div><h2>Welcome back.</h2><p>Sign in to manage songs, requests, and messages.</p><form id="login-form"><label class="field">Administrator email<input name="email" type="email" autocomplete="username" required></label><label class="field">Password<input name="password" type="password" autocomplete="current-password" required></label><p id="auth-error" role="alert"></p><button class="primary">Continue →</button></form><p><a href="/studio/classic">Account recovery and classic tools ↗</a></p>');
    let captchaRequired=false;
    const loginForm=content.querySelector('form'),submit=loginForm.querySelector('button');submit.disabled=true;
    try{const config=await contactConfiguration();captchaRequired=config.authCaptchaEnabled;if(captchaRequired){const holder=document.createElement('div');loginForm.insertBefore(holder,content.querySelector('#auth-error'));loginCaptcha=await mountTurnstile(holder,config.siteKey);}}catch{content.querySelector('#auth-error').textContent='Bot verification configuration could not load. Sign-in may be unavailable.';}finally{submit.disabled=false;}
-   loginForm.onsubmit=event=>{event.preventDefault();const form=event.currentTarget;run(form.querySelector('button'),async()=>{const options=captchaRequired?{captchaToken:loginCaptcha?.token()}:undefined;const {error}=await supabase.auth.signInWithPassword({email:form.elements.email.value,password:form.elements.password.value,options});loginCaptcha?.reset();form.elements.password.value='';if(error){content.querySelector('#auth-error').textContent='Sign-in failed. Check your email, password, and bot verification.';return;}try{if(await authenticate())await load();else mfa();}catch(error){await supabase.auth.signOut();await login();content.querySelector('#auth-error').textContent=error.message;}});};
+   loginForm.onsubmit=event=>{event.preventDefault();const form=event.currentTarget;run(form.querySelector('button'),async()=>{const options=captchaRequired?{captchaToken:loginCaptcha?.token()}:undefined;const {error}=await supabase.auth.signInWithPassword({email:form.elements.email.value,password:form.elements.password.value,options});loginCaptcha?.reset();form.elements.password.value='';if(error){content.querySelector('#auth-error').textContent='Sign-in failed. Check your email, password, and bot verification.';return;}try{if(await authenticate())await load();else mfa();}catch(error){await supabase.auth.signOut({scope:'local'});await login();content.querySelector('#auth-error').textContent=error.message;}});};
  }
  async function load(){
    await verifyAdmin();const requestEpoch=epoch;
@@ -56,12 +62,14 @@ export function createStudio({modal,esc,toast,onCatalog}) {
  function render(){
    if(!state||!authenticated)return;
    const counts={songs:state.songs.length,requests:state.threadCounts?.request,messages:state.threadCounts?.message};
-   show(`<div class="studio-head"><div><div class="eyebrow">DJ-BUANG · STUDIO</div><h2>Your Studio.</h2></div><button class="outline" id="signout">Sign out</button></div>${import.meta.env.DEV?'<p class="studio-note">Development preview · Saving is disabled. Inbox reads use your existing administrator access.</p>':''}<div class="studio-nav" role="group" aria-label="Studio sections">${['songs','albums','requests','messages','merch','analytics'].map(t=>`<button class="${tab===t?'active':''}" data-tab="${t}">${t==='merch'?'Merch interest':t[0].toUpperCase()+t.slice(1)}${counts[t]!==undefined?` <span>${counts[t]}</span>`:''}</button>`).join('')}</div><label class="studio-section-picker">Studio section<select id="studio-section">${['songs','albums','requests','messages','merch','analytics'].map(t=>`<option value="${t}" ${tab===t?'selected':''}>${t==='merch'?'Merch interest':t[0].toUpperCase()+t.slice(1)}${counts[t]!==undefined?` (${counts[t]})`:''}</option>`).join('')}</select></label><div id="studio-panel"></div><div class="studio-bottom"><button class="text-button" id="studio-refresh">Refresh ↻</button><a href="/studio/classic">Classic admin tools ↗</a><p>PayPal privacy check passed. Support payments are held until launch.</p></div>`);
+   show(`<div class="studio-head"><div><div class="eyebrow">DJ-BUANG · STUDIO</div><h2>Your Studio.</h2></div><div class="studio-signout"><button class="text-button" id="forget-device">Forget this device & sign out</button><button class="outline" id="signout">Sign out</button></div></div>${import.meta.env.DEV?'<p class="studio-note">Development preview · Saving is disabled. Inbox reads use your existing administrator access.</p>':''}<div class="studio-nav" role="group" aria-label="Studio sections">${['songs','albums','requests','messages','merch','analytics'].map(t=>`<button class="${tab===t?'active':''}" data-tab="${t}">${t==='merch'?'Merch interest':t[0].toUpperCase()+t.slice(1)}${counts[t]!==undefined?` <span>${counts[t]}</span>`:''}</button>`).join('')}</div><label class="studio-section-picker">Studio section<select id="studio-section">${['songs','albums','requests','messages','merch','analytics'].map(t=>`<option value="${t}" ${tab===t?'selected':''}>${t==='merch'?'Merch interest':t[0].toUpperCase()+t.slice(1)}${counts[t]!==undefined?` (${counts[t]})`:''}</option>`).join('')}</select></label><div id="studio-panel"></div><div class="studio-bottom"><button class="text-button" id="studio-refresh">Refresh ↻</button><a href="/studio/classic">Classic admin tools ↗</a><p>PayPal privacy check passed. Support payments are held until launch.</p></div>`);
    dialog.classList.add('studio-dialog');
    releaseArtwork();
    content.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{tab=button.dataset.tab;render();});
    content.querySelector('#studio-section').onchange=event=>{tab=event.target.value;render();};
-   content.querySelector('#signout').onclick=event=>run(event.currentTarget,async()=>{await apiFetch('/api/session',{method:'DELETE'});const {error}=await supabase.auth.signOut();if(error)throw error;clear();toast('Signed out.');});
+   const signout=forget=>async()=>{const response=await apiFetch('/api/session'+(forget?'?forget=1':''),{method:'DELETE'});if(!response.ok)throw Error('Sign-out could not complete. Try again.');stopStudioSession();const {error}=await supabase.auth.signOut({scope:'local'});if(error)throw error;clear();toast(forget?'Device forgotten. Signed out.':'Signed out.');};
+   content.querySelector('#signout').onclick=event=>run(event.currentTarget,signout(false));
+   content.querySelector('#forget-device').onclick=event=>run(event.currentTarget,signout(true));
    content.querySelector('#studio-refresh').onclick=event=>run(event.currentTarget,load);
    if(tab==='songs')renderSongs();else if(tab==='albums')renderStudioAlbum(content.querySelector('#studio-panel'),{songs:state.songs,esc,toast,onSaved:load,editSong});else if(tab==='requests'||tab==='messages')renderStudioConversations(content.querySelector('#studio-panel'),{toast,songs:state.songs,kind:tab==='requests'?'request':'message',historyCount:state[tab].length,openHistory:renderInbox});else if(tab==='merch')renderStudioMerch(content.querySelector('#studio-panel'),{esc});else if(tab==='analytics')renderAnalytics();else renderInbox();
  }
@@ -101,6 +109,7 @@ export function createStudio({modal,esc,toast,onCatalog}) {
  function renderAnalytics(){
    renderStudioAnalytics(content.querySelector('#studio-panel'),{songs:state.songs,totals:state.analytics,esc});
  }
+ window.addEventListener('studio-session-expired',()=>{clear();login();toast('Studio signed out. Please sign in again.');});
  dialog.addEventListener('close',()=>{if(dialog.open)return;dialog.classList.remove('studio-dialog');delete dialog.dataset.studio;factor=null;content.replaceChildren();content.onchange=null;});
  return {async open(){dialog.classList.remove('studio-dialog');try{if(await authenticate())await load();else mfa();}catch{login();}},clear};
 }

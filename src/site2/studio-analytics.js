@@ -1,6 +1,6 @@
-import {supabase} from '../supabase';
+import {studioRows} from './data';
 import {verifyAdmin} from '../adminAuth';
-import {analyticsWindow,summarizeAnalytics,readAnalyticsPages} from './analytics-model';
+import {analyticsWindow,summarizeAnalytics} from './analytics-model';
 export async function renderStudioAnalytics(panel,{songs,totals,esc}){
  let generation=0,summary;
  panel.innerHTML=`<div class="studio-tools"><h3>Music analytics</h3><label class="field compact">Period<select id="analytics-period"><option value="today">Today</option><option value="week" selected>Last 7 days</option><option value="month">Last 30 days</option><option value="all">All time</option></select></label></div><p class="studio-help">Calendar days use Iceland time (UTC). Current library only; deleted songs are excluded. Plays count playback starts, including repeats.</p><div id="analytics-content" aria-live="polite"></div>`;
@@ -10,8 +10,8 @@ export async function renderStudioAnalytics(panel,{songs,totals,esc}){
   try{
    await verifyAdmin();const window=analyticsWindow(period.value);
    const [events,likes]=await Promise.all([
-    readAnalyticsPages(()=>supabase.from('song_events').select('id,song_id,event_type,created_at').gte('created_at',window.start).lt('created_at',window.end).order('created_at').order('id')),
-    readAnalyticsPages(()=>supabase.from('song_likes').select('song_id,likes').order('song_id'))
+    studioRows('events',{start:window.start,end:window.end}),
+    studioRows('likes')
    ]);
    if(!panel.isConnected||current!==generation)return;
    summary=summarizeAnalytics({songs,totals,events,likes,window});draw(window);

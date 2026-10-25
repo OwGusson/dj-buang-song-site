@@ -1,4 +1,12 @@
-import { supabase } from '../supabase';
+export async function studioRows(kind,options={}) {
+ const rows=[];
+ for(let offset=0;offset<=50000;offset+=1000){
+  const query=new URLSearchParams({kind,offset:String(offset),...options});const response=await apiFetch('/api/studio-data?'+query);
+  if(!response.ok)throw Error('Studio data could not be loaded. Please sign in again.');
+  const page=await response.json();rows.push(...page);if(page.length<1000)return rows;
+ }
+ throw Error('Too much data to load. Choose a shorter period.');
+}
 import { apiFetch, verifyAdmin } from '../adminAuth';
 export function requireWrites() {
   if (import.meta.env.DEV && import.meta.env.VITE_ALLOW_LIVE_WRITES !== 'true') throw new Error('This development preview does not save changes. Changes will be enabled on the deployed site.');
@@ -26,18 +34,13 @@ export async function uploadFile(file) {
 }
 export async function inbox() {
   await verifyAdmin();
-  const results=await Promise.all([
-    supabase.from('song_requests').select('id,created_at,requester_name,song_name,details,email,delivery,status,linked_song_id').order('created_at',{ascending:false}),
-    supabase.from('private_messages').select('id,created_at,sender_name,sender_email,message,status').order('created_at',{ascending:false}),
-    supabase.from('song_analytics').select('*'),
-  ]);
-  if(results.some(r=>r.error))throw new Error('The studio data could not be loaded. Please sign in again.');
-  return {requests:results[0].data,messages:results[1].data,analytics:results[2].data};
+  const [requests,messages,analytics]=await Promise.all([studioRows('requests'),studioRows('messages'),studioRows('totals')]);
+  return {requests,messages,analytics};
 }
 export async function updateInbox(table,id,patch) {
   requireWrites(); await verifyAdmin();
-  const {data,error}=await supabase.from(table).update(patch).eq('id',id).select('id');
-  if(error||data?.length!==1)throw new Error('The change could not be saved. Please reload and try again.');
+  const response=await apiFetch('/api/studio-data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:table==='song_requests'?'requests':'messages',id,patch})});
+  if(!response.ok)throw Error('The change could not be saved. Please reload and try again.');
 }
 export async function interaction(songId,eventType) {
   if(import.meta.env.DEV)return null;

@@ -1,3 +1,4 @@
+import {studioLease} from './studio-session-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {defaultAlbum,validateAlbum,ALBUM_KEY} from '../functions/_lib/albums.js';
@@ -9,7 +10,7 @@ const origin='https://dj-buang.com';
 const song={id:'album-song',title:'Album track',artist:'DJ-Buang',albumId:'global-barangay',albumTrackNumber:1,visibility:'public',status:'published',audioUrl:origin+'/files/album.mp3',lyrics:'private audio companion',durationSeconds:90};
 function context(status='available',downloadable=false){
  const objects=new Map([[ALBUM_KEY,JSON.stringify({...defaultAlbum(),status,downloadable,links:{spotify:'https://open.spotify.com/album/test'}})],['data/songs.json',JSON.stringify([song,{...song,id:'private',visibility:'private'},{id:'single',title:'Standalone',visibility:'public',audioUrl:origin+'/files/single.mp3'}])],['album.mp3','audio']]);
- return {objects,request:new Request(origin+'/api/albums'),data:{},env:{GLOBAL_BARANGAY_RELEASED:'true',SUPABASE_URL:'https://example.supabase.co',SUPABASE_ANON_KEY:'synthetic',FILES:{async get(key){const value=objects.get(key);return value===undefined?null:{text:async()=>value,body:new Response(value).body,size:value.length,writeHttpMetadata(){}};},async put(key,value){objects.set(key,typeof value==='string'?value:await new Response(value).text());}}}};
+ return {objects,request:new Request(origin+'/api/albums'),data:{},env:{GLOBAL_BARANGAY_RELEASED:'true',SUPABASE_URL:'https://example.supabase.co',SUPABASE_ANON_KEY:'synthetic',FILES:{async get(key){const lease=studioLease(key);if(lease)return lease;const value=objects.get(key);return value===undefined?null:{text:async()=>value,body:new Response(value).body,size:value.length,writeHttpMetadata(){}};},async put(key,value){objects.set(key,typeof value==='string'?value:await new Response(value).text());}}}};
 }
 test('album validation rejects unsafe links and requires a real platform destination',()=>{
  assert.equal(validateAlbum(defaultAlbum()).status,'available');
@@ -38,7 +39,7 @@ test('album download block overrides individual defaults',async()=>{
 });
 test('saving requires verified administrator MFA, preserves songs and backs up album settings',async t=>{
  const c=context();const body=JSON.stringify({...defaultAlbum(),status:'hidden'});
- const request=aal=>new Request(origin+'/api/albums',{method:'POST',headers:{Origin:origin,...(aal?{Authorization:'Bearer x.'+btoa(JSON.stringify({aal}))+'.x'}:{})},body});
+ const request=aal=>new Request(origin+'/api/albums',{method:'POST',headers:{Origin:origin,...(aal?{Authorization:'Bearer x.'+btoa(JSON.stringify({aal,session_id:'test-session'}))+'.x'}:{})},body});
  c.request=request();assert.equal((await saveAlbum(c)).status,401);
  t.mock.method(globalThis,'fetch',async()=>Response.json({id:'admin',app_metadata:{role:'admin'}}));
  c.request=request('aal1');assert.equal((await saveAlbum(c)).status,401);

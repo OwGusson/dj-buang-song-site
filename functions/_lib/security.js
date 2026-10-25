@@ -1,3 +1,4 @@
+import { studioSession, trustedDevice } from './studio-session.js';
 import { readAlbum } from './albums.js';
 export function json(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: {
@@ -24,7 +25,7 @@ export async function readLimitedText(request, limit) {
   } finally { reader.releaseLock(); }
 }
 
-export async function getAdmin(context, allowMediaCookie = false, requireMfa = true) {
+export async function getAdmin(context, allowMediaCookie = false, requireMfa = true, requireStudioSession = true) {
   let authorization = context.request.headers.get("Authorization");
   if (!authorization && allowMediaCookie) {
     const token = context.request.headers.get("Cookie")?.split(";").map((c) => c.trim()).find((c) => c.startsWith("__Secure-dj-media="))?.slice(18);
@@ -50,9 +51,11 @@ export async function getAdmin(context, allowMediaCookie = false, requireMfa = t
     const payload = authorization.slice(7).split(".")[1];
     claims = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
   } catch { return null; }
-  const mfaVerified = claims.aal === "aal2";
-  if (requireMfa && !mfaVerified) return null;
-  return { ...user, mfaVerified };
+  const admin={...user,authClaims:claims,mfaVerified:claims.aal==='aal2'};
+  if (!admin.mfaVerified) admin.mfaVerified=Boolean(await trustedDevice(context,admin));
+  if (requireMfa && !admin.mfaVerified) return null;
+  if (requireStudioSession && !await studioSession(context,admin)) return null;
+  return admin;
 }
 
 export function isPublicSong(song, env = {}) {

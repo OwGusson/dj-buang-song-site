@@ -1,3 +1,4 @@
+import {studioLease} from './studio-session-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getAdmin, fileKey } from '../functions/_lib/security.js';
@@ -9,7 +10,7 @@ import { onRequestGet as session } from '../functions/api/session.js';
 import { onRequestPost as interact } from '../functions/api/interactions.js';
 import { authenticatorQrDataUrl } from '../src/authenticatorQr.js';
 
-const adminToken = 'e30.' + Buffer.from(JSON.stringify({ aal: 'aal2' })).toString('base64url') + '.signature';
+const adminToken = 'e30.' + Buffer.from(JSON.stringify({ aal: 'aal2', session_id:'test-session' })).toString('base64url') + '.signature';
 const origin = 'https://dj-buang.com';
 test('authenticator SVG data URIs safely encode colors and preserve the complete image', () => {
   const svg = '<svg xmlns="http://www.w3.org/2000/svg"><path fill="#fff" d="M0 0h10v10z"/></svg>';
@@ -30,6 +31,7 @@ function context(path, options = {}) {
     request: new Request(origin + path, options), data: {}, writes,
     env: { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_ANON_KEY: 'public-key', FILES: {
       async get(key) {
+        const lease=studioLease(key);if(lease)return lease;
         const value = objects.get(key);
         if (value === undefined) return null;
         return { text: async () => value, body: new Response(value).body, size: value.length, httpEtag: 'etag', httpMetadata: { contentType: 'audio/mpeg' }, writeHttpMetadata: (h) => h.set('Content-Type', 'audio/mpeg') };
@@ -101,8 +103,8 @@ test('private media and internal catalog cannot be read anonymously', async () =
 test('media cookie is HttpOnly and authorizes only media', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => Response.json({ id: 'admin', app_metadata: { role: 'admin' } }));
   const ctx = context('/api/session', { headers: { Authorization: String("Bearer " + adminToken) } });
-  ctx.data.admin = { id: 'admin', mfaVerified: true };
-  const cookie = session(ctx).headers.get('Set-Cookie');
+  ctx.data.admin = { id: 'admin', mfaVerified: true, authClaims:{session_id:'test-session'} };
+  const cookie = (await session(ctx)).headers.get('Set-Cookie');
   assert.match(cookie, /HttpOnly; Secure; SameSite=Strict/);
   assert.equal((await media(context('/files/123-private.mp3', { headers: { Cookie: cookie.split(';')[0] } }))).status, 200);
   assert.equal((await middleware(context('/api/upload', { method: 'POST', headers: { Cookie: cookie.split(';')[0] } }))).status, 401);

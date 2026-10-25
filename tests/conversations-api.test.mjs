@@ -1,11 +1,12 @@
+import {studioLease} from './studio-session-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {onRequestGet as read,onRequestPost as write} from '../functions/api/conversations.js';
 import {deliverContactNotifications} from '../functions/_lib/contact-mail.js';
 const id='11111111-1111-4111-8111-111111111111';
-const jwt=aal=>'e30.'+Buffer.from(JSON.stringify({aal})).toString('base64url')+'.validated-by-auth';
+const jwt=aal=>'e30.'+Buffer.from(JSON.stringify({aal,session_id:'test-session'})).toString('base64url')+'.validated-by-auth';
 function ctx(data={action:'create',data:{kind:'message',title:'Hello',body:'Private message',nickname:'Listener'},turnstileToken:'valid'}){
- return {request:new Request('https://dj-buang.com/api/conversations',{method:'POST',headers:{Authorization:'Bearer '+jwt('aal1'),'Content-Type':'application/json','CF-Connecting-IP':'192.0.2.1'},body:JSON.stringify(data)}),env:{CONTACTS_ENABLED:'true',TURNSTILE_SITE_KEY:'public',TURNSTILE_SECRET_KEY:'secret',INTERACTION_HASH_SECRET:'hash-secret',SUPABASE_URL:'https://example.supabase.co',SUPABASE_PUBLISHABLE_KEY:'public',SUPABASE_SERVICE_ROLE_KEY:'server-only'}};
+ return {request:new Request('https://dj-buang.com/api/conversations',{method:'POST',headers:{Authorization:'Bearer '+jwt('aal1'),'Content-Type':'application/json','CF-Connecting-IP':'192.0.2.1'},body:JSON.stringify(data)}),env:{FILES:{get:async key=>studioLease(key,id)},CONTACTS_ENABLED:'true',TURNSTILE_SITE_KEY:'public',TURNSTILE_SECRET_KEY:'secret',INTERACTION_HASH_SECRET:'hash-secret',SUPABASE_URL:'https://example.supabase.co',SUPABASE_PUBLISHABLE_KEY:'public',SUPABASE_SERVICE_ROLE_KEY:'server-only'}};
 }
 function mock(t,{user={id,email:'listener@example.test',email_confirmed_at:'2026-10-21',app_metadata:{}},captcha={},rpc=Response.json({ok:true})}={}){
  const calls=[];t.mock.method(globalThis,'fetch',async(url,options)=>{
