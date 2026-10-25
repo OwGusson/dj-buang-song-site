@@ -1,5 +1,5 @@
 import {json,readLimitedText} from '../_lib/security.js';
-import {studioSession,beginSession,touchSession,endSession,rememberDevice,forgetDevice,deviceCookie,sessionInfo} from '../_lib/studio-session.js';
+import {studioSession,sessionBlocked,beginSession,touchSession,endSession,rememberDevice,forgetDevice,deviceCookie,sessionInfo} from '../_lib/studio-session.js';
 function responseFor(context,record) {
  const response=json({authenticated:true,...sessionInfo(record)});
  const token=context.request.headers.get('Authorization').slice(7);
@@ -8,6 +8,7 @@ function responseFor(context,record) {
 }
 export async function onRequestGet(context) {
  const admin=context.data.admin;if(!admin)return json({error:'Administrator sign-in required'},401);
+ if(await sessionBlocked(context,admin))return json({authenticated:false,reauthRequired:true});
  if(!admin.mfaVerified)return json({authenticated:false,mfaRequired:true});
  const record=await studioSession(context,admin);
  return record?responseFor(context,record):json({authenticated:false,reauthRequired:true});

@@ -25,6 +25,11 @@ export async function studioSession(context, admin) {
  const record=await read(context.env,path);
  return record?.user===admin.id && isActive(record) ? record : null;
 }
+export async function sessionBlocked(context,admin) {
+ const path=await key(admin);if(!path)return true;
+ if(await read(context.env,path.replace('studio-sessions/','studio-revoked/')))return true;
+ const record=await read(context.env,path);return !!record && !isActive(record);
+}
 export async function trustedDevice(context, admin) {
  const token=cookie(context.request,DEVICE_COOKIE);
  if(!/^[a-f0-9]{64}$/.test(token))return null;

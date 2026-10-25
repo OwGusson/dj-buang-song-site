@@ -72,7 +72,7 @@ test('auth outage fails closed', async (t) => {
 });
 test('password-only admin session cannot mutate or read private data', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => Response.json({ id: 'admin', app_metadata: { role: 'admin' } }));
-  const token = 'e30.' + Buffer.from(JSON.stringify({ aal: 'aal1' })).toString('base64url') + '.signature';
+  const token = 'e30.' + Buffer.from(JSON.stringify({ aal: 'aal1',session_id:'test-session' })).toString('base64url') + '.signature';
   const headers = { Authorization: `Bearer ${token}` };
   assert.equal((await middleware(context('/api/upload', { method: 'POST', headers }))).status, 401);
   assert.equal((await (await catalog(context('/api/songs', { headers }))).json()).length, 1);
