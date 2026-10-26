@@ -72,7 +72,7 @@ function render(){
 }
 async function play(index,{fromQueue=false,force=false}={}){
  if(index<0||index>=songs.length)return;
- if(current===index&&!force){if(audio.paused) await audio.play().catch(()=>toast('Playback could not start. Please try again.'));else audio.pause();return;}
+ if(current===index&&!force){if(audio.paused){audio.autoplay=true;await audio.play().catch(()=>toast('Playback could not start. Please try again.'));}else audio.pause();return;}
  saveListening();const selected=songs[index];if(!fromQueue)queue.start(songs.map(song=>song.id),selected.id);
  current=index;const song=songs[index];audio.autoplay=true;audio.src=media(song.audioUrl);$('#player-title').textContent=song.title;$('#player-artist').textContent=song.artist||'DJ-Buang';$('#player-cover').src=song.coverUrl;$('#player-cover').hidden=false;updateDownload();updateMediaSession();progressTracked=false;track(song.id,'open');track(song.id,'play_start');try{await audio.play();}catch(error){if(error?.name!=='AbortError'){const message=error?.name==='NotAllowedError'?'Playback was blocked. Unlock your phone and tap Play to continue.':'This track could not start. Tap Play to try again.';$('#player-artist').textContent=message;toast(message);}}render();
 }
