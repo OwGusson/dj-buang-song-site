@@ -38,11 +38,16 @@ await refreshAlbumSettings();
 const settings = new Map(songs.map(s=>[s.id,s.downloadable!==false]));
 const audio=$('#audio'); audio.volume=.8;
 let repeatMode='off';
-function updateRepeatControl(){const button=$('#repeat');if(!button)return;const label=repeatMode==='one'?'Repeat song':repeatMode==='all'?'Repeat queue':'Repeat off';button.textContent=repeatMode==='one'?'↻¹':'↻';button.setAttribute('aria-label',label);button.title=label;button.setAttribute('aria-pressed',String(repeatMode!=='off'));audio.loop=repeatMode==='one';}
+function updateRepeatControl(){const button=$('#repeat');if(!button)return;const label=repeatMode==='one'?'Repeat song':repeatMode==='all'?'Repeat queue':'Repeat off';button.querySelector('.repeat-symbol').textContent=repeatMode==='one'?'↻¹':'↻';button.setAttribute('aria-label',label);button.title=label;button.setAttribute('aria-pressed',String(repeatMode!=='off'));audio.loop=repeatMode==='one';}
 function updateMediaSession(){
  if(!('mediaSession'in navigator)||current<0||!songs[current])return;
  const song=songs[current];
- try{navigator.mediaSession.metadata=new MediaMetadata({title:song.title,artist:song.artist||'DJ-Buang',album:song.albumTitle||'DJ-Buang',artwork:song.coverUrl?[{src:new URL(song.coverUrl,location.href).href,sizes:'512x512',type:'image/png'}]:[]});}catch{/* Media metadata is an optional enhancement. */}
+ const details={title:String(song.title||'DJ-Buang'),artist:String(song.artist||'DJ-Buang'),album:String(song.albumTitle||'Global Barangay')};
+ try{
+  const fallback=new window.MediaMetadata(details);
+  try{navigator.mediaSession.metadata=new window.MediaMetadata({...details,artwork:song.coverUrl?[{src:new URL(song.coverUrl,location.href).href,sizes:'512x512'}]:[]});}
+  catch{navigator.mediaSession.metadata=fallback;}
+ }catch{/* Media metadata is an optional enhancement. */}
  try{navigator.mediaSession.playbackState=audio.paused?'paused':'playing';}catch{/* Some browsers expose a read-only media session. */}
  try{if(Number.isFinite(audio.duration)&&audio.duration>0)navigator.mediaSession.setPositionState({duration:audio.duration,playbackRate:audio.playbackRate,position:Math.min(audio.currentTime,audio.duration)});}catch{/* Position controls are not available in every browser. */}
 }
