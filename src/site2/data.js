@@ -7,6 +7,12 @@ export async function studioRows(kind,options={}) {
  }
  throw Error('Too much data to load. Choose a shorter period.');
 }
+export async function studioAudience(options={}) {
+ const query=new URLSearchParams({kind:'audience',...options});
+ const response=await apiFetch('/api/studio-data?'+query);
+ if(!response.ok)throw Error('Audience estimates could not be loaded. Please sign in again.');
+ return response.json();
+}
 import { apiFetch, verifyAdmin } from '../adminAuth';
 export function requireWrites() {
   if (import.meta.env.DEV && import.meta.env.VITE_ALLOW_LIVE_WRITES !== 'true') throw new Error('This development preview does not save changes. Changes will be enabled on the deployed site.');
