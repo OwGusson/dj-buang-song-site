@@ -42,7 +42,10 @@ function updateRepeatControl(){const button=$('#repeat');if(!button)return;const
 function updateMediaSession(){
  if(!('mediaSession'in navigator)||current<0||!songs[current])return;
  const song=songs[current];
- const details={title:String(song.title||'DJ-Buang'),artist:String(song.artist||'DJ-Buang'),album:String(song.albumTitle||'Global Barangay')};
+ const credits=String(song.credits||'').trim();
+ const featured=credits.match(/^(?:feat(?:uring)?\.?\s+)(.+)$/i)?.[1]?.trim();
+ const artist=[String(song.artist||'DJ-Buang'),featured?`feat. ${featured}`:''].filter(Boolean).join(' ');
+ const details={title:String(song.title||'DJ-Buang'),artist,album:String(song.albumTitle||'Global Barangay')};
  try{
   const fallback=new window.MediaMetadata(details);
   try{navigator.mediaSession.metadata=new window.MediaMetadata({...details,artwork:song.coverUrl?[{src:new URL(song.coverUrl,location.href).href,sizes:'512x512'}]:[]});}
@@ -74,7 +77,13 @@ async function play(index,{fromQueue=false,force=false}={}){
  if(index<0||index>=songs.length)return;
  if(current===index&&!force){if(audio.paused){audio.autoplay=true;await audio.play().catch(()=>toast('Playback could not start. Please try again.'));}else audio.pause();return;}
  saveListening();const selected=songs[index];if(!fromQueue)queue.start(songs.map(song=>song.id),selected.id);
- current=index;const song=songs[index];audio.autoplay=true;audio.src=media(song.audioUrl);$('#player-title').textContent=song.title;$('#player-artist').textContent=song.artist||'DJ-Buang';$('#player-cover').src=song.coverUrl;$('#player-cover').hidden=false;updateDownload();updateMediaSession();progressTracked=false;track(song.id,'open');track(song.id,'play_start');try{await audio.play();}catch(error){if(error?.name!=='AbortError'){const message=error?.name==='NotAllowedError'?'Playback was blocked. Unlock your phone and tap Play to continue.':'This track could not start. Tap Play to try again.';$('#player-artist').textContent=message;toast(message);}}render();
+ current=index;const song=songs[index];audio.autoplay=true;audio.src=media(song.audioUrl);
+ // Start immediately after changing the source. On an ended event this keeps the
+ // play request in the same task, which gives mobile browsers the best chance to
+ // continue the album while the page is backgrounded.
+ const start=audio.play();
+ $('#player-title').textContent=song.title;$('#player-artist').textContent=song.artist||'DJ-Buang';$('#player-cover').src=song.coverUrl;$('#player-cover').hidden=false;updateDownload();updateMediaSession();progressTracked=false;track(song.id,'open');track(song.id,'play_start');
+ try{await start;}catch(error){if(error?.name!=='AbortError'){const message=error?.name==='NotAllowedError'?'Your browser paused playback between tracks. Unlock your phone and tap Play to continue.':'The next track could not start. Unlock your phone and tap Play to retry.';$('#player-artist').textContent=message;toast(message);try{if('mediaSession'in navigator)navigator.mediaSession.playbackState='paused';}catch{/* Optional browser feature. */}}}render();
 }
 function updateDownload(){
  const button=$('#player-like');button.hidden=current<0||!songs[current];
