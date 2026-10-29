@@ -22,7 +22,15 @@ export function connect({detail,$,getSongs,setSongs,getCurrent,setCurrent,settin
  }
  const studio=createStudio({modal,esc,toast,onCatalog:refreshCatalog});
  const openStudio=()=>{if(location.pathname!=='/studio')history.pushState(null,'','/studio'+location.search);return studio.open();};
- $('#admin-open').onclick=openStudio;
+ document.querySelectorAll('[data-open-studio]').forEach(button=>button.addEventListener('click',openStudio));
+ const menuToggle=$('#mobile-menu-toggle'),mobileMenu=$('#mobile-menu');
+ if(menuToggle&&mobileMenu){
+  const closeMobileMenu=(restoreFocus=false)=>{mobileMenu.hidden=true;menuToggle.setAttribute('aria-expanded','false');menuToggle.setAttribute('aria-label','Open navigation menu');if(restoreFocus)menuToggle.focus();};
+  menuToggle.addEventListener('click',()=>{const opening=mobileMenu.hidden;mobileMenu.hidden=!opening;menuToggle.setAttribute('aria-expanded',String(opening));menuToggle.setAttribute('aria-label',opening?'Close navigation menu':'Open navigation menu');});
+  mobileMenu.addEventListener('click',event=>{if(event.target.closest('a'))closeMobileMenu(true);else if(event.target.closest('[data-open-studio]'))closeMobileMenu();});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!mobileMenu.hidden)closeMobileMenu(true);});
+  window.addEventListener('resize',()=>{if(window.innerWidth>900&&!mobileMenu.hidden)closeMobileMenu();});
+ }
  $('#modal').addEventListener('close',()=>{if(!$('#modal').open&&location.pathname==='/studio')history.replaceState(null,'','/'+location.search);});
  window.addEventListener('popstate',()=>{if(location.pathname==='/studio')studio.open();else if($('#modal').open)$('#modal').close();});
  $('#modal-content').addEventListener('click',event=>{const link=event.target.closest('a[download]');if(link){const id=new URL(link.href).searchParams.get('id');if(id)interaction(id,'download_song').catch(()=>{});}});
