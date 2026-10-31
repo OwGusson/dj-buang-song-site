@@ -1,5 +1,6 @@
 import { studioSession, trustedDevice } from './studio-session.js';
 import { readAlbum } from './albums.js';
+import { RELEASE_SONGS } from '../../shared/buang-after-dark.js';
 export function json(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: {
     "Content-Type": "application/json", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
@@ -67,6 +68,8 @@ export async function readSongs(env) {
   const object = await env.FILES.get("data/songs.json");
   const songs = object ? JSON.parse(await object.text()) : [];
   if (!Array.isArray(songs)) throw new Error("Invalid song catalog");
+  const ids = new Set(songs.map(song => song.id));
+  for (const release of RELEASE_SONGS) if (!ids.has(release.id)) songs.unshift({ ...release });
   if (songs.some(song => song.albumId === 'global-barangay')) {
     const album = await readAlbum(env);
     for (const song of songs.filter(song => song.albumId === album.id)) {

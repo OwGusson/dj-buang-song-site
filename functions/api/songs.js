@@ -1,4 +1,5 @@
 import { getAdmin, isPublicSong, json, readLimitedText, readSongs } from "../_lib/security.js";
+import { RELEASE_SONGS } from '../../shared/buang-after-dark.js';
 async function saveSongs(env, songs) {
   const previous = await env.FILES.get("data/songs.json");
   if (previous) await env.FILES.put(`data/backups/${Date.now()}-${crypto.randomUUID()}.json`, previous.body);
@@ -66,6 +67,10 @@ export async function onRequestDelete(context) {
   if (!id || !/^[\w-]{1,100}$/.test(id)) return json({ error: "Valid song id required" }, 400);
   const songs = await readSongs(context.env);
   if (!songs.some(song => song.id === id)) return json({ error: "Song not found" }, 404);
-  await saveSongs(context.env, songs.filter((s) => s.id !== id));
+  if (RELEASE_SONGS.some(song => song.id === id)) {
+    await saveSongs(context.env, songs.map(song => song.id === id ? { ...song, visibility: 'private', status: 'hidden' } : song));
+  } else {
+    await saveSongs(context.env, songs.filter((s) => s.id !== id));
+  }
   return json({ success: true });
 }

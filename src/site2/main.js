@@ -45,7 +45,7 @@ function updateMediaSession(){
  const credits=String(song.credits||'').trim();
  const featured=credits.match(/^(?:feat(?:uring)?\.?\s+)(.+)$/i)?.[1]?.trim();
  const artist=[String(song.artist||'DJ-Buang'),featured?`feat. ${featured}`:''].filter(Boolean).join(' ');
- const details={title:String(song.title||'DJ-Buang'),artist,album:String(song.albumTitle||'Global Barangay')};
+ const details={title:String(song.title||'DJ-Buang'),artist,album:String(song.albumTitle||(song.id==='buang-after-dark'?'Buang After Dark · Single':song.albumId==='global-barangay'?'Global Barangay':'DJ-Buang · Single'))};
  try{
   const fallback=new window.MediaMetadata(details);
   try{navigator.mediaSession.metadata=new window.MediaMetadata({...details,artwork:song.coverUrl?[{src:new URL(song.coverUrl,location.href).href,sizes:'512x512'}]:[]});}
@@ -61,7 +61,7 @@ function saveListening(){if(current<0||!songs[current])return;try{localStorage.s
 function restoreListening(){if(restoredListening)return;restoredListening=true;if(new URLSearchParams(location.search).has('song'))return;try{const saved=JSON.parse(localStorage.getItem(listeningKey)||'null');const index=songs.findIndex(song=>song.id===saved?.id);if(index<0)return;current=index;const song=songs[index];queue.start(songs.map(song=>song.id),song.id);audio.src=media(song.audioUrl);audio.volume=Number.isFinite(saved.volume)?Math.max(0,Math.min(1,saved.volume)):.8;$('#volume').value=audio.volume;const seek=()=>{if(Number.isFinite(saved.position)&&saved.position>0&&Number.isFinite(audio.duration))audio.currentTime=Math.min(saved.position,Math.max(0,audio.duration-1));};audio.addEventListener('loadedmetadata',seek,{once:true});audio.load();$('#player-title').textContent=song.title;$('#player-artist').textContent='Continue listening · '+(song.artist||'DJ-Buang');$('#player-cover').src=song.coverUrl;$('#player-cover').hidden=false;updateDownload();updateMediaSession();render();}catch{/* Ignore invalid or unavailable local history. */}}
 window.addEventListener('pagehide',saveListening);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveListening();});audio.addEventListener('pause',saveListening);audio.addEventListener('seeked',saveListening);audio.addEventListener('timeupdate',()=>{if(Date.now()-lastSavedAt>5000){lastSavedAt=Date.now();saveListening();}});
 const media=(url)=>url;
-const downloadUrl=song=>'/api/download?id='+encodeURIComponent(song.id);
+const downloadUrl=song=>song.audioUrl?.startsWith('/media/')?song.audioUrl:'/api/download?id='+encodeURIComponent(song.id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(message){$('#notice').textContent=message;$('#notice').style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>$('#notice').style.display='none',4500);}
 function render(){
