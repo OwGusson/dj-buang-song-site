@@ -45,6 +45,19 @@ export class ListeningQueue {
     if (index <= this.position + this.priority) this.priority--;
     this.ids.splice(index, 1); return true;
   }
+  clearCurrent() {
+    if (this.position < 0 || this.position >= this.ids.length) return false;
+    this.ids = this.ids.slice(this.position + 1);
+    this.original = [...this.ids];
+    this.position = -1; this.priority = 0; this.shuffled = false;
+    return true;
+  }
+  clearUpcoming() {
+    const before = this.ids.length;
+    this.ids = this.ids.slice(0, this.position + 1);
+    this.original = [...this.ids]; this.priority = 0; this.shuffled = false;
+    return before - this.ids.length;
+  }
   shuffle(random = Math.random) {
     this.shuffled = !this.shuffled; this.priority = 0;
     const rest = this.ids.slice(this.position + 1);

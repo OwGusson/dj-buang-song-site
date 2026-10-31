@@ -29,6 +29,26 @@ header .brand img{width:76px;height:76px;object-fit:contain}header .brand small{
 
 .song-requester{color:var(--muted,#a9b9c5);font-size:.8rem;line-height:1.45;margin:.35rem 0 .7rem;overflow-wrap:anywhere}
 
+/* Keep transport controls centered and place Repeat at the right edge of the group. */
+.transport-buttons{display:grid;grid-template-columns:32px 32px 48px 32px 40px;align-items:center;justify-content:center;gap:clamp(12px,2vw,28px)}
+.player-clear{display:inline-grid;place-items:center;width:32px;height:32px;padding:0;border:1px solid #486074;border-radius:50%;background:transparent;color:#b9cbd8;font-size:23px;line-height:1}
+.player-clear:hover{border-color:#ff9ea5;color:#ffb4ba;background:#321d24}
+.player-clear[hidden]{display:none}
+.queue-clear{margin:0 0 8px;padding:8px 12px;border:1px solid #496174;border-radius:4px;background:transparent;color:#b9d2e2;font-size:11px}
+.queue-clear:hover{border-color:#00b4ff;color:#e8f8ff}
+@media(max-width:680px){
+ body{padding-bottom:205px}
+ .player{grid-template-columns:1fr;grid-template-rows:auto auto auto auto;min-height:190px;gap:7px 10px;align-content:center}
+ .playing-track{grid-column:1;grid-row:1}
+ .transport{display:contents}
+ .transport-buttons{grid-column:1;grid-row:2;grid-template-columns:30px 30px 44px 30px 38px;justify-content:center;gap:clamp(8px,3vw,16px)}
+ .scrubber,.player:has(.player-like:not([hidden])) .scrubber{grid-column:1;grid-row:3;margin:0;padding:0}
+ .player-extra,.player-extra:has(.player-like:not([hidden])){display:flex;grid-column:1;grid-row:4;justify-content:center;gap:5px;flex-wrap:wrap}
+ .player-extra .volume{display:none}
+ .player-like,.queue-button{position:static;min-height:32px;font-size:10px;padding:5px 9px}
+ .player-clear{width:32px;height:32px}
+}
+
 .shared-song-cover{display:block;width:min(100%,300px);aspect-ratio:1;object-fit:cover;border-radius:8px;margin:0 0 1.2rem}.library-toolbar{flex-wrap:wrap;gap:12px}
 
 .album-track-art{display:block;width:48px;height:48px;object-fit:cover;border-radius:4px;margin-bottom:6px}.album-track .track-number{min-width:52px}

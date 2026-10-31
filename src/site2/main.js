@@ -87,6 +87,7 @@ async function play(index,{fromQueue=false,force=false}={}){
 }
 function updateDownload(){
  const button=$('#player-like');button.hidden=current<0||!songs[current];
+ $('#player-clear').hidden=current<0||!songs[current];
  if(current>=0&&songs[current]){button.dataset.like=songs[current].id;button.setAttribute('aria-label','Like '+songs[current].title);}
  else delete button.dataset.like;
  syncLikes();
@@ -98,7 +99,17 @@ $('#songs').onclick=event=>{const p=event.target.closest('[data-play]');if(p)pla
 $('#search').oninput=()=>{limit=8;render();};
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;limit=8;document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('active',x===b));render();});
 $('#more').onclick=()=>{limit+=8;render();};
-$('#play').onclick=()=>{if(current<0&&queue.ids.length)playQueued(queue.current()||queue.next());else play(current<0?0:current);};
+$('#play').onclick=()=>{if(current<0&&queue.ids.length)playQueued(queue.next());else play(current<0?0:current);};
+$('#player-clear').onclick=()=>{
+ if(current<0||!songs[current])return;
+ const cleared=queue.clearCurrent();current=-1;try{localStorage.removeItem(listeningKey);}catch{/* Clearing playback does not depend on browser storage. */}
+ audio.pause();audio.removeAttribute('src');audio.load();
+ $('#player-title').textContent='Your next favourite is waiting';$('#player-artist').textContent='Choose a song and press play';
+ $('#player-cover').removeAttribute('src');$('#player-cover').hidden=true;
+ $('#elapsed').textContent='0:00';$('#duration').textContent='0:00';$('#seek').value=0;
+ progressMilestones.clear();updateDownload();updateMediaSession();render();renderQueueIfOpen();
+ toast(cleared?'Current song cleared. Your upcoming songs are still queued.':'Current song cleared.');
+};
 $('#previous').onclick=()=>{if(audio.currentTime>3){audio.currentTime=0;return;}playQueued(queue.previous());};
 $('#next').onclick=()=>advanceQueue();
 audio.onplay=()=>{$('#play').textContent='Ⅱ';$('#play').setAttribute('aria-label','Pause');updateMediaSession();render();};audio.onpause=()=>{$('#play').textContent='▶';$('#play').setAttribute('aria-label','Play');updateMediaSession();render();};audio.onended=()=>{if(current>=0){const id=songs[current].id;recordProgress(id,1);if(!progressMilestones.has('play_finished')){progressMilestones.add('play_finished');track(id,'play_finished');}}advanceQueue(true);};
@@ -163,9 +174,10 @@ function addToQueue(id){
 }
 function openQueue(){
  const selected=queue.current();
- modal(`<div class="eyebrow">YOUR LISTENING SESSION</div><h2>Up next<span>.</span></h2><p class="studio-help">${queue.shuffled?'Shuffle is on.':'Playing in order.'} Add songs with the ＋ button. This queue stays in this browser session.</p>${queue.ids.length?`<ol class="queue-list">${queue.ids.map((id,index)=>{const song=songs.find(song=>song.id===id);if(!song)return '';return `<li class="${index===queue.position?'queue-current':''}"><button class="queue-track" data-queue-position="${index}"><span>${index===queue.position?'▶':String(index+1).padStart(2,'0')}</span><div><strong>${esc(song.title)}</strong><small>${index===queue.position?'Now playing':index<queue.position?'Played':esc(song.artist||'DJ-Buang')}</small></div></button>${index>queue.position?`<button class="queue-remove" data-queue-remove="${index}" aria-label="Remove ${esc(song.title)} from queue">×</button>`:''}</li>`;}).join('')}</ol>`:'<p>Your queue is waiting. Start a song, play an album, or add a song with ＋.</p><button class="primary" id="queue-play-collection">Play the collection ▶</button>'}`);
+ modal(`<div class="eyebrow">YOUR LISTENING SESSION</div><h2>Up next<span>.</span></h2><p class="studio-help">${queue.shuffled?'Shuffle is on.':'Playing in order.'} Add songs with the ＋ button. This queue stays in this browser session.</p>${queue.ids.length>queue.position+1?'<button class="queue-clear" id="queue-clear">Clear upcoming songs</button>':''}${queue.ids.length?`<ol class="queue-list">${queue.ids.map((id,index)=>{const song=songs.find(song=>song.id===id);if(!song)return '';return `<li class="${index===queue.position?'queue-current':''}"><button class="queue-track" data-queue-position="${index}"><span>${index===queue.position?'▶':String(index+1).padStart(2,'0')}</span><div><strong>${esc(song.title)}</strong><small>${index===queue.position?'Now playing':index<queue.position?'Played':esc(song.artist||'DJ-Buang')}</small></div></button>${index>queue.position?`<button class="queue-remove" data-queue-remove="${index}" aria-label="Remove ${esc(song.title)} from queue">×</button>`:''}</li>`;}).join('')}</ol>`:'<p>Your queue is waiting. Start a song, play an album, or add a song with ＋.</p><button class="primary" id="queue-play-collection">Play the collection ▶</button>'}`);
  $('#modal').dataset.queueView='true';
  $('#queue-play-collection')?.addEventListener('click',()=>{if(songs.length){queue.start(songs.map(song=>song.id));playQueued(queue.current());}});
+ $('#queue-clear')?.addEventListener('click',()=>{const count=queue.clearUpcoming();toast(`${count} upcoming ${count===1?'song':'songs'} cleared.`);openQueue();});
  $('#modal-content').querySelectorAll('[data-queue-position]').forEach(button=>button.onclick=()=>playQueued(queue.choose(Number(button.dataset.queuePosition))));
  $('#modal-content').querySelectorAll('[data-queue-remove]').forEach(button=>button.onclick=()=>{queue.remove(Number(button.dataset.queueRemove));openQueue();});
  if(selected)syncLikes();
@@ -176,6 +188,7 @@ function renderQueueIfOpen(){
  if($('#modal').open&&$('#modal').dataset.queueView==='true')openQueue();
 }
 $('#queue-open').onclick=openQueue;
+$('#player-clear').hidden=true;
 $('#shuffle').onclick=()=>{if(!queue.ids.length&&songs.length)queue.start(songs.map(song=>song.id),current>=0?songs[current].id:null);const enabled=queue.shuffle();toast(enabled?'Shuffle on. Your current song stays in place.':'Shuffle off. Back to the collection’s order.');renderQueueIfOpen();};
 $('#repeat').onclick=()=>{repeatMode=repeatMode==='off'?'all':repeatMode==='all'?'one':'off';updateRepeatControl();toast(repeatMode==='one'?'Repeating this song.':repeatMode==='all'?'Repeating the queue.':'Repeat off.');};updateRepeatControl();
 document.addEventListener('click',event=>{const button=event.target.closest('[data-enqueue]');if(button)addToQueue(button.dataset.enqueue);});
