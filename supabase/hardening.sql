@@ -59,7 +59,7 @@ declare used integer; inserted integer; total bigint; summary jsonb;
 begin
   if p_actor is null or p_song_id is null or p_event_type is null
     or p_actor !~ '^[0-9a-f]{64}$' or char_length(p_song_id) not between 1 and 100
-    or p_event_type not in ('like','open','play_start','play_25','download_song','download_lyrics') then
+    or p_event_type not in ('like','open','play_start','play_25','play_50','play_75','play_finished','download_song','download_lyrics') then
     raise exception 'Invalid interaction';
   end if;
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('actor:' || p_actor, 0));

@@ -82,7 +82,7 @@ async function play(index,{fromQueue=false,force=false}={}){
  // play request in the same task, which gives mobile browsers the best chance to
  // continue the album while the page is backgrounded.
  const start=audio.play();
- $('#player-title').textContent=song.title;$('#player-artist').textContent=song.artist||'DJ-Buang';$('#player-cover').src=song.coverUrl;$('#player-cover').hidden=false;updateDownload();updateMediaSession();progressTracked=false;track(song.id,'open');track(song.id,'play_start');
+ $('#player-title').textContent=song.title;$('#player-artist').textContent=song.artist||'DJ-Buang';$('#player-cover').src=song.coverUrl;$('#player-cover').hidden=false;updateDownload();updateMediaSession();progressMilestones.clear();track(song.id,'open');track(song.id,'play_start');
  try{await start;}catch(error){if(error?.name!=='AbortError'){const message=error?.name==='NotAllowedError'?'Your browser paused playback between tracks. Unlock your phone and tap Play to continue.':'The next track could not start. Unlock your phone and tap Play to retry.';$('#player-artist').textContent=message;toast(message);try{if('mediaSession'in navigator)navigator.mediaSession.playbackState='paused';}catch{/* Optional browser feature. */}}}render();
 }
 function updateDownload(){
@@ -101,7 +101,7 @@ $('#more').onclick=()=>{limit+=8;render();};
 $('#play').onclick=()=>{if(current<0&&queue.ids.length)playQueued(queue.current()||queue.next());else play(current<0?0:current);};
 $('#previous').onclick=()=>{if(audio.currentTime>3){audio.currentTime=0;return;}playQueued(queue.previous());};
 $('#next').onclick=()=>advanceQueue();
-audio.onplay=()=>{$('#play').textContent='Ⅱ';$('#play').setAttribute('aria-label','Pause');updateMediaSession();render();};audio.onpause=()=>{$('#play').textContent='▶';$('#play').setAttribute('aria-label','Play');updateMediaSession();render();};audio.onended=()=>advanceQueue(true);
+audio.onplay=()=>{$('#play').textContent='Ⅱ';$('#play').setAttribute('aria-label','Pause');updateMediaSession();render();};audio.onpause=()=>{$('#play').textContent='▶';$('#play').setAttribute('aria-label','Play');updateMediaSession();render();};audio.onended=()=>{if(current>=0){const id=songs[current].id;recordProgress(id,1);if(!progressMilestones.has('play_finished')){progressMilestones.add('play_finished');track(id,'play_finished');}}advanceQueue(true);};
 audio.addEventListener('loadedmetadata',updateMediaSession);audio.addEventListener('timeupdate',()=>{if(!audio.paused)updateMediaSession();});
 setMediaAction('play',()=>audio.play().catch(()=>{}));setMediaAction('pause',()=>audio.pause());setMediaAction('nexttrack',()=>advanceQueue());setMediaAction('previoustrack',()=>{if(audio.currentTime>3)audio.currentTime=0;else playQueued(queue.previous());});setMediaAction('seekto',event=>{if(Number.isFinite(event.seekTime))audio.currentTime=event.seekTime;});
 const time=n=>Number.isFinite(n)?`${Math.floor(n/60)}:${String(Math.floor(n%60)).padStart(2,'0')}`:'0:00';
@@ -121,9 +121,10 @@ installHelp();
 
 albumPage=createAlbumPage({getSongs:()=>songs,getRelease:()=>releaseState.globalBarangayReleased,getPreview:()=>releaseState.localAlbumPreview,getAlbum:()=>albumSettings,playAlbum,detail,esc});
 connect({detail,$,getSongs:()=>songs,setSongs:value=>songs=value,getCurrent:()=>current,setCurrent:value=>current=value,settings,audio,render,updateDownload,modal,esc,toast,onCatalogReady:()=>{refreshAlbumSettings().then(()=>albumPage.render());restoreListening();queue.reconcile(songs.map(song=>song.id));albumPage.render();renderQueueIfOpen();loadMusicStats();},getPreviewSongs:loadAdminAlbumPreview,isVisibleSong:song=>song.albumId!==ALBUM_ID||releaseState.globalBarangayReleased});
-let progressTracked=false;
+const progressMilestones=new Set();
 function track(id,type){interaction(id,type).catch(()=>{});}
-audio.addEventListener('timeupdate',()=>{if(!progressTracked&&current>=0&&audio.duration>0&&audio.currentTime/audio.duration>=.25){progressTracked=true;track(songs[current].id,'play_25');}});
+function recordProgress(songId,progress){for(const [threshold,event] of [[.25,'play_25'],[.5,'play_50'],[.75,'play_75']])if(progress>=threshold&&!progressMilestones.has(event)){progressMilestones.add(event);track(songId,event);}}
+audio.addEventListener('timeupdate',()=>{if(!audio.paused&&current>=0&&audio.duration>0)recordProgress(songs[current].id,audio.currentTime/audio.duration);});
 
 document.querySelector('#inbox-open').onclick=()=>openMyConversations(modal).catch(error=>toast(error.message));
 if(new URLSearchParams(location.search).get('inbox')==='1')openMyConversations(modal).catch(error=>toast(error.message));
