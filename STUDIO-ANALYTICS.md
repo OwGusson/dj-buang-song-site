@@ -1,9 +1,36 @@
-# Studio analytics
+# DJ-Buang Studio analytics
 
-Administrator-only Analytics provides Today, Last 7 days, Last 30 days and All time, using UTC calendar days (Iceland time). Rankings include only songs currently in the administrator's catalog, including private tracks. Album rankings group those tracks by albumId; standalone songs remain in song rankings only.
+Studio reports anonymous website sessions and listening activity in Today, Last 7 days, Last 30 days, and Last 90 days. Calendar boundaries and peak listening hours use UTC, which is Iceland time. Reports use the public catalog currently deployed; deleted songs are omitted. Administrator activity is excluded. An owner may opt to include events marked as QA.
 
-Dated periods count timestamped song_events: play_start, play_25, play_50, play_75, play_finished, open, download_song and download_lyrics. Progress milestones count playback sessions reaching each point, including repeats, and do not inflate play-start counts. A normal media-ended event counts as finished; a track advance initiated by the listener does not. All-time totals retain song_analytics counters. Dated progress milestones and the all-time daily chart cover the last 90 days; they are not reconstructions of lifetime counters. Missing old event history is not backfilled. Likes remain explicitly lifetime totals because historical likes lack per-like timestamps.
+## Website activity
 
-Reads retain the existing administrator MFA and database RLS checks. No listener identifiers are returned to Studio; analytics queries select only event ID, song ID, type and timestamp. The server still stores the existing IP-derived hash for uniqueness and rate limits. Ordered pages prevent the default 1,000-row limit from silently truncating results. Ranges exceeding 50,000 rows show an error asking for a shorter period rather than partial totals. The database interaction RPC must allow the new event types before this client update can record them in production.
+- Page views and distinct browser-tab sessions for the home page, main sections, song-share view, and album pages.
+- First-entry referral source and allowlisted campaign tags, carried through internal navigation for that tab session.
+- Approximate country, broad device type, and clicks on supported music/social links or listening actions.
+- Destination clicks indicate a click only. They do not confirm a completed stream, follow, save, or pre-save.
+- Session IDs are random and held in `sessionStorage`; they do not verify a person or join activity across devices. Studio receives aggregates only.
+- The client sends only a referring hostname (no URL path or query), a restricted page key, allowed UTM values, and coarse device/country values. Raw IP addresses and full user-agent strings are not stored in the analytics rows.
+- Private inbox pages and Studio are not tracked. Owner/admin events are excluded; QA-tagged admin activity is excluded unless “Include marked QA checks” is selected.
 
-Validation: analytics model tests cover UTC boundaries, zero days, deleted songs, milestones, album aggregation, lifetime counter separation, pagination and incomplete-read errors. Build and targeted lint pass. Real administrator reads verified against existing data in local Studio. Public production and album release remain held.
+## Campaign tags
+
+Supported sources are facebook, instagram, tiktok, youtube, dia, google, spotify, suno, and other. Supported media and campaign values are allowlisted in `shared/site-analytics.js` and the database validation. Use `global-barangay-launch` for platform-level Global Barangay launch links, including Suno. Ready-to-use links live in the Manager workspace at `output/analytics/CAMPAIGN-LINKS.md`. Do not put names, email addresses, or other personal information in UTM tags.
+
+## Listening activity
+
+- Playback starts count only after the browser's `audio.play()` promise succeeds.
+- New 25%, 50%, and 75% milestones measure plausibly advancing media time, not a seek position. A “Finished” event is sent only after natural audio end and at least 95% counted listening time.
+- Milestones are deduplicated per playback in both the client and database. A playback that seeks forward does not receive credit for time skipped.
+- Estimated listening sessions use a random browser-tab ID for newly measured events. They are not verified people. Album reach is an intersection of sessions that started track 1 and each later track during the selected period; it does not prove order or one continuous listen.
+- New detailed song events and site page/click rows have 90-day reporting history. New session/playback IDs and listening-time details are cleared after 90 days while deidentified song-event counts remain. Existing pre-update network-hash history is unchanged.
+- All-time playback/download/like counters preserve legacy lifetime counters. The old all-time opens counter is mixed because the earlier client also recorded play starts as opens; it is labelled separately and must not be compared with new song-detail opens. Legacy progress positions are omitted from the new listened-time milestone totals.
+
+## Access and validation
+
+Aggregated website reports are read by the authenticated Studio server using service-role access; the public browser cannot query raw website analytics rows. Song event rows retain the existing RLS policy. The write endpoints validate event, session and playback UUIDs, restricted page/destination/source values, listening thresholds, same-origin requests, and per-IP HMAC rate limits. A scheduled database task prunes site event rows after 90 days and clears new playback identifiers after 90 days.
+
+Run focused checks with:
+
+```sh
+node --test tests/analytics.test.mjs tests/site-analytics.test.mjs tests/playback-progress.test.mjs
+```

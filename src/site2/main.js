@@ -10,11 +10,16 @@ import { bindLikes, setLikeCounts, syncLikes } from './likes';
 import { ListeningQueue, rankTracks, ALBUM_ID } from './listening-model';
 import { createAlbumPage } from './album-page';
 import { apiFetch } from '../adminAuth';
+import { startSiteAnalytics } from './site-analytics';
+import { createPlaybackProgress, observePlayback, playbackFinished, resetPlaybackSample } from '../../shared/playback-progress.js';
+
+startSiteAnalytics();
 
 
 const $ = s => document.querySelector(s);
 let songs = [];
 let filter='all', limit=8, current=-1;
+let activePlaybackId=null,playbackMetrics=createPlaybackProgress(0);
 const queue=new ListeningQueue();
 let statistics=[], albumPage;
 let releaseState={globalBarangayReleased:false};
@@ -82,8 +87,8 @@ async function play(index,{fromQueue=false,force=false}={}){
  // play request in the same task, which gives mobile browsers the best chance to
  // continue the album while the page is backgrounded.
  const start=audio.play();
- $('#player-title').textContent=song.title;$('#player-artist').textContent=song.artist||'DJ-Buang';$('#player-cover').src=song.coverUrl;$('#player-cover').hidden=false;updateDownload();updateMediaSession();progressMilestones.clear();track(song.id,'open');track(song.id,'play_start');
- try{await start;}catch(error){if(error?.name!=='AbortError'){const message=error?.name==='NotAllowedError'?'Your browser paused playback between tracks. Unlock your phone and tap Play to continue.':'The next track could not start. Unlock your phone and tap Play to retry.';$('#player-artist').textContent=message;toast(message);try{if('mediaSession'in navigator)navigator.mediaSession.playbackState='paused';}catch{/* Optional browser feature. */}}}render();
+ $('#player-title').textContent=song.title;$('#player-artist').textContent=song.artist||'DJ-Buang';$('#player-cover').src=song.coverUrl;$('#player-cover').hidden=false;updateDownload();updateMediaSession();activePlaybackId=crypto.randomUUID();playbackMetrics=createPlaybackProgress(0);
+ try{await start;track(song.id,'play_start',{playbackId:activePlaybackId});}catch(error){if(error?.name!=='AbortError'){const message=error?.name==='NotAllowedError'?'Your browser paused playback between tracks. Unlock your phone and tap Play to continue.':'The next track could not start. Unlock your phone and tap Play to retry.';$('#player-artist').textContent=message;toast(message);try{if('mediaSession'in navigator)navigator.mediaSession.playbackState='paused';}catch{/* Optional browser feature. */}}}render();
 }
 function updateDownload(){
  const button=$('#player-like');button.hidden=current<0||!songs[current];
@@ -107,13 +112,17 @@ $('#player-clear').onclick=()=>{
  $('#player-title').textContent='Your next favourite is waiting';$('#player-artist').textContent='Choose a song and press play';
  $('#player-cover').removeAttribute('src');$('#player-cover').hidden=true;
  $('#elapsed').textContent='0:00';$('#duration').textContent='0:00';$('#seek').value=0;
- progressMilestones.clear();updateDownload();updateMediaSession();render();renderQueueIfOpen();
+ activePlaybackId=null;playbackMetrics=createPlaybackProgress(0);updateDownload();updateMediaSession();render();renderQueueIfOpen();
  toast(cleared?'Current song cleared. Your upcoming songs are still queued.':'Current song cleared.');
 };
 $('#previous').onclick=()=>{if(audio.currentTime>3){audio.currentTime=0;return;}playQueued(queue.previous());};
 $('#next').onclick=()=>advanceQueue();
-audio.onplay=()=>{$('#play').textContent='Ⅱ';$('#play').setAttribute('aria-label','Pause');updateMediaSession();render();};audio.onpause=()=>{$('#play').textContent='▶';$('#play').setAttribute('aria-label','Play');updateMediaSession();render();};audio.onended=()=>{if(current>=0){const id=songs[current].id;recordProgress(id,1);if(!progressMilestones.has('play_finished')){progressMilestones.add('play_finished');track(id,'play_finished');}}advanceQueue(true);};
-audio.addEventListener('loadedmetadata',updateMediaSession);audio.addEventListener('timeupdate',()=>{if(!audio.paused)updateMediaSession();});
+audio.onplay=()=>{$('#play').textContent='Ⅱ';$('#play').setAttribute('aria-label','Pause');updateMediaSession();render();};audio.onpause=()=>{$('#play').textContent='▶';$('#play').setAttribute('aria-label','Play');updateMediaSession();render();};
+audio.addEventListener('loadedmetadata',()=>{updateMediaSession();if(current>=0&&activePlaybackId&&Number.isFinite(audio.duration)&&audio.duration>0){playbackMetrics.durationSeconds=audio.duration;resetPlaybackSample(playbackMetrics,{mediaSeconds:audio.currentTime,wallSeconds:performance.now()/1000,seeking:audio.seeking});}});
+audio.onended=()=>{if(current>=0){const id=songs[current].id;observeProgress(true);if(playbackFinished(playbackMetrics))track(id,'play_finished',progressDetails());}advanceQueue(true);};
+audio.addEventListener('timeupdate',()=>{if(!audio.paused){updateMediaSession();observeProgress();}});
+audio.addEventListener('seeking',()=>{if(playbackMetrics.durationSeconds)resetPlaybackSample(playbackMetrics,{mediaSeconds:audio.currentTime,wallSeconds:performance.now()/1000,seeking:true});});
+audio.addEventListener('seeked',()=>{if(playbackMetrics.durationSeconds)resetPlaybackSample(playbackMetrics,{mediaSeconds:audio.currentTime,wallSeconds:performance.now()/1000,seeking:false});});
 setMediaAction('play',()=>audio.play().catch(()=>{}));setMediaAction('pause',()=>audio.pause());setMediaAction('nexttrack',()=>advanceQueue());setMediaAction('previoustrack',()=>{if(audio.currentTime>3)audio.currentTime=0;else playQueued(queue.previous());});setMediaAction('seekto',event=>{if(Number.isFinite(event.seekTime))audio.currentTime=event.seekTime;});
 const time=n=>Number.isFinite(n)?`${Math.floor(n/60)}:${String(Math.floor(n%60)).padStart(2,'0')}`:'0:00';
 audio.ontimeupdate=()=>{$('#elapsed').textContent=time(audio.currentTime);$('#duration').textContent=time(audio.duration);$('#seek').value=audio.duration?audio.currentTime/audio.duration*100:0;};
@@ -132,10 +141,12 @@ installHelp();
 
 albumPage=createAlbumPage({getSongs:()=>songs,getRelease:()=>releaseState.globalBarangayReleased,getPreview:()=>releaseState.localAlbumPreview,getAlbum:()=>albumSettings,playAlbum,detail,esc});
 connect({detail,$,getSongs:()=>songs,setSongs:value=>songs=value,getCurrent:()=>current,setCurrent:value=>current=value,settings,audio,render,updateDownload,modal,esc,toast,onCatalogReady:()=>{refreshAlbumSettings().then(()=>albumPage.render());restoreListening();queue.reconcile(songs.map(song=>song.id));albumPage.render();renderQueueIfOpen();loadMusicStats();},getPreviewSongs:loadAdminAlbumPreview,isVisibleSong:song=>song.albumId!==ALBUM_ID||releaseState.globalBarangayReleased});
-const progressMilestones=new Set();
-function track(id,type){interaction(id,type).catch(()=>{});}
-function recordProgress(songId,progress){for(const [threshold,event] of [[.25,'play_25'],[.5,'play_50'],[.75,'play_75']])if(progress>=threshold&&!progressMilestones.has(event)){progressMilestones.add(event);track(songId,event);}}
-audio.addEventListener('timeupdate',()=>{if(!audio.paused&&current>=0&&audio.duration>0)recordProgress(songs[current].id,audio.currentTime/audio.duration);});
+function progressDetails(){const durationSeconds=Math.max(1,Math.ceil(playbackMetrics.durationSeconds));return {playbackId:activePlaybackId,durationSeconds,listenedSeconds:Math.min(durationSeconds,Math.max(0,Math.ceil(playbackMetrics.listenedSeconds)))};}
+function track(id,type,details={}){interaction(id,type,details).catch(()=>{});}
+function observeProgress(naturalEnd=false){
+ if(current<0||!activePlaybackId||!playbackMetrics.durationSeconds)return;
+ for(const eventType of observePlayback(playbackMetrics,{mediaSeconds:audio.currentTime,wallSeconds:performance.now()/1000,playbackRate:audio.playbackRate,paused:naturalEnd?false:audio.paused,seeking:audio.seeking}))track(songs[current].id,eventType,progressDetails());
+}
 
 document.querySelector('#inbox-open').onclick=()=>openMyConversations(modal).catch(error=>toast(error.message));
 if(new URLSearchParams(location.search).get('inbox')==='1')openMyConversations(modal).catch(error=>toast(error.message));

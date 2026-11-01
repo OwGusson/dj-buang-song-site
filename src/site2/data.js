@@ -13,7 +13,14 @@ export async function studioAudience(options={}) {
  if(!response.ok)throw Error('Audience estimates could not be loaded. Please sign in again.');
  return response.json();
 }
+export async function studioSiteAnalytics(options={}) {
+ const query=new URLSearchParams({kind:'site',...options});
+ const response=await apiFetch('/api/studio-data?'+query);
+ if(!response.ok)throw Error('Website analytics could not be loaded. Please sign in again.');
+ return response.json();
+}
 import { apiFetch, verifyAdmin } from '../adminAuth';
+import {siteSessionId} from './site-analytics';
 export function requireWrites() {
   if (import.meta.env.DEV && import.meta.env.VITE_ALLOW_LIVE_WRITES !== 'true') throw new Error('This development preview does not save changes. Changes will be enabled on the deployed site.');
 }
@@ -48,9 +55,12 @@ export async function updateInbox(table,id,patch) {
   const response=await apiFetch('/api/studio-data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:table==='song_requests'?'requests':'messages',id,patch})});
   if(!response.ok)throw Error('The change could not be saved. Please reload and try again.');
 }
-export async function interaction(songId,eventType) {
+export async function interaction(songId,eventType,details={}) {
   if(import.meta.env.DEV)return null;
-  const response=await apiFetch('/api/interactions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({songId,eventType})});
+  const legacy=eventType==='like'||eventType==='open';
+  const response=await apiFetch('/api/interactions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(legacy?{songId,eventType}:{
+    songId,eventType,...details,eventId:crypto.randomUUID(),sessionId:siteSessionId(),qaMarker:new URLSearchParams(location.search).get('analytics_qa')==='1'
+  })});
   if(!response.ok)throw new Error('This action could not be recorded.');
   return response.json();
 }

@@ -21,6 +21,25 @@ test('all-time counters are not double counted with dated chart activity',()=>{
  const result=summarizeAnalytics({songs,totals:[{song_id:'a',plays:42,song_downloads:2},{song_id:'deleted',plays:500}],events:[event('a','play_start')],window:analyticsWindow('all',now)});
  assert.equal(result.totals.plays,42);assert.equal(result.daily.reduce((sum,row)=>sum+row.plays,0),1);assert.equal(result.daily.length,90);
 });
+test('each dated progress event is counted once per period',()=>{
+ for(const period of ['today','week','month','all']){
+  const window=analyticsWindow(period,now),playback='258a5950-c436-4b24-ae26-9c83e61011ee';
+  const events=['play_25','play_50','play_75','play_finished'].flatMap((event_type,index)=>[
+   {...event('a',event_type),id:index+1,measurement_version:2,playback_id:playback},
+   {...event('a',event_type),id:index+1,measurement_version:2,playback_id:playback},
+  ]);
+  const result=summarizeAnalytics({songs,events,window});
+  assert.deepEqual([result.totals.reached25,result.totals.reached50,result.totals.reached75,result.totals.finished],[1,1,1,1],period);
+ }
+});
+test('new detail opens do not inherit legacy play-open counters',()=>{
+ const result=summarizeAnalytics({songs,totals:[{song_id:'a',opens:100}],events:[{...event('a','song_detail_open'),id:1,measurement_version:2}],window:analyticsWindow('week',now)});
+ assert.equal(result.totals.opens,1);
+ assert.equal(result.totals.legacyOpens,0);
+ const all=summarizeAnalytics({songs,totals:[{song_id:'a',opens:100}],events:[{...event('a','song_detail_open'),id:1,measurement_version:2}],window:analyticsWindow('all',now)});
+ assert.equal(all.totals.opens,1);
+ assert.equal(all.totals.legacyOpens,100);
+});
 test('analytics pagination loads beyond first page and rejects errors or truncated ranges',async()=>{
  const calls=[];const rows=await readAnalyticsPages(()=>({range:async(from,to)=>{calls.push([from,to]);return {data:from===0?Array(1000).fill({}):[{}]};}}));assert.equal(rows.length,1001);assert.deepEqual(calls,[[0,999],[1000,1999]]);
  await assert.rejects(readAnalyticsPages(()=>({range:async()=>({error:{message:'denied'}})})),/could not be loaded/);
