@@ -1,6 +1,6 @@
 # DJ-Buang Studio analytics
 
-Studio reports anonymous website sessions and listening activity in Today, Last 7 days, Last 30 days, and Last 90 days. Calendar boundaries and peak listening hours use UTC, which is Iceland time. Reports use the public catalog currently deployed; deleted songs are omitted. Administrator activity is excluded. An owner may opt to include events marked as QA.
+Studio reports anonymous website sessions and listening activity in Today, Last 7 days, Last 30 days, and Last 90 days. Calendar boundaries and peak listening hours use UTC, which is Iceland time. Song reports cover tracks currently in the Studio library, including hidden and draft tracks; they are not public-catalog totals. Deleted songs are omitted. Administrator activity is excluded. An owner may opt to include events marked as QA.
 
 ## Website activity
 
@@ -22,8 +22,10 @@ Supported sources are facebook, instagram, tiktok, youtube, dia, google, spotify
 - New 25%, 50%, and 75% milestones measure plausibly advancing media time, not a seek position. A “Finished” event is sent only after natural audio end and at least 95% counted listening time.
 - Milestones are deduplicated per playback in both the client and database. A playback that seeks forward does not receive credit for time skipped.
 - Estimated listening sessions use a random browser-tab ID for newly measured events. They are not verified people. Album reach is an intersection of sessions that started track 1 and each later track during the selected period; it does not prove order or one continuous listen.
+- Dated playback starts and downloads include retained legacy events and new public events. The new session and listened-time milestone measures are available only from the analytics rollout onward and do not backfill older plays.
+- Historical distinct-listener estimates are counted from legacy network hashes only. New tab sessions are counted separately; do not add or compare the two measures as if they identified the same people.
 - New detailed song events and site page/click rows have 90-day reporting history. New session/playback IDs and listening-time details are cleared after 90 days while deidentified song-event counts remain. Existing pre-update network-hash history is unchanged.
-- All-time playback/download/like counters preserve legacy lifetime counters. The old all-time opens counter is mixed because the earlier client also recorded play starts as opens; it is labelled separately and must not be compared with new song-detail opens. Legacy progress positions are omitted from the new listened-time milestone totals.
+- “Last 90 days” is a dated event window. Its playback-start/download figures are date-filtered; the lifetime playback/download counters and likes are labelled separately and may predate that window. They reflect available counters for current Studio-library tracks, not public-catalog-only totals. The old opens counter is mixed because the earlier client also recorded play starts as opens; it is labelled separately and must not be compared with new song-detail opens. Legacy progress positions are omitted from the new listened-time milestone totals.
 
 ## Access and validation
 

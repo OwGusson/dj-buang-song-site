@@ -40,6 +40,36 @@ test('new detail opens do not inherit legacy play-open counters',()=>{
  assert.equal(all.totals.opens,1);
  assert.equal(all.totals.legacyOpens,100);
 });
+test('retained legacy starts and downloads stay visible without mixing old progress or listener IDs with new sessions',()=>{
+ const week=analyticsWindow('week',new Date('2026-11-01T12:00:00Z'));
+ const legacyStarts=Array.from({length:76},(_,index)=>({...event('a','play_start',`2026-10-31T12:${String(index%60).padStart(2,'0')}:00Z`),id:index+1,traffic_scope:'legacy',listener_id:`old-network-${index%3}`}));
+ const events=[...legacyStarts,
+  {...event('a','play_start','2026-10-31T18:00:00Z'),id:2000,measurement_version:2,traffic_scope:'public',session_id:'new-tab-a'},
+  {...event('a','play_25','2026-10-31T18:01:00Z'),id:2001,measurement_version:2,traffic_scope:'public',playback_id:'playback-a'},
+  {...event('a','play_finished','2026-10-31T18:02:00Z'),id:2007,measurement_version:2,traffic_scope:'public',playback_id:'playback-a'},
+  {...event('a','play_75','2026-10-31T18:02:00Z'),id:2002,traffic_scope:'legacy'},
+  {...event('a','download_song','2026-10-31T18:03:00Z'),id:2003,traffic_scope:'legacy'},
+  {...event('a','download_lyrics','2026-10-31T18:04:00Z'),id:2004,measurement_version:2,traffic_scope:'public'},
+  {...event('a','play_start','2026-10-31T18:05:00Z'),id:2005,measurement_version:2,traffic_scope:'admin',session_id:'admin-tab'},
+  {...event('a','play_50','2026-10-31T18:06:00Z'),id:2006,measurement_version:2,traffic_scope:'qa',playback_id:'qa-playback'},
+ ];
+ const audience={uniqueListeners:1,returningListeners:0,trackListeners:{a:1},legacyNetworkListeners:3,trackLegacyNetworkListeners:{a:3}};
+ const result=summarizeAnalytics({songs,events,audience,window:week});
+ assert.equal(result.totals.periodPlays,77);
+ assert.equal(result.totals.song_downloads,1);
+ assert.equal(result.totals.lyrics_downloads,1);
+ assert.equal(result.totals.reached25,1);
+ assert.equal(result.totals.reached75,0,'legacy position-based progress is not a listened-time milestone');
+ assert.equal(result.totals.reached50,0,'QA is excluded by default');
+ assert.equal(result.tracks.find(row=>row.song.id==='a').uniqueListeners,1);
+ assert.equal(result.tracks.find(row=>row.song.id==='a').legacyNetworkListeners,3);
+ assert.equal(result.tracks.find(row=>row.song.id==='a').measuredPlays,1);
+ assert.equal(result.tracks.find(row=>row.song.id==='a').completionRate,1,'completion uses the newly measured start denominator, not combined legacy starts');
+ assert.equal(result.tracks.find(row=>row.song.id==='a').replaysPerListener,1,'starts per session uses newly measured starts only');
+ const qaIncluded=summarizeAnalytics({songs,events,audience,window:week,includeQA:true});
+ assert.equal(qaIncluded.totals.periodPlays,77,'QA milestone events do not count as play starts');
+ assert.equal(qaIncluded.totals.reached50,1);
+});
 test('analytics pagination loads beyond first page and rejects errors or truncated ranges',async()=>{
  const calls=[];const rows=await readAnalyticsPages(()=>({range:async(from,to)=>{calls.push([from,to]);return {data:from===0?Array(1000).fill({}):[{}]};}}));assert.equal(rows.length,1001);assert.deepEqual(calls,[[0,999],[1000,1999]]);
  await assert.rejects(readAnalyticsPages(()=>({range:async()=>({error:{message:'denied'}})})),/could not be loaded/);
