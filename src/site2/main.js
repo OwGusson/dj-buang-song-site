@@ -53,7 +53,11 @@ function updateMediaSession(){
  const details={title:String(song.title||'DJ-Buang'),artist,album:String(song.albumTitle||(song.id==='buang-after-dark'?'Buang After Dark · Single':song.albumId==='global-barangay'?'Global Barangay':'DJ-Buang · Single'))};
  try{
   const fallback=new window.MediaMetadata(details);
-  try{navigator.mediaSession.metadata=new window.MediaMetadata({...details,artwork:song.coverUrl?[{src:new URL(song.coverUrl,location.href).href,sizes:'512x512'}]:[]});}
+  const artworkUrl=song.coverUrl?new URL(song.coverUrl,location.href):null;
+  const extension=artworkUrl?.pathname.match(/\.(avif|jpe?g|png|webp)$/i)?.[1]?.toLowerCase();
+  const artworkType=extension==='jpg'||extension==='jpeg'?'image/jpeg':extension?'image/'+extension:undefined;
+  const artwork=artworkUrl?[{src:artworkUrl.href,sizes:'512x512',...(artworkType?{type:artworkType}:{})}]:[];
+  try{navigator.mediaSession.metadata=new window.MediaMetadata({...details,artwork});}
   catch{navigator.mediaSession.metadata=fallback;}
  }catch{/* Media metadata is an optional enhancement. */}
  try{navigator.mediaSession.playbackState=audio.paused?'paused':'playing';}catch{/* Some browsers expose a read-only media session. */}
@@ -88,7 +92,7 @@ async function play(index,{fromQueue=false,force=false}={}){
  // continue the album while the page is backgrounded.
  const start=audio.play();
  $('#player-title').textContent=song.title;$('#player-artist').textContent=song.artist||'DJ-Buang';$('#player-cover').src=song.coverUrl;$('#player-cover').hidden=false;updateDownload();updateMediaSession();activePlaybackId=crypto.randomUUID();playbackMetrics=createPlaybackProgress(0);
- try{await start;track(song.id,'play_start',{playbackId:activePlaybackId});}catch(error){if(error?.name!=='AbortError'){const message=error?.name==='NotAllowedError'?'Your browser paused playback between tracks. Unlock your phone and tap Play to continue.':'The next track could not start. Unlock your phone and tap Play to retry.';$('#player-artist').textContent=message;toast(message);try{if('mediaSession'in navigator)navigator.mediaSession.playbackState='paused';}catch{/* Optional browser feature. */}}}render();
+ try{await start;track(song.id,'play_start',{playbackId:activePlaybackId});}catch(error){if(error?.name!=='AbortError'){const message=error?.name==='NotAllowedError'?'Your browser paused playback between tracks. Unlock your phone and tap Play to continue.':error?.name==='NotSupportedError'?'This track format could not be played by your browser. Please try it again from the collection.':'The next track could not start ('+(error?.name||'media error')+'). Unlock your phone and tap Play to retry.';$('#player-artist').textContent=message;toast(message);try{if('mediaSession'in navigator)navigator.mediaSession.playbackState='paused';}catch{/* Optional browser feature. */}}}render();
 }
 function updateDownload(){
  const button=$('#player-like');button.hidden=current<0||!songs[current];
