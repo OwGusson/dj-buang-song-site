@@ -5,6 +5,7 @@ export const albumPath = '/albums/global-barangay';
 const streamingStores=[
   {key:'spotify',label:'Spotify',url:'https://open.spotify.com/album/6pY0KPjDlIDFhjSxupNkj2'},
   {key:'apple',label:'Apple Music',url:'https://music.apple.com/is/album/global-barangay/6830498338'},
+  {key:'amazon',label:'Amazon Music',url:'https://music.amazon.com/albums/B0HQC67P54'},
   {key:'youtube',label:'YouTube Music',url:'https://music.youtube.com/search?q=Global+Barangay+DJ-Buang',search:true}
 ];
 export function createAlbumPage({ getSongs, getRelease, getPreview=()=>false, getAlbum=()=>({status:'available'}), playAlbum, detail, esc }) {
