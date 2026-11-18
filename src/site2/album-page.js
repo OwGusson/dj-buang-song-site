@@ -26,6 +26,11 @@ export function createAlbumPage({ getSongs, getRelease, getPreview=()=>false, ge
   };
   function render() {
     const settings=getAlbum(), hidden=['draft','hidden'].includes(settings.status), platforms=settings.status==='platforms';
+
+    const teaserCard=document.querySelector('#christmas-ep-teaser');
+    const singleFeature=hidden||getPreview();
+    if(teaserCard)teaserCard.hidden=singleFeature;
+    document.querySelector('.release-showcase')?.classList.toggle('single-feature',singleFeature);
     const hero=document.querySelector('#album');hero.hidden=hidden;announcement.hidden=hidden;
     document.querySelector('nav a[href="'+albumPath+'"]').hidden=hidden;
     if(hidden){document.querySelector('#album-page').innerHTML='<a class="text-button" href="/#music">← Back to the collection</a><h1>Album unavailable</h1><p>This album is not currently available here.</p>';return;}
@@ -46,7 +51,7 @@ export function createAlbumPage({ getSongs, getRelease, getPreview=()=>false, ge
       ? '<div class="release-announcement-main"><span class="release-announcement-copy"><b>GLOBAL BARANGAY · PRIVATE ALBUM PREVIEW</b><small>Not published.</small></span></div>'
       : `<div class="release-announcement-main"><span class="release-announcement-copy"><b>GLOBAL BARANGAY IS OUT NOW</b><small>Choose a streaming platform.</small></span>${streamingLinksMarkup(settings,true)}<a class="website-listen-link" href="${albumPath}">Listen here ↗</a></div>`
       : '<div class="release-announcement-main"><span class="release-announcement-copy"><b>GLOBAL BARANGAY</b><small>The album is taking shape.</small></span><a href="'+albumPath+'">Explore the album ↗</a></div>';
-    announcement.innerHTML = `${releaseCopy}${localPreview?'':'<div class="christmas-tease"><img src="/lets-get-buang-this-christmas-teaser.jpg" alt="Lets Get Buang This Christmas EP cover" width="56" height="56" loading="lazy"><div class="christmas-tease-copy"><span>COMING SOON</span><strong>Let&#8217;s Get Buang This Christmas</strong><small>All five songs are complete</small></div></div>'}`;
+    announcement.innerHTML = releaseCopy;
     document.querySelector('.hero-copy > .eyebrow').innerHTML = `<span class="signal"></span> ${released ? (localPreview ? 'PRIVATE ALBUM PREVIEW · NOT PUBLISHED' : 'GLOBAL BARANGAY · OUT NOW') : 'A NEW CHAPTER'}`;
     document.querySelector('.hero-foot span:last-child').textContent = released ? (localPreview ? 'PRIVATE PREVIEW' : 'OUT NOW') : 'COMING SOON';
     document.querySelector('#album-open').innerHTML = `${released ? 'Listen here' : 'Explore the album'} <span>↗</span>`;

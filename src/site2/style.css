@@ -114,3 +114,25 @@ header .brand img{width:76px;height:76px;object-fit:contain}header .brand small{
  .platform-links{gap:8px}
  .platform-links .stream-link{min-height:42px;padding:10px 14px;font-size:11px}
 }
+/* Present the released album and the upcoming Christmas EP as balanced features. */
+.release-showcase{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:clamp(14px,2vw,28px);align-items:stretch;margin:18px 4vw 0}
+.release-showcase.single-feature{grid-template-columns:1fr}
+.release-showcase>.hero{min-height:390px;margin:0;grid-template-columns:minmax(0,1.05fr) minmax(220px,.95fr);background:#101720;border:1px solid #263747}
+.release-showcase .hero-copy{padding:32px 8px 24px 24px}
+.release-showcase .hero h1{font-size:clamp(48px,5vw,78px);margin:24px 0 18px}
+.release-showcase .hero-description{font-size:14px;line-height:1.55}
+.release-showcase .hero-actions{gap:18px;flex-wrap:wrap}
+.release-showcase .hero-actions .primary{padding:12px 16px;font-size:11px}
+.release-showcase .hero-foot{font-size:8px}
+.release-showcase .hero-art{margin:20px 16px 20px 0}
+.release-showcase .hero-art.album-cover{width:100%;max-width:310px;justify-self:center}
+.christmas-feature{min-width:0;display:grid;grid-template-columns:minmax(130px,.8fr) minmax(0,1.2fr);align-items:center;gap:clamp(12px,1.6vw,22px);padding:clamp(18px,2vw,28px);background:linear-gradient(145deg,#112536 0%,#0d141d 65%,#151920);border:1px solid #263747}
+.christmas-feature>img{display:block;width:100%;max-width:240px;aspect-ratio:1;object-fit:cover;border:1px solid #395168;border-radius:5px}
+.christmas-feature-copy{min-width:0}
+.christmas-feature-copy h2{font-family:'Barlow Condensed',Impact,sans-serif;font-size:clamp(34px,3.2vw,48px);line-height:.94;letter-spacing:-.02em;margin:12px 0}
+.christmas-feature-status{display:inline-block;color:#83daff;font-size:9px;line-height:1.5;letter-spacing:1px;font-weight:700}
+.christmas-feature-copy p{font-size:12px;line-height:1.6;color:#a9bdcb;margin:12px 0}
+.christmas-follow{display:inline-block;margin-top:8px;color:#8edfff;font-size:11px;font-weight:700;border-bottom:1px solid #38627a;padding-bottom:4px}
+.christmas-follow:hover{color:#fff}
+@media(max-width:1000px){.release-showcase{grid-template-columns:1fr;gap:16px}.release-showcase>.hero{min-height:340px}.release-showcase .hero h1{font-size:clamp(58px,8vw,88px)}.christmas-feature{grid-template-columns:minmax(150px,.55fr) 1.45fr}.christmas-feature-copy h2{font-size:clamp(38px,6vw,54px)}}
+@media(max-width:680px){.release-showcase{margin:14px 5vw 0;gap:12px}.release-showcase>.hero{grid-template-columns:1fr;min-height:0}.release-showcase .hero-copy{padding:28px 20px 18px}.release-showcase .hero h1{font-size:clamp(56px,15vw,80px);margin:22px 0 17px}.release-showcase .hero-description{font-size:14px;margin-bottom:18px}.release-showcase .hero-art.album-cover{max-width:360px;margin:0 auto 18px}.release-showcase .hero-foot{padding-top:24px}.christmas-feature{grid-template-columns:clamp(100px,32vw,132px) minmax(0,1fr);gap:14px;padding:14px}.christmas-feature-copy h2{font-size:clamp(28px,8vw,38px);margin:8px 0}.christmas-feature-status{font-size:8px;letter-spacing:.6px}.christmas-feature-copy p{font-size:11px;margin:8px 0}.christmas-follow{margin-top:4px}}
